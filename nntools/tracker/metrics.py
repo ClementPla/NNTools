@@ -38,7 +38,7 @@ def mIoU(pred, gt, num_classes=-1, epsilon=1e-5, *args):
     confMat = confusion_matrix(pred, gt, num_classes)
     intersection = torch.diag(confMat)
     union = confMat.sum(0) + confMat.sum(1) - intersection
-    return torch.mean(intersection / (union + epsilon))
+    return torch.mean(intersection / (union + epsilon)).item()
 
 
 def mIoU_cm(confMat, epsilon=1e-5):
@@ -67,4 +67,4 @@ def report_cm(confMat, epsilon=1e-7):
     sensitivity = TP / (P + epsilon)
     specificity = TN / (N + epsilon)
     precision = TP / (TP + FP + epsilon)
-    return {'sensitivity': sensitivity.mean(), 'specificity': specificity.mean(), 'precision': precision.mean()}
+    return {'sensitivity': sensitivity.mean().item(), 'specificity': specificity.mean().item(), 'precision': precision.mean().item()}

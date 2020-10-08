@@ -166,8 +166,6 @@ class Trainer(Manager):
                 train_sampler.set_epoch(e)
             with tqdm.tqdm(total=len(train_loader)) as pbar:
                 for i, batch in (enumerate(train_loader)):
-                    if rank == 0 or not self.multi_gpu:
-                        pbar.update(1)
                     img = batch[0].cuda(rank)
                     gt = batch[1].cuda(rank)
                     with autocast(enabled=self.config['Manager']['amp']):
@@ -187,6 +185,10 @@ class Trainer(Manager):
                                 self.validate(model, iteration, rank)
                         if self.multi_gpu:
                             dist.barrier()
+
+                    if rank == 0 or not self.multi_gpu:
+                        pbar.update(1)
+
                 if self.validation_dataset is None:
                     self.save_model(model, filename='iteration_%i_loss_%f' % (iteration, loss.item()))
 
