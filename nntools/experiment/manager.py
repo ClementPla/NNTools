@@ -159,7 +159,7 @@ class Trainer(Manager):
         iters_to_accumulate = self.config['Training']['iters_to_accumulate']
         scaler = GradScaler(enabled=self.config['Manager']['grad_scaling'])
 
-        for e in self.config['Training']['epochs']:
+        for e in range(self.config['Training']['epochs']):
             if train_sampler is not None:
                 train_sampler.set_epoch(e)
 
