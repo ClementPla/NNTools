@@ -164,7 +164,7 @@ class Trainer(Manager):
         for e in range(self.config['Training']['epochs']):
             if train_sampler is not None:
                 train_sampler.set_epoch(e)
-            with tqdm(total=len(train_loader)) as pbar:
+            with tqdm.tqdm(total=len(train_loader)) as pbar:
                 for i, batch in (enumerate(train_loader)):
                     if rank == 0 or not self.multi_gpu:
                         pbar.update(1)
