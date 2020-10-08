@@ -164,29 +164,31 @@ class Trainer(Manager):
         for e in range(self.config['Training']['epochs']):
             if train_sampler is not None:
                 train_sampler.set_epoch(e)
+            with tqdm(total=len(train_loader)) as pbar:
+                for i, batch in (enumerate(train_loader)):
+                    if rank == 0 or not self.multi_gpu:
+                        pbar.update(1)
+                    img = batch[0].cuda(rank)
+                    gt = batch[1].cuda(rank)
+                    with autocast(enabled=self.config['Manager']['amp']):
+                        pred = model(img)
+                        loss = self.loss(pred, gt) / iters_to_accumulate
 
-            for i, batch in tqdm.tqdm(enumerate(train_loader), total=len(train_loader)):
-                img = batch[0].cuda(rank)
-                gt = batch[1].cuda(rank)
-                with autocast(enabled=self.config['Manager']['amp']):
-                    pred = model(img)
-                    loss = self.loss(pred, gt) / iters_to_accumulate
+                    scaler.scale(loss).backward()
+                    if (i + 1) % iters_to_accumulate == 0:
+                        scaler.step(optimizer)
+                        scaler.update()
+                        optimizer.zero_grad()
 
-                scaler.scale(loss).backward()
-                if (i + 1) % iters_to_accumulate == 0:
-                    scaler.step(optimizer)
-                    scaler.update()
-                    optimizer.zero_grad()
-
-                iteration = i + e * len(train_loader)
-                if iteration % self.config['Validation']['log_interval']:
-                    if self.validation_dataset is not None:
-                        with torch.no_grad():
-                            self.validate(model, iteration, rank)
-                    if self.multi_gpu:
-                        dist.barrier()
-            if self.validation_dataset is None:
-                self.save_model(model, filename='iteration_%i_loss_%f' % (iteration, loss.item()))
+                    iteration = i + e * len(train_loader)
+                    if iteration % self.config['Validation']['log_interval']:
+                        if self.validation_dataset is not None:
+                            with torch.no_grad():
+                                self.validate(model, iteration, rank)
+                        if self.multi_gpu:
+                            dist.barrier()
+                if self.validation_dataset is None:
+                    self.save_model(model, filename='iteration_%i_loss_%f' % (iteration, loss.item()))
 
 
     @abstractmethod
