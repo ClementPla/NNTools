@@ -61,13 +61,13 @@ class Manager(ABC):
     def build_dataloader(self, dataset, shuffle=True):
         if self.multi_gpu:
             sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=shuffle)
-            dataloader = torch.utils.data.Dataloader(dataset, batch_size=self.batch_size,
+            dataloader = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
                                                      num_workers=self.config['Manager']['num_workers'],
                                                      pin_memory=True, sampler=sampler, worker_init_fn=set_non_torch_seed
                                                      )
         else:
             sampler = None
-            dataloader = torch.utils.data.Dataloader(dataset, batch_size=self.batch_size,
+            dataloader = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
                                                      num_workers=self.config['Manager']['num_workers'],
                                                      pin_memory=True, shuffle=shuffle, worker_init_fn=set_non_torch_seed)
         return dataloader, sampler
