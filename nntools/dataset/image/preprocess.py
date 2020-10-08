@@ -133,11 +133,11 @@ class ImageTransform:
             padh1, padh2 = padding(h, new_h)
             padw1, padw2 = padding(w, new_w)
             if img.ndim == 2:
-                img = np.pad(img, pad_width=[(padh1, padh2), (padw1, padw2)], constant_values=c)
+                img = np.pad(img, pad_width=[(padh1, padh2), (padw1, padw2)], constant_values=cls.cval)
             else:
-                img = np.pad(img, pad_width=[(padh1, padh2), (padw1, padw2), (0, 0)], constant_values=c)
+                img = np.pad(img, pad_width=[(padh1, padh2), (padw1, padw2), (0, 0)], constant_values=cls.cval)
             if mask is not None:
-                mask = np.pad(mask, pad_width=[(padh1, padh2), (padw1, padw2)], constant_values=c)
+                mask = np.pad(mask, pad_width=[(padh1, padh2), (padw1, padw2)], constant_values=cls.cval)
         if f >= 1:
             if mask is None:
                 img = cls.random_crop(img=img, pad=False, cval=cval, crop_size=(h, w))
