@@ -183,9 +183,11 @@ class Trainer(Manager):
                     if self.validation_dataset is not None:
                         with torch.no_grad():
                             self.validate(model, iteration, rank)
-
+                    if self.multi_gpu:
+                        dist.barrier()
             if self.validation_dataset is None:
                 self.save_model(model, filename='iteration_%i_loss_%f' % (iteration, loss.item()))
+
 
     @abstractmethod
     def validate(self, model, iteration, rank=0):
