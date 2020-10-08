@@ -71,9 +71,15 @@ class SegmentationDataset(Dataset):
         return len(self.img_filepath)
 
     def multiply(self, factor):
-        self.img_filepath = self.img_filepath*int(factor)
-        self.mask_filepath = self.mask_filepath*int(factor)
+        decimal = factor-int(factor)
+        factor = int(factor)
+        rest = int(decimal*len(self))
 
+        self.img_filepath = np.repeat(self.img_filepath, factor)
+        self.mask_filepath = np.repeat(self.mask_filepath, factor)
+        if rest:
+            self.img_filepath = np.concatenate((self.img_filepath, self.img_filepath[:rest]))
+            self.mask_filepath = np.concatenate((self.mask_filepath, self.mask_filepath[:rest]))
 
     def __getitem__(self, item):
         filepath = self.img_filepath[item]
