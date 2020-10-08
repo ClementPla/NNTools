@@ -179,7 +179,7 @@ class Trainer(Manager):
                         optimizer.zero_grad()
 
                     iteration = i + e * len(train_loader)
-                    if iteration % self.config['Validation']['log_interval']:
+                    if iteration % self.config['Validation']['log_interval'] == 0:
                         if self.validation_dataset is not None:
                             with torch.no_grad():
                                 self.validate(model, iteration, rank)
