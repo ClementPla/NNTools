@@ -70,6 +70,11 @@ class SegmentationDataset(Dataset):
     def __len__(self):
         return len(self.img_filepath)
 
+    def multiply(self, factor):
+        self.img_filepath = self.img_filepath*int(factor)
+        self.mask_filepath = self.mask_filepath*int(factor)
+
+
     def __getitem__(self, item):
         filepath = self.img_filepath[item]
         img = load_image(filepath)
