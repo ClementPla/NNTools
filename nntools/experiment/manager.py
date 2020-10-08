@@ -16,6 +16,7 @@ from nntools.nnet.loss import FuseLoss, DiceLoss
 from nntools.tracker import Tracker
 from nntools.utils.io import save_config
 
+
 class Manager(ABC):
     def __init__(self, config):
         self.config = config
@@ -25,11 +26,10 @@ class Manager(ABC):
         self.network_savepoint = os.path.join(self.run_folder, 'trained_model')
 
         if not os.path.exists(self.run_folder):
-            os.mkdir(self.run_folder)
+            os.makedirs(self.run_folder)
 
         if not os.path.exists(self.network_savepoint):
-            os.mkdir(self.run_folder)
-
+            os.makedirs(self.network_savepoint)
 
         self.set_seed()
         self.world_size = len(self.config['Manager']['gpu'])
