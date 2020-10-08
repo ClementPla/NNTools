@@ -155,7 +155,7 @@ class Trainer(Manager):
 
     def train(self, model, optimizer, rank=0):
         from torch.cuda.amp import autocast, GradScaler
-        train_loader, train_sampler = self.build_dataloader()
+        train_loader, train_sampler = self.build_dataloader(self.dataset)
         iters_to_accumulate = self.config['Training']['iters_to_accumulate']
         scaler = GradScaler(enabled=self.config['Manager']['grad_scaling'])
 
