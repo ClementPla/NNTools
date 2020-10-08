@@ -78,6 +78,7 @@ class Decoder(nn.Module):
         x = torch.cat((x, decoder_f), dim=1)
         return self.classifier(x)
 
+
 model_urls = {
     'fcn_resnet50_coco': 'https://download.pytorch.org/models/fcn_resnet50_coco-1167a1af.pth',
     'fcn_resnet101_coco': 'https://download.pytorch.org/models/fcn_resnet101_coco-7ecb50ca.pth',

@@ -3,6 +3,7 @@ import os
 
 import cv2
 import numpy as np
+import torch
 from torch.utils.data import Dataset
 
 from nntools.dataset.image.preprocess import ImageTransform
@@ -92,9 +93,9 @@ class SegmentationDataset(Dataset):
             img = img.transpose(2, 0, 1)
 
         if self.use_masks:
-            return img, mask
+            return torch.from_numpy(img), torch.from_numpy(mask).long()
         else:
-            return img
+            return torch.from_numpy(img)
 
     def filename(self, items):
         filepaths = self.img_filepath[items]

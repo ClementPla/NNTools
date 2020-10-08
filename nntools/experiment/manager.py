@@ -1,7 +1,8 @@
+import glob
 import os
 from abc import ABC, abstractmethod
 from functools import partial
-import glob
+
 import mlflow
 import torch
 import torch.distributed as dist
@@ -69,7 +70,8 @@ class Manager(ABC):
             sampler = None
             dataloader = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
                                                      num_workers=self.config['Manager']['num_workers'],
-                                                     pin_memory=True, shuffle=shuffle, worker_init_fn=set_non_torch_seed)
+                                                     pin_memory=True, shuffle=shuffle,
+                                                     worker_init_fn=set_non_torch_seed)
         return dataloader, sampler
 
 
