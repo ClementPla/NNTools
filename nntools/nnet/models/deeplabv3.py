@@ -120,6 +120,6 @@ class Encoder(nn.Module):
         result = self.encoder(x)
         x = self.aspp(result['out'])
         if features:
-            return x, result['features']
+            return x, result['aux']
         else:
             return x
