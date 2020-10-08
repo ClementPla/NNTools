@@ -63,6 +63,3 @@ class AbstractNet(nn.Module):
         if not ignore_nan:
             check_nan(state_dict)
         self.load_state_dict(state_dict, strict=strict)
-
-    def parameters(self):
-        return self.parameters()
