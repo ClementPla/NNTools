@@ -31,7 +31,7 @@ def confusion_matrix(pred, gt, num_classes=-1, *args):
     """
     pred_one_hot = F.one_hot(pred.flatten(), num_classes)
     gt_one_hot = F.one_hot(gt.flatten(), num_classes)
-    return torch.matmul(pred_one_hot.t(), gt_one_hot)
+    return torch.matmul(pred_one_hot.t().float(), gt_one_hot.float()).long()
 
 
 def mIoU(pred, gt, num_classes=-1, epsilon=1e-5, *args):
