@@ -44,7 +44,7 @@ def mIoU(pred, gt, num_classes=-1, epsilon=1e-5, *args):
 def mIoU_cm(confMat, epsilon=1e-5):
     intersection = torch.diag(confMat)
     union = confMat.sum(0) + confMat.sum(1) - intersection
-    return torch.mean(intersection / (union + epsilon))
+    return torch.mean(intersection / (union + epsilon)).item()
 
 
 def filter_index_cm(confMat, index):
