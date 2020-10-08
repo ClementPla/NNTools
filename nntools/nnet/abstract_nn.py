@@ -64,5 +64,5 @@ class AbstractNet(nn.Module):
             check_nan(state_dict)
         self.load_state_dict(state_dict, strict=strict)
 
-    def get_parameters(self):
+    def parameters(self):
         return self.parameters()

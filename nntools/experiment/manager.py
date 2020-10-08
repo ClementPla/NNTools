@@ -120,7 +120,7 @@ class Trainer(Manager):
             dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size)
             model = DDP(model, device_ids=[rank])
 
-        optimizer = self.partial_optimizer(model.get_parameters())
+        optimizer = self.partial_optimizer(model.parameters())
         self.train(model, optimizer, rank)
         self.clean_up()
 
@@ -133,7 +133,7 @@ class Trainer(Manager):
         mlflow.log_metrics(metrics, step=step)
 
     def start(self):
-        assert self.loss is not None, "Missing loss function for training"
+        assert self.loss is not None, "Missing loss function for training, call set_loss() on trainer"
         assert self.partial_optimizer is not None, "Missing optimizer for training"
         assert self.dataset is not None, "Missing dataset"
         if self.validation_dataset is None:
