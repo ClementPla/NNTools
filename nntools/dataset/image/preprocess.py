@@ -78,9 +78,9 @@ class ImageTransform:
     @double_kwarg
     def horizontal_flip(cls, img, mask=None, **kwargs):
         p = sample((0, 1))
-        img = img[:, ::-1] if p else img
+        img = img[:, ::-1].copy() if p else img
         if mask is not None:
-            mask = mask[:, ::-1] if p else mask
+            mask = mask[:, ::-1].copy() if p else mask
             return img, mask
         return img
 
@@ -88,9 +88,9 @@ class ImageTransform:
     @double_kwarg
     def vertical_flip(cls, img, mask=None, **kwargs):
         p = sample((0, 1))
-        img = img[::-1, :] if p else img
+        img = img[::-1, :].copy() if p else img
         if mask is not None:
-            mask = mask[::-1, :] if p else mask
+            mask = mask[::-1, :].copy() if p else mask
             return img, mask
         return img
 
