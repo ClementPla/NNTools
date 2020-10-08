@@ -9,14 +9,13 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch.nn as nn
 import tqdm
-from torch.nn.parallel import DistributedDataParallel as DDP
 
 from nntools.dataset import SegmentationDataset
 from nntools.experiment.utils import set_seed, set_non_torch_seed
 from nntools.nnet.loss import FuseLoss, DiceLoss
 from nntools.tracker import Tracker
 from nntools.utils.io import save_config
-
+from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP
 
 class Manager(ABC):
     def __init__(self, config):
