@@ -136,10 +136,7 @@ class Trainer(Manager):
         self.clean_up()
 
     def log_params(self):
-        mlflow.log_params(self.config['Training'])
-        mlflow.log_params(self.config['Optimizer'])
-        mlflow.log_params(self.config['CNN'])
-        mlflow.log_param("Image resolution", self.config['Dataset']['shape'])
+        mlflow.log_params(self.config)
 
     def log_metrics(self, step, **metrics):
         for k, v in metrics.items():
