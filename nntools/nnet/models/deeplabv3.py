@@ -34,10 +34,8 @@ class DeepLabv3Plus(AbstractNet):
                 m.bias.data.zero_()
 
     def get_1x_lr_params(self):
-        if self.config['model'] == 'xception':
-            modules = [self.encoder.entry, self.encoder.middle, self.encoder.exit]
-        elif self.config['model'] == 'resnet101':
-            modules = [self.encoder.encoder]
+
+        modules = [self.encoder.encoder]
 
         for i in range(len(modules)):
             for m in modules[i].named_modules():
@@ -46,10 +44,8 @@ class DeepLabv3Plus(AbstractNet):
                         yield p
 
     def get_10x_lr_params(self):
-        if self.config['model'] == 'xception':
-            modules = [self.encoder.aspp, self.decoder]
-        elif self.config['model'] == 'resnet101':
-            modules = [self.encoder.aspp, self.decoder]
+
+        modules = [self.encoder.aspp, self.decoder]
 
         for i in range(len(modules)):
             for m in modules[i].named_modules():
