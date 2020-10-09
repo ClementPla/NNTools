@@ -81,6 +81,7 @@ class Trainer(Manager):
         self.loss = None
         self.partial_optimizer = None
         self.tracked_metric = None
+        self.log_params()
 
     def set_validation_dataset(self, dataset):
         self.validation_dataset = dataset
@@ -127,6 +128,8 @@ class Trainer(Manager):
 
     def log_params(self):
         mlflow.log_params(self.config['Training'])
+        mlflow.log_params(self.config['Optimizer'])
+        mlflow.log_params(self.config['CNN'])
         mlflow.log_param("batch", self.config['Dataset']['batch_size'])
         mlflow.log_param("resolution", self.config['Dataset']['img_size'])
 
