@@ -34,7 +34,7 @@ class SegmentationDataset(Dataset):
 
         self.composer = None
         self.keep_size_ratio = keep_size_ratio
-        self.shape = shape
+        self.shape = tuple(shape)
 
         self.cmap_name = 'jet_r'
         self.n_classes = n_classes

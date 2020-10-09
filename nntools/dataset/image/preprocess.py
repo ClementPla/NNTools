@@ -151,16 +151,16 @@ class ImageTransform:
     @classmethod
     @double_kwarg
     def resize(cls, img, mask=None, keep_size_ratio=True, shape=(512, 512)):
+        if isinstance(shape, int):
+            shape = (shape, shape)
+        else:
+            shape = tuple(shape)
         if keep_size_ratio:
             h, w = img.shape[:2]
             max_size = max(h, w)
-            scale = shape / max_size
+            scale = np.asarray(shape) / max_size
             shape = (int(scale * w), int(scale * h))
-        else:
-            if isinstance(shape, int):
-                shape = (shape, shape)
-            else:
-                shape = tuple(shape)
+
         img = cv2.resize(img, dsize=shape, interpolation=cls.img_interpolation)
         if mask is not None:
             mask = cv2.resize(mask, dsize=shape, interpolation=cls.mask_interpolation)
