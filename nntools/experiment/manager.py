@@ -81,7 +81,6 @@ class Trainer(Manager):
         self.loss = None
         self.partial_optimizer = None
         self.tracked_metric = None
-        self.log_params()
 
     def set_validation_dataset(self, dataset):
         self.validation_dataset = dataset
@@ -113,6 +112,7 @@ class Trainer(Manager):
 
     def init_training(self, rank=0):
         torch.cuda.set_device(rank)
+        self.log_params()
         model = self.configure_network()
         if self.config['CNN']['synchronized_batch_norm'] and self.multi_gpu:
             model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
