@@ -57,7 +57,7 @@ class DeepLabv3Plus(AbstractNet):
                     if p.requires_grad:
                         yield p
 
-    def get_trainable_params(self, lr):
+    def get_trainable_parameters(self, lr=0.001):
         return [{'params': self.get_1x_lr_params(), 'lr': lr}, {'params': self.get_10x_lr_params(), 'lr': lr * 10}]
 
 

@@ -121,7 +121,7 @@ class Trainer(Manager):
             dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size)
             model = DDP(model, device_ids=[rank])
 
-        optimizer = self.partial_optimizer(model.parameters())
+        optimizer = self.partial_optimizer(model.get_trainable_parameters(self.config['Optimizer']['lr']))
         self.train(model, optimizer, rank)
         self.clean_up()
 
