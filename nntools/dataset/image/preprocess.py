@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from nntools.dataset.functions import double_kwarg, single_kwarg
+from nntools.dataset.decorators import double_kwarg, single_kwarg
 from nntools.utils.sampler import sample
 
 

@@ -67,4 +67,5 @@ def report_cm(confMat, epsilon=1e-7):
     sensitivity = TP / (P + epsilon)
     specificity = TN / (N + epsilon)
     precision = TP / (TP + FP + epsilon)
-    return {'sensitivity': sensitivity.mean().item(), 'specificity': specificity.mean().item(), 'precision': precision.mean().item()}
+    return {'sensitivity': sensitivity.mean().item(), 'specificity': specificity.mean().item(),
+            'precision': precision.mean().item()}

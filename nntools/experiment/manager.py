@@ -1,5 +1,6 @@
 import glob
 import os
+import time
 from abc import ABC, abstractmethod
 from functools import partial
 
@@ -10,13 +11,14 @@ import torch.multiprocessing as mp
 import torch.nn as nn
 import tqdm
 from mlflow.tracking.client import MlflowClient
-import time
-from nntools.dataset import SegmentationDataset
+from torch.cuda.amp import autocast, GradScaler
+
 from nntools.experiment.utils import set_seed, set_non_torch_seed
 from nntools.nnet.loss import FuseLoss, DiceLoss
 from nntools.tracker import Tracker
 from nntools.utils.io import save_config
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP
+
 
 class Manager(ABC):
     def __init__(self, config):
@@ -48,9 +50,6 @@ class Manager(ABC):
         seed = self.config['Manager']['seed']
         set_seed(seed)
 
-    def configure_dataset(self):
-        self.dataset = SegmentationDataset(**self.config['Dataset'])
-
     @abstractmethod
     def configure_network(self):
         pass
@@ -81,16 +80,21 @@ class Trainer(Manager):
         self.validation_dataset = None
         self.loss = None
         self.partial_optimizer = None
+        self.partial_lr_scheduler = None
         self.tracked_metric = None
         self.run_id = -1
+
     def set_validation_dataset(self, dataset):
         self.validation_dataset = dataset
 
-    def set_optimizer(self, func, **hyperparameters):
+    def set_optimizer(self, func, **kwargs):
         """
         :return: A partial function of an optimizers. Partial passed arguments are hyperparameters
         """
-        self.partial_optimizer = partial(func, **hyperparameters)
+        self.partial_optimizer = partial(func, **kwargs)
+
+    def set_scheduler(self, func, **kwargs):
+        self.partial_lr_scheduler = partial(func, **kwargs)
 
     def set_loss(self, weights=None):
         self.loss = FuseLoss()
@@ -122,8 +126,7 @@ class Trainer(Manager):
             dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size)
             model = DDP(model, device_ids=[rank])
 
-        optimizer = self.partial_optimizer(model.get_trainable_parameters(self.config['Optimizer']['lr']))
-        self.train(model, optimizer, rank)
+        self.train(model, rank)
         self.clean_up()
 
     def log_params(self):
@@ -134,14 +137,18 @@ class Trainer(Manager):
 
     def log_metrics(self, step, **metrics):
         for k, v in metrics.items():
-            MlflowClient().log_metric(self.run_id, k, v, int(time.time()*1000), step=step)
+            MlflowClient().log_metric(self.run_id, k, v, int(time.time() * 1000), step=step)
 
     def start(self):
+
         assert self.loss is not None, "Missing loss function for training, call set_loss() on trainer"
         assert self.partial_optimizer is not None, "Missing optimizer for training"
         assert self.dataset is not None, "Missing dataset"
         if self.validation_dataset is None:
             Tracker.warn("Missing validation set, default behaviour for model saving is once per epoch")
+
+        if self.partial_lr_scheduler:
+            Tracker.warn("Missing learning rate scheduler, default behaviour is to keep the lr constant")
 
         mlflow.set_experiment(self.config['Manager']['experiment'])
         with mlflow.start_run(run_name=self.config['Manager']['run']):
@@ -159,8 +166,14 @@ class Trainer(Manager):
         if self.multi_gpu:
             dist.destroy_process_group()
 
-    def train(self, model, optimizer, rank=0):
-        from torch.cuda.amp import autocast, GradScaler
+    def train(self, model, rank=0):
+
+        optimizer = self.partial_optimizer(model.get_trainable_parameters(self.config['Optimizer']['lr']))
+        if self.partial_lr_scheduler is not None:
+            lr_scheduler = self.partial_lr_scheduler(optimizer)
+        else:
+            lr_scheduler = None
+
         train_loader, train_sampler = self.build_dataloader(self.dataset)
         iters_to_accumulate = self.config['Training']['iters_to_accumulate']
         scaler = GradScaler(enabled=self.config['Manager']['grad_scaling'])
@@ -168,34 +181,60 @@ class Trainer(Manager):
         for e in range(self.config['Training']['epochs']):
             if train_sampler is not None:
                 train_sampler.set_epoch(e)
-            with tqdm.tqdm(total=len(train_loader)) as pbar:
-                for i, batch in (enumerate(train_loader)):
-                    img = batch[0].cuda(rank)
-                    gt = batch[1].cuda(rank)
-                    with autocast(enabled=self.config['Manager']['amp']):
-                        pred = model(img)
-                        loss = self.loss(pred, gt) / iters_to_accumulate
 
-                    scaler.scale(loss).backward()
-                    if (i + 1) % iters_to_accumulate == 0:
-                        scaler.step(optimizer)
-                        scaler.update()
-                        optimizer.zero_grad()
+            if rank == 0 or not self.multi_gpu:
+                t = tqdm.tqdm(total=len(train_loader))
 
-                    iteration = i + e * len(train_loader)
-                    if iteration % self.config['Validation']['log_interval'] == 0:
-                        if self.validation_dataset is not None:
-                            with torch.no_grad():
-                                self.validate(model, iteration, rank)
-                        if self.multi_gpu:
-                            dist.barrier()
+            for i, batch in (enumerate(train_loader)):
+                iteration = i + e * len(train_loader)
+                img = batch[0].cuda(rank)
+                gt = batch[1].cuda(rank)
+
+                with autocast(enabled=self.config['Manager']['amp']):
+                    pred = model(img)
+                    loss = self.loss(pred, gt) / iters_to_accumulate
+
+                scaler.scale(loss).backward()
+                if (i + 1) % iters_to_accumulate == 0:
+                    scaler.step(optimizer)
+                    scaler.update()
+                    optimizer.zero_grad()
+
+                """
+                Validation step
+                """
+                if iteration % self.config['Validation']['log_interval'] == 0:
+                    if self.validation_dataset is not None:
+                        with torch.no_grad():
+                            valid_metric = self.validate(model, iteration, rank)
+                    if self.multi_gpu:
+                        dist.barrier()
 
                     if rank == 0 or not self.multi_gpu:
-                        pbar.update(1)
+                        self.log_metrics(iteration, trainining_loss=loss.item())
+                    self.lr_scheduler_step(lr_scheduler, iteration, valid_metric)
 
-                if self.validation_dataset is None:
-                    self.save_model(model, filename='iteration_%i_loss_%f' % (iteration, loss.item()))
+                if rank == 0 or not self.multi_gpu:
+                    t.update(1)
 
+            """ 
+            If not validation set is provided, we save the model once per epoch
+            """
+            if self.validation_dataset is None:
+                self.save_model(model, filename='iteration_%i_loss_%f' % (iteration, loss.item()))
+
+        if rank == 0 or not self.multi_gpu:
+            t.close()
+
+    def lr_scheduler_step(self, lr_scheduler, iteration, validation_metrics=None):
+        if lr_scheduler is None:
+            return
+        if self.config['Learning_rate_scheduler']['update_type'] == 'on_validation':
+            assert validation_metrics is not None, "Missing validation score to update the learning rate sheduler. Check" \
+                                                   "what the validate function returns"
+            lr_scheduler.step(validation_metrics)
+        else:
+            lr_scheduler.step(iteration)
 
     @abstractmethod
     def validate(self, model, iteration, rank=0):

@@ -66,5 +66,3 @@ class AbstractNet(nn.Module):
 
     def get_trainable_parameters(self, lr=None):
         return self.parameters()
-
-

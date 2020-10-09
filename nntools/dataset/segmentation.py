@@ -25,6 +25,8 @@ class SegmentationDataset(Dataset):
         super(SegmentationDataset, self).__init__()
         self.path_img = img_url
         self.path_masks = mask_url
+        if self.path_masks == '':
+            self.path_masks = None
         self.use_masks = self.path_masks is not None
         self.img_filepath = []
         self.mask_filepath = []
@@ -71,9 +73,9 @@ class SegmentationDataset(Dataset):
         return len(self.img_filepath)
 
     def multiply(self, factor):
-        decimal = factor-int(factor)
+        decimal = factor - int(factor)
         factor = int(factor)
-        rest = int(decimal*len(self))
+        rest = int(decimal * len(self))
 
         self.img_filepath = np.repeat(self.img_filepath, factor)
         self.mask_filepath = np.repeat(self.mask_filepath, factor)
