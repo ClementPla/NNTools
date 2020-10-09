@@ -26,7 +26,7 @@ def get_class_count(dataset, save=True, load=True):
     classes_counts = classes_counts[:np.max(np.nonzero(classes_counts)) + 1]
     if save:
         np.save(filepath, classes_counts)
-        Tracker.warn('Weights stored in ', filepath)
+        Tracker.warn('Weights stored in '+filepath)
     return classes_counts
 
 
