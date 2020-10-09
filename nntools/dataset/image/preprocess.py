@@ -48,6 +48,7 @@ class ImageTransform:
         pad_mode = cls.pad_mode if pad_mode is None else pad_mode
         cval = cls.cval if cval is None else cval
         hcrop, wcrop = crop_size[0], crop_size[1]
+        print('Here', crop_size)
 
         if pad:
             pad_margins = [(hcrop // 2, hcrop // 2), (wcrop // 2, wcrop // 2)]
