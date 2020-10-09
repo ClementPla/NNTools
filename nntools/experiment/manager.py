@@ -85,6 +85,7 @@ class Trainer(Manager):
         self.partial_lr_scheduler = None
         self.tracked_metric = None
         self.run_id = -1
+        self.weights = None
 
     def set_validation_dataset(self, dataset):
         self.validation_dataset = dataset
@@ -98,16 +99,20 @@ class Trainer(Manager):
     def set_scheduler(self, func, **kwargs):
         self.partial_lr_scheduler = partial(func, **kwargs)
 
-    def set_loss(self, weights=None):
-        self.loss = FuseLoss()
+    def get_loss(self, weights=None, rank=0):
+        loss = FuseLoss()
         loss_args = self.config['Training']['segmentation_losses'].lower()
 
         if 'ce' in loss_args:
-            self.loss.append(nn.CrossEntropyLoss(weight=weights,
+            loss.append(nn.CrossEntropyLoss(weight=weights.cuda(rank),
                                                  ignore_index=self.ignore_index))
 
         if 'dice' in loss_args:
-            self.loss.append(DiceLoss(ignore_index=self.ignore_index))
+            loss.append(DiceLoss(ignore_index=self.ignore_index))
+        return loss
+
+    def set_weights(self, weights):
+        self.weights = weights
 
     def save_model(self, model, filename, **kwargs):
         model.save(savepoint=self.network_savepoint, filename=filename, **kwargs)
@@ -169,7 +174,7 @@ class Trainer(Manager):
             dist.destroy_process_group()
 
     def train(self, model, rank=0):
-
+        loss_function = self.get_loss(self.weights, rank=rank)
         optimizer = self.partial_optimizer(model.get_trainable_parameters(self.config['Optimizer']['lr']))
         if self.partial_lr_scheduler is not None:
             lr_scheduler = self.partial_lr_scheduler(optimizer)
@@ -194,7 +199,7 @@ class Trainer(Manager):
 
                 with autocast(enabled=self.config['Manager']['amp']):
                     pred = model(img)
-                    loss = self.loss(pred, gt) / iters_to_accumulate
+                    loss = loss_function(pred, gt) / iters_to_accumulate
 
                 scaler.scale(loss).backward()
                 if (i + 1) % iters_to_accumulate == 0:
