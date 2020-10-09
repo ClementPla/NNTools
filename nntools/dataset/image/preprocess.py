@@ -22,16 +22,16 @@ from nntools.utils.sampler import sample
 #     img_interpolation = cv2.INTER_LINEAR
 
 @single_kwarg
-def normalize(cls, img, mean=None, std=None, **kwargs):
-    mean = cls.mean if mean is None else mean
-    std = cls.std if std is None else std
+def normalize(img, mean=None, std=None):
+    mean = mean if mean is None else mean
+    std = std if std is None else std
     mean = np.asarray(mean)[np.newaxis, np.newaxis, :].astype(np.float32)
     std = np.asarray(std)[np.newaxis, np.newaxis, :].astype(np.float32)
     return (img - mean) / std
 
 
 @double_kwarg
-def random_crop(img, crop_size, mask=None, pad=False, pad_mode='reflect', cval=0, **kwargs):
+def random_crop(img, crop_size, mask=None, pad=False, pad_mode='reflect', cval=0):
     """
     :param imgs: Single image or list of images (usually a couple image/groundtruth)
     :param pad_mode: padding mode for handling borders (see numpy.pad).
@@ -70,7 +70,7 @@ def random_crop(img, crop_size, mask=None, pad=False, pad_mode='reflect', cval=0
 
 
 @double_kwarg
-def horizontal_flip(img, mask=None, **kwargs):
+def horizontal_flip(img, mask=None):
     img = img[:, ::-1].copy()
     if mask is not None:
         mask = mask[:, ::-1].copy()
@@ -79,7 +79,7 @@ def horizontal_flip(img, mask=None, **kwargs):
 
 
 @double_kwarg
-def vertical_flip(img, mask=None, **kwargs):
+def vertical_flip(img, mask=None):
     img = img[::-1, :].copy()
     if mask is not None:
         mask = mask[::-1, :].copy()
