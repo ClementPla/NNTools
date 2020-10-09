@@ -130,8 +130,7 @@ class Trainer(Manager):
         mlflow.log_params(self.config['Training'])
         mlflow.log_params(self.config['Optimizer'])
         mlflow.log_params(self.config['CNN'])
-        mlflow.log_param("batch", self.config['Dataset']['batch_size'])
-        mlflow.log_param("resolution", self.config['Dataset']['img_size'])
+        mlflow.log_param("Image resolution", self.config['Dataset']['shape'])
 
     def log_metrics(self, step, **metrics):
         mlflow.log_metrics(metrics, step=step)
