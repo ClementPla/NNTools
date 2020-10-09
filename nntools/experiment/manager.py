@@ -104,7 +104,7 @@ class Trainer(Manager):
 
         if 'ce' in loss_args:
             loss.append(nn.CrossEntropyLoss(weight=weights.cuda(rank),
-                                                 ignore_index=self.ignore_index))
+                                            ignore_index=self.ignore_index))
 
         if 'dice' in loss_args:
             loss.append(DiceLoss(ignore_index=self.ignore_index))
@@ -144,7 +144,6 @@ class Trainer(Manager):
             MlflowClient().log_metric(self.run_id, k, v, int(time.time() * 1000), step=step)
 
     def start(self):
-
         assert self.partial_optimizer is not None, "Missing optimizer for training"
         assert self.dataset is not None, "Missing dataset"
         if self.validation_dataset is None:

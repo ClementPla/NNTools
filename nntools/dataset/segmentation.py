@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from nntools.dataset.image.preprocess import ImageTransform
+from nntools.dataset.image.preprocess import resize
 from nntools.tracker.warnings import Tracker
 from nntools.utils.io import load_image
 from nntools.utils.path import path_leaf
@@ -86,14 +86,13 @@ class SegmentationDataset(Dataset):
     def __getitem__(self, item):
         filepath = self.img_filepath[item]
         img = load_image(filepath)
+        img = resize(img=img, shape=self.shape,
+                     keep_size_ratio=self.keep_size_ratio)
         if self.use_masks:
             filepath = self.mask_filepath[item]
             mask = load_image(filepath, cv2.IMREAD_GRAYSCALE)
-            img, mask = ImageTransform.resize(img=img, mask=mask, shape=self.shape,
-                                              keep_size_ratio=self.keep_size_ratio)
-        else:
-            img = ImageTransform.resize(img=img, shape=self.shape,
-                                        keep_size_ratio=self.keep_size_ratio)
+            mask = resize(img=mask, shape=self.shape, keep_size_ratio=self.keep_size_ratio, flag=cv2.INTER_NEAREST)
+
         img = img.astype(np.float32) / 255.
         kwargs = {'img': img}
         if self.composer:
@@ -124,6 +123,8 @@ class SegmentationDataset(Dataset):
 
         if self.use_masks:
             img, mask = self[item]
+            img = img.numpy()
+            mask = mask.numpy()
             mask = np.squeeze(mask)
             n_classes = self.n_classes if self.n_classes is not None else np.max(mask)
             cmap = cm.get_cmap(self.cmap_name, n_classes)
@@ -148,6 +149,7 @@ class SegmentationDataset(Dataset):
 
         else:
             img = self[item]
+            img = img.numpy()
             fig, ax = plt.subplots(1, 1)
             fig.set_size_inches(8, 8)
             ax.imshow(img)
@@ -161,3 +163,19 @@ class SegmentationDataset(Dataset):
             filename = os.path.basename(self.img_filepath[item])
             fig.savefig(os.path.join(savefolder, filename))
             plt.close(fig)
+
+
+if __name__ == '__main__':
+    img = '/home/clement/Documents/phd/DR/MessidorAnnotation/img/images/'
+    mask = '/home/clement/Documents/phd/DR/MessidorAnnotation/labelId/'
+    segDataset = SegmentationDataset(img, mask, shape=(512, 512))
+    from nntools.dataset.image import Composition, DataAugment
+    from nntools.dataset.image.preprocess import random_crop
+
+    composer = Composition(crop_size=(64, 64))
+    composer << DataAugment(ratio=0.1, horizontal_flip=True, vertical_flip=True,
+                            random_scale=True, scale_factor=(0.75, 1.25),
+                            random_rotate=True, rotation_angle=(-15, 15)).auto_init()
+    composer << random_crop
+    segDataset.composer = composer
+    segDataset.plot(0)

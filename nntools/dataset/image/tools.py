@@ -1,26 +1,44 @@
+import inspect
+from functools import partial
+
 import numpy as np
 
-from .preprocess import ImageTransform
+
+def convert_function(func, list_existing_args):
+    kwargs = {}
+    for p in inspect.signature(func).parameters.values():
+        if p.name in list_existing_args:
+            kwargs[p.name] = list_existing_args[p.name]
+    return partial(func, **kwargs)
 
 
 class DataAugment:
-    def __init__(self, config):
+    def __init__(self, **config):
         self.config = config
         self.ops = []
         self.p = self.config['ratio']
 
     def auto_init(self):
-        ImageTransform.cval = self.config['cval']
-        if self.config['horizontal_flip']:
-            self.ops.append(ImageTransform.horizontal_flip)
+        if self.config['vertical_flip']:
+            from .preprocess import vertical_flip
+            self.ops.append(convert_function(vertical_flip, self.config))
 
-        if self.config['random_scale']:
-            ImageTransform.scale_factor = self.config['scale_range']
-            self.ops.append(ImageTransform.random_scale)
+        if self.config['horizontal_flip']:
+            from .preprocess import horizontal_flip
+            self.ops.append(convert_function(horizontal_flip, self.config))
 
         if self.config['random_rotate']:
-            ImageTransform.rotation_angle = self.config['rotation_range']
-            self.ops.append(ImageTransform.random_rotation)
+            from .preprocess import random_rotation
+            self.ops.append(convert_function(random_rotation, self.config))
+
+        if self.config['random_scale']:
+            from .preprocess import random_scale
+            self.ops.append(convert_function(random_scale, self.config))
+
+        if self.config['random_rotate']:
+            from .preprocess import random_rotation
+            self.ops.append(convert_function(random_rotation, self.config))
+
         return self
 
     def __call__(self, **kwargs):
@@ -41,15 +59,16 @@ class DataAugment:
 
 
 class Composition:
-    def __init__(self, config):
+    def __init__(self, **config):
         self.config = config
-        if 'crop_size' in config:
-            ImageTransform.crop_size = self.config['crop_size']
         self.ops = []
 
-    def add(self, *args):
-        for a in args:
-            self.ops.append(a)
+    def add(self, *funcs):
+        for f in funcs:
+            if isinstance(f, DataAugment):
+                self.ops.append(f)
+            else:
+                self.ops.append(convert_function(f, self.config))
         return self
 
     def __call__(self, **kwargs):
