@@ -80,7 +80,6 @@ class Trainer(Manager):
     def __init__(self, config):
         super(Trainer, self).__init__(config)
         self.validation_dataset = None
-        self.loss = None
         self.partial_optimizer = None
         self.partial_lr_scheduler = None
         self.tracked_metric = None
@@ -148,7 +147,6 @@ class Trainer(Manager):
 
     def start(self):
 
-        assert self.loss is not None, "Missing loss function for training, call set_loss() on trainer"
         assert self.partial_optimizer is not None, "Missing optimizer for training"
         assert self.dataset is not None, "Missing dataset"
         if self.validation_dataset is None:
