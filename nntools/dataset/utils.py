@@ -26,12 +26,13 @@ def get_class_count(dataset, save=True, load=True):
     classes_counts = classes_counts[:np.max(np.nonzero(classes_counts)) + 1]
     if save:
         np.save(filepath, classes_counts)
-        Tracker.warn('Weights stored in '+filepath)
+        Tracker.warn('Weights stored in ' + filepath)
     return classes_counts
 
 
 def class_weighting(class_count, mode='balanced', ignore_index=-100):
-    class_count[ignore_index] = 0
+    if ignore_index >= 0:
+        class_count[ignore_index] = 0
     assert mode in ['balanced', 'log_prob']
 
     if mode == 'balanced':
@@ -42,6 +43,7 @@ def class_weighting(class_count, mode='balanced', ignore_index=-100):
     elif mode == 'log_prob':
         p_class = class_count / class_count.sum()
         class_weights = (1 / np.log(1.01 + p_class)).astype(np.float32)
+    if ignore_index >= 0:
+        class_weights[ignore_index] = 0
 
-    class_weights[ignore_index] = 0
     return class_weights.astype(np.float32)

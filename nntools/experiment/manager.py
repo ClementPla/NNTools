@@ -41,7 +41,9 @@ class Manager(ABC):
             os.environ['MASTER_ADDR'] = 'localhost'
             os.environ['MASTER_PORT'] = '12355'
 
-        self.ignore_index = self.config['Dataset']['ignore_index'] if 'ignore_index' in self.config['Dataset'] else -100
+        self.ignore_index = self.config['Training']['ignore_index'] if 'ignore_index' in self.config[
+            'Training'] else -100
+
         self.batch_size = self.config['Training']['batch_size'] // self.world_size
         self.n_classes = config['CNN']['n_classes']
         self.dataset = None
