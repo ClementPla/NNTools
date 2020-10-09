@@ -112,7 +112,6 @@ class Trainer(Manager):
 
     def init_training(self, rank=0):
         torch.cuda.set_device(rank)
-        self.log_params()
         model = self.configure_network()
         if self.config['CNN']['synchronized_batch_norm'] and self.multi_gpu:
             model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
@@ -144,6 +143,7 @@ class Trainer(Manager):
 
         mlflow.set_experiment(self.config['Manager']['experiment'])
         with mlflow.start_run(run_name=self.config['Manager']['run']):
+            self.log_params()
             if self.multi_gpu:
                 mp.spawn(self.init_training,
                          nprocs=self.world_size,
