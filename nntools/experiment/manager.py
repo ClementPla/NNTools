@@ -136,7 +136,8 @@ class Trainer(Manager):
         self.clean_up()
 
     def log_params(self):
-        mlflow.log_params(self.config)
+        for k in self.config:
+            mlflow.log_params(self.config[k])
 
     def log_metrics(self, step, **metrics):
         for k, v in metrics.items():
