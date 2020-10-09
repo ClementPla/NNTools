@@ -184,11 +184,11 @@ class Trainer(Manager):
         scaler = GradScaler(enabled=self.config['Manager']['grad_scaling'])
 
         for e in range(self.config['Training']['epochs']):
-            print('** Epoch %i **' % e)
             if train_sampler is not None:
                 train_sampler.set_epoch(e)
 
             if rank == 0 or not self.multi_gpu:
+                print('** Epoch %i **' % e)
                 t = tqdm.tqdm(total=len(train_loader))
 
             for i, batch in (enumerate(train_loader)):
