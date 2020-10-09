@@ -149,7 +149,7 @@ class Trainer(Manager):
         if self.validation_dataset is None:
             Tracker.warn("Missing validation set, default behaviour for model saving is once per epoch")
 
-        if self.partial_lr_scheduler:
+        if self.partial_lr_scheduler is None:
             Tracker.warn("Missing learning rate scheduler, default behaviour is to keep the lr constant")
 
         mlflow.set_experiment(self.config['Manager']['experiment'])
