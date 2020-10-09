@@ -9,7 +9,8 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch.nn as nn
 import tqdm
-
+from mlflow.tracking.client import MlflowClient
+import time
 from nntools.dataset import SegmentationDataset
 from nntools.experiment.utils import set_seed, set_non_torch_seed
 from nntools.nnet.loss import FuseLoss, DiceLoss
@@ -81,7 +82,7 @@ class Trainer(Manager):
         self.loss = None
         self.partial_optimizer = None
         self.tracked_metric = None
-
+        self.run_id = -1
     def set_validation_dataset(self, dataset):
         self.validation_dataset = dataset
 
@@ -132,7 +133,8 @@ class Trainer(Manager):
         mlflow.log_param("Image resolution", self.config['Dataset']['shape'])
 
     def log_metrics(self, step, **metrics):
-        mlflow.log_metrics(metrics, step=step)
+        for k, v in metrics.items():
+            MlflowClient().log_metric(self.run_id, k, v, int(time.time()*1000), step=step)
 
     def start(self):
         assert self.loss is not None, "Missing loss function for training, call set_loss() on trainer"
@@ -144,6 +146,7 @@ class Trainer(Manager):
         mlflow.set_experiment(self.config['Manager']['experiment'])
         with mlflow.start_run(run_name=self.config['Manager']['run']):
             self.log_params()
+            self.run_id = mlflow.active_run().info.run_id
             if self.multi_gpu:
                 mp.spawn(self.init_training,
                          nprocs=self.world_size,
