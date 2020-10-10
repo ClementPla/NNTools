@@ -2,7 +2,6 @@ import glob
 import os
 import time
 from abc import ABC, abstractmethod
-from functools import partial
 
 import mlflow
 import torch
@@ -16,6 +15,7 @@ from torch.cuda.amp import autocast, GradScaler
 from nntools.experiment.utils import set_seed, set_non_torch_seed
 from nntools.nnet.loss import FuseLoss, DiceLoss
 from nntools.tracker import Tracker
+from nntools.utils.misc import convert_function
 from nntools.utils.io import save_config
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP
 
@@ -93,10 +93,10 @@ class Trainer(Manager):
         """
         :return: A partial function of an optimizers. Partial passed arguments are hyperparameters
         """
-        self.partial_optimizer = partial(func, **kwargs)
+        self.partial_optimizer = convert_function(func, kwargs)
 
     def set_scheduler(self, func, **kwargs):
-        self.partial_lr_scheduler = partial(func, **kwargs)
+        self.partial_lr_scheduler = convert_function(func, kwargs)
 
     def get_loss(self, weights=None, rank=0):
         loss = FuseLoss()
@@ -136,8 +136,11 @@ class Trainer(Manager):
         self.clean_up()
 
     def log_params(self):
-        for k in self.config:
-            mlflow.log_params(self.config[k])
+        mlflow.log_params(self.config['Training'])
+        mlflow.log_params(self.config['Optimizer'])
+        mlflow.log_params(self.config['Learning_rate_scheduler'])
+        mlflow.log_params(self.config['CNN'])
+        mlflow.log_params(self.config['Preprocessing'])
 
     def log_metrics(self, step, **metrics):
         for k, v in metrics.items():
@@ -178,7 +181,7 @@ class Trainer(Manager):
 
         train_loader, train_sampler = self.build_dataloader(self.dataset)
         iters_to_accumulate = self.config['Training']['iters_to_accumulate']
-        scaler = GradScaler(enabled=self.config['Manager']['grad_scaling'])
+        scaler = GradScaler(enabled=self.config['Training']['grad_scaling'])
 
         for e in range(self.config['Training']['epochs']):
             if train_sampler is not None:
@@ -193,7 +196,7 @@ class Trainer(Manager):
                 img = batch[0].cuda(rank)
                 gt = batch[1].cuda(rank)
 
-                with autocast(enabled=self.config['Manager']['amp']):
+                with autocast(enabled=self.config['Training']['amp']):
                     pred = model(img)
                     loss = loss_function(pred, gt) / iters_to_accumulate
 
@@ -215,7 +218,6 @@ class Trainer(Manager):
 
                     if rank == 0 or not self.multi_gpu:
                         self.log_metrics(iteration, trainining_loss=loss.item())
-                    self.lr_scheduler_step(lr_scheduler, iteration, valid_metric)
 
                 if rank == 0 or not self.multi_gpu:
                     t.update(1)
@@ -226,8 +228,10 @@ class Trainer(Manager):
             if self.validation_dataset is None:
                 self.save_model(model, filename='iteration_%i_loss_%f' % (iteration, loss.item()))
 
-        if rank == 0 or not self.multi_gpu:
-            t.close()
+            self.lr_scheduler_step(lr_scheduler, iteration, valid_metric)
+
+            if rank == 0 or not self.multi_gpu:
+                t.close()
 
     def lr_scheduler_step(self, lr_scheduler, iteration, validation_metrics=None):
         if lr_scheduler is None:

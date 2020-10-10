@@ -1,15 +1,5 @@
-import inspect
-from functools import partial
-
+from nntools.utils.misc import convert_function
 import numpy as np
-
-
-def convert_function(func, list_existing_args):
-    kwargs = {}
-    for p in inspect.signature(func).parameters.values():
-        if p.name in list_existing_args:
-            kwargs[p.name] = list_existing_args[p.name]
-    return partial(func, **kwargs)
 
 
 class DataAugment:
