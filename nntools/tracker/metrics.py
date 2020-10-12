@@ -29,6 +29,8 @@ def confusion_matrix(pred, gt, num_classes=-1, *args):
     :param num_classes:
     :return:
     """
+    if num_classes == -1:
+        num_classes = max(pred.max(), gt.max())
     pred_one_hot = F.one_hot(pred.flatten(), num_classes)
     gt_one_hot = F.one_hot(gt.flatten(), num_classes)
     return torch.matmul(pred_one_hot.t().float(), gt_one_hot.float()).long()
@@ -67,5 +69,7 @@ def report_cm(confMat, epsilon=1e-7):
     sensitivity = TP / (P + epsilon)
     specificity = TN / (N + epsilon)
     precision = TP / (TP + FP + epsilon)
+    accuracy = (TP+TN)/(P+N+epsilon)
+    f1 = 2*TP / (2*TP+FP+FN+epsilon)
     return {'sensitivity': sensitivity.mean().item(), 'specificity': specificity.mean().item(),
-            'precision': precision.mean().item()}
+            'precision': precision.mean().item(), 'accuracy': accuracy.mean().item(), 'f1':f1.mean().item()}
