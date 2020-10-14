@@ -130,7 +130,7 @@ class SegmentationDataset(Dataset):
             img = img.numpy()
             mask = mask.numpy()
             mask = np.squeeze(mask)
-            n_classes = self.n_classes if self.n_classes is not None else np.max(mask)
+            n_classes = self.n_classes if self.n_classes is not None else np.max(mask)+1
             cmap = cm.get_cmap(self.cmap_name, n_classes)
 
             fig, ax = plt.subplots(1, 2)
@@ -169,17 +169,3 @@ class SegmentationDataset(Dataset):
             plt.close(fig)
 
 
-if __name__ == '__main__':
-    img = '/home/clement/Documents/phd/DR/MessidorAnnotation/img/images/'
-    mask = '/home/clement/Documents/phd/DR/MessidorAnnotation/labelId/'
-    segDataset = SegmentationDataset(img, mask, shape=(512, 512))
-    from nntools.dataset.image import Composition, DataAugment
-    from nntools.dataset.image.preprocess import random_crop
-
-    composer = Composition(crop_size=(64, 64))
-    composer << DataAugment(ratio=0.1, horizontal_flip=True, vertical_flip=True,
-                            random_scale=True, scale_factor=(0.75, 1.25),
-                            random_rotate=True, rotation_angle=(-15, 15)).auto_init()
-    composer << random_crop
-    segDataset.composer = composer
-    segDataset.plot(0)

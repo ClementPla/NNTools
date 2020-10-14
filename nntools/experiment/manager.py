@@ -33,6 +33,10 @@ class Manager(ABC):
         create_folder(self.run_folder)
 
         self.set_seed()
+        self.gpu = self.config['Manager']['gpu']
+        if not isinstance(self.gpu, list):
+            self.gpu = [self.gpu]
+
         self.world_size = len(self.config['Manager']['gpu'])
         self.multi_gpu = self.world_size > 1
         if self.multi_gpu:
@@ -172,7 +176,7 @@ class Trainer(Manager):
                          nprocs=self.world_size,
                          join=True)
             else:
-                self.init_training(rank=self.gpu)
+                self.init_training(rank=self.gpu[0])
         save_config(self.config, os.path.join(self.run_folder, 'config.yaml'))
 
     def clean_up(self):
