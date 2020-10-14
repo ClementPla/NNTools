@@ -101,8 +101,12 @@ class SegmentationDataset(Dataset):
                 img, mask = self.composer(**kwargs)
             else:
                 img = self.composer(**kwargs)
+
         if img.ndim == 3:
             img = img.transpose(2, 0, 1)
+
+        elif img.ndim == 2:
+            img = np.expand_dims(img, 0)
 
         if self.use_masks:
             return torch.from_numpy(img), torch.from_numpy(mask).long()
@@ -131,7 +135,7 @@ class SegmentationDataset(Dataset):
 
             fig, ax = plt.subplots(1, 2)
             fig.set_size_inches(18, 8)
-            ax[0].imshow(img.transpose((1, 2, 0)))
+            ax[0].imshow(np.squeeze(img.transpose((1, 2, 0))))
             ax[1].imshow(mask, cmap=cmap)
 
             ax[0].set_axis_off()
@@ -152,7 +156,7 @@ class SegmentationDataset(Dataset):
             img = img.numpy()
             fig, ax = plt.subplots(1, 1)
             fig.set_size_inches(8, 8)
-            ax.imshow(img)
+            ax.imshow(np.squeeze(img.transpose((1, 2, 0))))
             ax.set_axis_off()
         fig.tight_layout()
         if show:
