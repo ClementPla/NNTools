@@ -88,7 +88,6 @@ class SegmentationDataset(Dataset):
         img = load_image(filepath)
         img = resize(img=img, shape=self.shape,
                      keep_size_ratio=self.keep_size_ratio)
-        if img.ndim==2:
 
         if self.use_masks:
             filepath = self.mask_filepath[item]
