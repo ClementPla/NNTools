@@ -1,5 +1,5 @@
 import datetime
-from os.path import join
+from os.path import join, splitext
 
 import numpy as np
 import torch
@@ -51,7 +51,12 @@ class AbstractNet(nn.Module):
         for i, optim in enumerate(optimizers):
             save_dict['optim_%i' % i] = optim.state_dict()
 
+        filename, file_extension = splitext(path)
+        if not file_extension:
+            path = path+'.pth'
+
         torch.save(save_dict, path)
+        return path
 
     def load(self, path, ignore_nan=False, load_most_recent=False, strict=False):
         device = torch.device('cpu')

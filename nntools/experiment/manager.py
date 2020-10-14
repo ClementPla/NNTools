@@ -18,6 +18,7 @@ from nntools.tracker import Tracker
 from nntools.utils.misc import convert_function
 from nntools.utils.io import save_config
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP
+from nntools.utils.path import create_folder
 
 
 class Manager(ABC):
@@ -27,12 +28,9 @@ class Manager(ABC):
                                        self.config['Manager']['experiment'],
                                        self.config['Manager']['run'])
         self.network_savepoint = os.path.join(self.run_folder, 'trained_model')
+        mlflow.set_tracking_uri(self.config['Manager']['save_point'])
 
-        if not os.path.exists(self.run_folder):
-            os.makedirs(self.run_folder)
-
-        if not os.path.exists(self.network_savepoint):
-            os.makedirs(self.network_savepoint)
+        create_folder(self.run_folder)
 
         self.set_seed()
         self.world_size = len(self.config['Manager']['gpu'])
@@ -60,6 +58,9 @@ class Manager(ABC):
     def start(self):
         pass
 
+    def set_dataset(self, dataset):
+        self.dataset = dataset
+
     def build_dataloader(self, dataset, shuffle=True):
         if self.multi_gpu:
             sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=shuffle)
@@ -74,6 +75,10 @@ class Manager(ABC):
                                                      pin_memory=True, shuffle=shuffle,
                                                      worker_init_fn=set_non_torch_seed)
         return dataloader, sampler
+
+    def eval(self, model, dataset, filepath=None):
+        model.load()
+        dataloader = self.build_dataloader(dataset)
 
 
 class Trainer(Manager):
@@ -101,7 +106,6 @@ class Trainer(Manager):
     def get_loss(self, weights=None, rank=0):
         loss = FuseLoss()
         loss_args = self.config['Training']['segmentation_losses'].lower()
-
         if 'ce' in loss_args:
             loss.append(nn.CrossEntropyLoss(weight=weights.cuda(rank),
                                             ignore_index=self.ignore_index))
@@ -114,7 +118,8 @@ class Trainer(Manager):
         self.weights = weights
 
     def save_model(self, model, filename, **kwargs):
-        model.save(savepoint=self.network_savepoint, filename=filename, **kwargs)
+        save_path = model.save(savepoint=self.network_savepoint, filename=filename, **kwargs)
+        MlflowClient().log_artifact(self.run_id, save_path)
         if self.config['Manager']['max_saved_model']:
             files = glob.glob(self.network_savepoint + "/*.pth")
             files.sort(key=os.path.getmtime)
@@ -124,16 +129,17 @@ class Trainer(Manager):
     def init_training(self, rank=0):
         torch.cuda.set_device(rank)
         model = self.configure_network()
-        if self.config['CNN']['synchronized_batch_norm'] and self.multi_gpu:
-            model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
-
         model = model.cuda(rank)
         if self.multi_gpu:
             dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size)
             model = DDP(model, device_ids=[rank])
-
         self.train(model, rank)
         self.clean_up()
+
+    def convert_batch_norm(self, model):
+        if self.config['CNN']['synchronized_batch_norm'] and self.multi_gpu:
+            model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
+        return model
 
     def log_params(self):
         mlflow.log_params(self.config['Training'])
@@ -159,6 +165,8 @@ class Trainer(Manager):
         with mlflow.start_run(run_name=self.config['Manager']['run']):
             self.log_params()
             self.run_id = mlflow.active_run().info.run_id
+            self.network_savepoint = os.path.join(self.network_savepoint, str(self.run_id))
+            create_folder(self.network_savepoint)
             if self.multi_gpu:
                 mp.spawn(self.init_training,
                          nprocs=self.world_size,
