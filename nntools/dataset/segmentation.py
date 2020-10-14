@@ -58,11 +58,11 @@ class SegmentationDataset(Dataset):
             Tracker.warn("Mismatch between the number of images (%i) and masks (%i) found!" % (
                 len(img_filenames), len(mask_filenames)))
 
-        img_argsort = np.argsort(img_filenames)
+        img_argsort = np.argsort(self.img_filepath)
 
         if self.use_masks:
             self.img_filepath = self.img_filepath[img_argsort][:len(mask_filenames)]
-            mask_argsort = np.argsort(mask_filenames)
+            mask_argsort = np.argsort(self.mask_filepath)
             self.mask_filepath = self.mask_filepath[mask_argsort][:len(img_filenames)]
 
     def subset(self, indices):
