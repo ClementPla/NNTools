@@ -28,7 +28,7 @@ class Manager(ABC):
                                        self.config['Manager']['experiment'],
                                        self.config['Manager']['run'])
         self.network_savepoint = os.path.join(self.run_folder, 'trained_model')
-        mlflow.set_tracking_uri(self.config['Manager']['save_point'])
+        mlflow.set_tracking_uri(os.path.join(self.config['Manager']['save_point'], 'mlruns'))
 
         create_folder(self.run_folder)
 

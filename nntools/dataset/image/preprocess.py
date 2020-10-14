@@ -118,7 +118,7 @@ def random_scale(img, scale_factor=None, mask=None, cval=0, flag=cv2.INTER_LINEA
             pad2 = pad // 2 + 1
         return pad1, pad2
 
-    h, w = img.shape[0:2]
+    h, w = img.shape[:2]
     img = cv2.resize(img, None, fx=f, fy=f, interpolation=flag)
     if mask is not None:
         mask = cv2.resize(mask, None, fx=f, fy=f, interpolation=cv2.INTER_NEAREST)
