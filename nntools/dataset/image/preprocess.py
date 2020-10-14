@@ -101,8 +101,12 @@ def random_rotation(img, rotation_angle=None, mask=None, flag=cv2.INTER_LINEAR, 
 
 
 @double_kwarg
-def random_scale(img, scale_factor=None, mask=None, cval=0, flag=cv2.INTER_LINEAR):
+def random_scale(img, scale_factor=None, mask=None, cval=0, flag=cv2.INTER_LINEAR, pad_mode='constant'):
     f = sample(list(scale_factor))
+
+    kwargs = {'mode': pad_mode}
+    if pad_mode == 'constant':
+        kwargs['constant_values'] = cval
 
     def padding(old, new):
         pad = old - new
@@ -123,11 +127,11 @@ def random_scale(img, scale_factor=None, mask=None, cval=0, flag=cv2.INTER_LINEA
         padh1, padh2 = padding(h, new_h)
         padw1, padw2 = padding(w, new_w)
         if img.ndim == 2:
-            img = np.pad(img, pad_width=[(padh1, padh2), (padw1, padw2)], constant_values=cval)
+            img = np.pad(img, pad_width=[(padh1, padh2), (padw1, padw2)], **kwargs)
         else:
-            img = np.pad(img, pad_width=[(padh1, padh2), (padw1, padw2), (0, 0)], constant_values=cval)
+            img = np.pad(img, pad_width=[(padh1, padh2), (padw1, padw2), (0, 0)], **kwargs)
         if mask is not None:
-            mask = np.pad(mask, pad_width=[(padh1, padh2), (padw1, padw2)], constant_values=cval)
+            mask = np.pad(mask, pad_width=[(padh1, padh2), (padw1, padw2)], **kwargs)
     if f >= 1:
         if mask is None:
             img = random_crop(img=img, pad=False, cval=cval, crop_size=(h, w))
