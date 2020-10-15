@@ -3,25 +3,6 @@ import torch
 import torch.nn.functional as F
 
 
-class Metrics:
-    def __init__(self, n_classes):
-        self.n_classes = n_classes
-        self.metrics_list = []
-
-    def __call__(self, pred, gt):
-        output = {}
-        for m in self.metrics_list:
-            name = m.__name__
-            output[name] = m(pred, gt, self.n_classes)
-        return output
-
-    def append(self, metrics):
-        if isinstance(metrics, list):
-            self.metrics_list += metrics
-        else:
-            self.metrics_list.append(metrics)
-
-
 def confusion_matrix(pred, gt, num_classes=-1, *args):
     """
     :param pred: Tensor of any shape containing hard predictions (integer)

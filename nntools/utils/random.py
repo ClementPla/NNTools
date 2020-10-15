@@ -1,5 +1,7 @@
+import random
 import numpy as np
-
+import torch
+import torch.backends.cudnn as cudnn
 
 def sample(sampling_values):
     """
@@ -17,3 +19,13 @@ def sample(sampling_values):
         return np.random.uniform(sampling_values[0], sampling_values[1])
     if isinstance(sampling_values, tuple):
         return np.random.choice(sampling_values)
+
+def set_seed(seed):
+    torch.manual_seed(seed)
+    cudnn.deterministic = True
+    set_non_torch_seed(seed)
+
+
+def set_non_torch_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)

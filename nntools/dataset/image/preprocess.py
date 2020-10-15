@@ -1,25 +1,9 @@
 import cv2
 import numpy as np
 
-from nntools.dataset.decorators import double_kwarg, single_kwarg
-from nntools.utils.sampler import sample
+from nntools.dataset.image.decorators import double_kwarg, single_kwarg
+from nntools.utils.random import sample
 
-
-# class ImageTransform:
-#     """
-#     Assume imgs are of shape hxwxc or hxw
-#     """
-#     crop_size = (256, 256)
-#     cval = 0
-#     rotation_angle = [-20, 20]
-#     scale_factor = [0.75, 1.5]
-#     flags = cv2.INTER_LINEAR
-#     pad = False
-#     pad_mode = 'reflect'
-#     mean = [0, 0, 0]
-#     std = [1, 1, 1]
-#     mask_interpolation = cv2.INTER_NEAREST
-#     img_interpolation = cv2.INTER_LINEAR
 
 @single_kwarg
 def normalize(img, mean=None, std=None):
@@ -32,16 +16,6 @@ def normalize(img, mean=None, std=None):
 
 @double_kwarg
 def random_crop(img, crop_size, mask=None, pad=False, pad_mode='reflect', cval=0):
-    """
-    :param imgs: Single image or list of images (usually a couple image/groundtruth)
-    :param pad_mode: padding mode for handling borders (see numpy.pad).
-    It can also be a list of pad modes, following the order in imgs (if list)
-    :param pad: boolean, whether or not to use padding (allows cropping more often the border of the image)
-    :param cval: in case of constant padding, value used in the borders
-    :param crop_size:
-    :return:
-    """
-
     hcrop, wcrop = crop_size[0], crop_size[1]
     if pad:
         pad_margins = [(hcrop // 2, hcrop // 2), (wcrop // 2, wcrop // 2)]
@@ -103,7 +77,6 @@ def random_rotation(img, rotation_angle=None, mask=None, flag=cv2.INTER_LINEAR, 
 @double_kwarg
 def random_scale(img, scale_factor=None, mask=None, cval=0, flag=cv2.INTER_LINEAR, pad_mode='constant'):
     f = sample(list(scale_factor))
-
     kwargs = {'mode': pad_mode}
     if pad_mode == 'constant':
         kwargs['constant_values'] = cval

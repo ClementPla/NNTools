@@ -1,5 +1,5 @@
 from torch.nn.parallel import DistributedDataParallel as DDP
-
+import torch.distributed as dist
 
 class DistributedDataParallelWithAttributes(DDP):
     """
@@ -12,7 +12,6 @@ class DistributedDataParallelWithAttributes(DDP):
         except AttributeError:
             return getattr(self.module, name)
 
-import torch.distributed as dist
 
 
 def reduce_tensor(tensor, world_size, mode='avg'):

@@ -8,9 +8,13 @@ from torch.utils.data import Dataset
 
 from nntools.dataset.image.preprocess import resize
 from nntools.tracker.warnings import Tracker
-from nntools.utils.io import load_image
-from nntools.utils.path import path_leaf
+from nntools.utils.io import load_image, path_leaf
 
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib import cm
+
+plt.rcParams['image.cmap'] = 'gray'
 fileExtensions = ["jpg", "jpeg", "png", "tiff"]
 
 
@@ -56,7 +60,7 @@ class SegmentationDataset(Dataset):
         img_filenames = np.asarray([path_leaf(path).split('.')[0] for path in self.img_filepath])
         mask_filenames = np.asarray([path_leaf(path).split('.')[0] for path in self.mask_filepath])
         if self.use_masks and len(img_filenames) != len(mask_filenames):
-            Tracker.warn("Mismatch between the number of images (%i) and masks (%i) found!" % (
+            Tracker.warn("Mismatch between the number of image (%i) and masks (%i) found!" % (
                 len(img_filenames), len(mask_filenames)))
 
         img_argsort = np.argsort(self.img_filepath)
@@ -66,14 +70,15 @@ class SegmentationDataset(Dataset):
             mask_argsort = np.argsort(self.mask_filepath)
             self.mask_filepath = self.mask_filepath[mask_argsort][:len(img_filenames)]
 
-    def subset(self, indices):
-        self.img_filepath = self.img_filepath[indices]
-        self.mask_filepath = self.mask_filepath[indices]
-
     def __len__(self):
         return len(self.img_filepath)
 
     def multiply(self, factor):
+        """
+        Artificially increase the size of the dataset by a given multiplication factor
+        :param factor:
+        :return:
+        """
         decimal = factor - int(factor)
         factor = int(factor)
         rest = int(decimal * len(self))
@@ -125,10 +130,10 @@ class SegmentationDataset(Dataset):
         else:
             return os.path.basename(filepaths)
 
+    def set_composer(self, composer):
+        self.composer = composer
+
     def plot(self, item, show=True, save=False, savefolder='tmp/', classes=None):
-        import matplotlib.pyplot as plt
-        from mpl_toolkits.axes_grid1 import make_axes_locatable
-        from matplotlib import cm
 
         if self.use_masks:
             img, mask = self[item]

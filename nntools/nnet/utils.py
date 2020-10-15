@@ -8,14 +8,5 @@ def norm_layer(norm):
             'layer_norm': nn.LayerNorm}[norm]
 
 
-class ProxyNetwork(AbstractNet):
-    def __init__(self, model):
-        super(ProxyNetwork, self).__init__()
-        self.proxy = model
-
-    def forward(self, *args, **kwargs):
-        return self.proxy(*args, **kwargs)
-
-
 def nnt_format(model):
-    return ProxyNetwork(model)
+    return AbstractNet(model)

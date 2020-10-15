@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from ..utils.path import create_folder, get_most_recent_file
+from nntools.utils.io import create_folder, get_most_recent_file
 
 
 def check_nan(state_dict):
@@ -15,9 +15,13 @@ def check_nan(state_dict):
 
 
 class AbstractNet(nn.Module):
-    def __init__(self):
+    def __init__(self, model=None):
         self._today = datetime.datetime.now().date()
+        self.savepoint = None
+
         super(AbstractNet, self).__init__()
+        if model is not None:
+            self.network = model
 
     def save(self, filename='trained_model',
              optimizers=None,
@@ -72,3 +76,6 @@ class AbstractNet(nn.Module):
 
     def get_trainable_parameters(self, lr=None):
         return self.parameters()
+
+    def forward(self, *args, **kwargs):
+        return self.network(*args, **kwargs)
