@@ -125,7 +125,7 @@ class Trainer(Manager):
         return loss
 
     def get_class_weights(self):
-        class_count = get_class_count(self.dataset, save=True, load=True)
+        class_count = get_class_count(self.dataset.dataset, save=True, load=True)
         return torch.tensor(class_weighting(class_count, mode=self.config['Training']['weighting_function'],
                                             ignore_index=self.ignore_index))
 
