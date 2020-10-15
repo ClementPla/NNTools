@@ -30,12 +30,12 @@ def get_class_count(dataset, save=True, load=True):
     return classes_counts
 
 
-def class_weighting(class_count, mode='balanced', ignore_index=-100):
+def class_weighting(class_count, mode='balanced', ignore_index=-100, eps=1):
     assert mode in ['balanced', 'log_prob']
     if mode == 'balanced':
         n_samples = sum([c for i, c in enumerate(class_count) if i != ignore_index])
         n_classes = len(np.nonzero(class_count))
-        class_weights = n_samples / (n_classes * class_count)
+        class_weights = n_samples / (n_classes * class_count+eps)
 
     elif mode == 'log_prob':
         p_class = class_count / class_count.sum()
