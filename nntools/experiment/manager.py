@@ -118,9 +118,11 @@ class Trainer(Manager):
         loss = FuseLoss()
         loss_args = self.config['Training']['segmentation_losses'].lower()
         if 'ce' in loss_args:
-            loss.append(nn.CrossEntropyLoss(weight=weights.cuda(rank),
-                                            ignore_index=self.ignore_index))
-
+            if weights is None:
+                loss.append(nn.CrossEntropyLoss(ignore_index=self.ignore_index))
+            else:
+                loss.append(nn.CrossEntropyLoss(weight=weights.cuda(rank),
+                                                ignore_index=self.ignore_index))
         if 'dice' in loss_args:
             loss.append(DiceLoss(ignore_index=self.ignore_index))
         return loss
