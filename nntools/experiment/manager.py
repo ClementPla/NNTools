@@ -28,6 +28,8 @@ class Manager(ABC):
                                        self.config['Manager']['experiment'],
                                        self.config['Manager']['run'])
         self.network_savepoint = os.path.join(self.run_folder, 'trained_model')
+        self.prediction_savepoint = os.path.join(self.run_folder, 'predictions')
+
         mlflow.set_tracking_uri(os.path.join(self.config['Manager']['save_point'], 'mlruns'))
 
         create_folder(self.run_folder)
@@ -142,9 +144,9 @@ class Trainer(Manager):
         if self.multi_gpu:
             dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size)
             model = DDP(model, device_ids=[rank])
-            
+
         self.train(model, rank)
-        self.end_training()
+        self.end_training(model, rank)
         self.clean_up()
 
     def log_params(self):
@@ -158,7 +160,7 @@ class Trainer(Manager):
         for k, v in metrics.items():
             MlflowClient().log_metric(self.run_id, k, v, int(time.time() * 1000), step=step)
 
-    def end_training(self):
+    def end_training(self, *args, **kwargs):
         pass
 
     def start(self):
@@ -175,7 +177,9 @@ class Trainer(Manager):
             self.log_params()
             self.run_id = mlflow.active_run().info.run_id
             self.network_savepoint = os.path.join(self.network_savepoint, str(self.run_id))
+            self.prediction_savepoint = os.path.join(self.prediction_savepoint, str(self.run_id))
             create_folder(self.network_savepoint)
+            create_folder(self.prediction_savepoint)
             if self.multi_gpu:
                 mp.spawn(self.init_training,
                          nprocs=self.world_size,
