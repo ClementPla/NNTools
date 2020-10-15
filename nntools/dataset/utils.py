@@ -7,6 +7,7 @@ from nntools.tracker.warnings import Tracker
 from torch import randperm, default_generator
 from torch._utils import _accumulate
 
+
 def get_class_count(dataset, save=True, load=True):
     shape = dataset.shape
     path = dataset.path_masks
@@ -55,7 +56,8 @@ def random_split(dataset, lengths, generator=default_generator):
     datasets = []
     for offset, length in zip(_accumulate(lengths), lengths):
         d = copy.deepcopy(dataset)
-        d.subset(indices[offset - length: offset])
+        indx = indices[offset - length: offset]
+        d.subset(indx)
         datasets.append(d)
-    return tuple(d)
+    return tuple(datasets)
 
