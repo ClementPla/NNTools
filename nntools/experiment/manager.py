@@ -80,9 +80,14 @@ class Manager(ABC):
                                                      worker_init_fn=set_non_torch_seed)
         return dataloader, sampler
 
-    def eval(self, model, dataset, filepath=None):
-        model.load()
-        dataloader = self.build_dataloader(dataset)
+    def convert_batch_norm(self, model):
+        if self.config['CNN']['synchronized_batch_norm'] and self.multi_gpu:
+            model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
+        return model
+
+    def clean_up(self):
+        if self.multi_gpu:
+            dist.destroy_process_group()
 
 
 class Trainer(Manager):
@@ -137,13 +142,10 @@ class Trainer(Manager):
         if self.multi_gpu:
             dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size)
             model = DDP(model, device_ids=[rank])
+            
         self.train(model, rank)
+        self.end_training()
         self.clean_up()
-
-    def convert_batch_norm(self, model):
-        if self.config['CNN']['synchronized_batch_norm'] and self.multi_gpu:
-            model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
-        return model
 
     def log_params(self):
         mlflow.log_params(self.config['Training'])
@@ -155,6 +157,9 @@ class Trainer(Manager):
     def log_metrics(self, step, **metrics):
         for k, v in metrics.items():
             MlflowClient().log_metric(self.run_id, k, v, int(time.time() * 1000), step=step)
+
+    def end_training(self):
+        pass
 
     def start(self):
         assert self.partial_optimizer is not None, "Missing optimizer for training"
@@ -178,10 +183,6 @@ class Trainer(Manager):
             else:
                 self.init_training(rank=self.gpu[0])
         save_config(self.config, os.path.join(self.run_folder, 'config.yaml'))
-
-    def clean_up(self):
-        if self.multi_gpu:
-            dist.destroy_process_group()
 
     def train(self, model, rank=0):
         loss_function = self.get_loss(self.weights, rank=rank)

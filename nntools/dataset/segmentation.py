@@ -38,6 +38,7 @@ class SegmentationDataset(Dataset):
 
         self.cmap_name = 'jet_r'
         self.n_classes = n_classes
+        self.return_indices = False
 
     def list_files(self, recursive):
         for extension in fileExtensions:
@@ -109,14 +110,17 @@ class SegmentationDataset(Dataset):
         elif img.ndim == 2:
             img = np.expand_dims(img, 0)
 
+        output = (torch.from_numpy(img), )
         if self.use_masks:
-            return torch.from_numpy(img), torch.from_numpy(mask).long()
-        else:
-            return torch.from_numpy(img)
+            output = output + (torch.from_numpy(mask).long(), )
+        if self.return_indices:
+            output = output + (item, )
+        return output
 
     def filename(self, items):
+        items = np.asarray(items)
         filepaths = self.img_filepath[items]
-        if isinstance(filepaths, list):
+        if isinstance(filepaths, list) or isinstance(filepaths, np.ndarray):
             return [os.path.basename(f) for f in filepaths]
         else:
             return os.path.basename(filepaths)
