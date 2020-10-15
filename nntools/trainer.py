@@ -94,7 +94,7 @@ class Trainer(Manager):
         self.partial_lr_scheduler = convert_function(func, kwargs)
 
     def set_model(self, model):
-        self.model = None
+        self.model = model
 
     def get_dataloader(self, dataset, shuffle=True):
         if self.multi_gpu:
