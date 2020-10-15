@@ -138,6 +138,7 @@ class Trainer(Manager):
                 os.remove(f)
 
     def init_training(self, rank=0):
+        mlflow.set_tracking_uri(os.path.join(self.config['Manager']['save_point'], 'mlruns'))
         torch.cuda.set_device(rank)
         model = self.configure_network()
         model = model.cuda(rank)
