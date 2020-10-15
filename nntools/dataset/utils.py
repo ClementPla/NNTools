@@ -2,9 +2,10 @@ import os
 
 import cv2
 import numpy as np
-
+import copy
 from nntools.tracker.warnings import Tracker
-
+from torch import randperm, default_generator
+from torch._utils import _accumulate
 
 def get_class_count(dataset, save=True, load=True):
     shape = dataset.shape
@@ -44,3 +45,14 @@ def class_weighting(class_count, mode='balanced', ignore_index=-100, eps=1):
         class_weights[ignore_index] = 0
 
     return class_weights.astype(np.float32)
+
+
+def random_split(dataset, lengths, generator=default_generator):
+    if sum(lengths) != len(dataset):
+        raise ValueError("Sum of input lengths does not equal the length of the input dataset!")
+
+    indices = randperm(sum(lengths), generator=generator).tolist()
+    return (copy.deepcopy(dataset).subset(indices[offset - length: offset]) for offset,
+                                                                                length in zip(_accumulate(lengths),
+                                                                                              lengths))
+

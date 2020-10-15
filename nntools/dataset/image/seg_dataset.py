@@ -178,4 +178,8 @@ class SegmentationDataset(Dataset):
             fig.savefig(os.path.join(savefolder, filename))
             plt.close(fig)
 
+    def subset(self, indices):
+        self.img_filepath = self.img_filepath[indices]
+        self.mask_filepath = self.mask_filepath[indices]
+
 
