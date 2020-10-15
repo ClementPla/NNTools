@@ -52,7 +52,10 @@ def random_split(dataset, lengths, generator=default_generator):
         raise ValueError("Sum of input lengths does not equal the length of the input dataset!")
 
     indices = randperm(sum(lengths), generator=generator).tolist()
-    return (copy.deepcopy(dataset).subset(indices[offset - length: offset]) for offset,
-                                                                                length in zip(_accumulate(lengths),
-                                                                                              lengths))
+    datasets = []
+    for offset, length in zip(_accumulate(lengths), lengths):
+        d = copy.deepcopy(dataset)
+        d.subset(indices[offset - length: offset])
+        datasets.append(d)
+    return tuple(d)
 
