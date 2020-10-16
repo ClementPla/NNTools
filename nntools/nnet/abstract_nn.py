@@ -1,7 +1,6 @@
 import datetime
 from os.path import join, splitext
 
-import numpy as np
 import torch
 from torch import nn
 
@@ -10,7 +9,7 @@ from nntools.utils.io import create_folder, get_most_recent_file
 
 def check_nan(state_dict):
     for k in state_dict:
-        if np.isnan(state_dict[k].numpy()).any():
+        if torch.isnan(state_dict[k]).any():
             raise ValueError("Corrupted file")
 
 
