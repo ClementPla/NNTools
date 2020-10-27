@@ -92,16 +92,16 @@ class SegmentationDataset(Dataset):
     def __getitem__(self, item):
         filepath = self.img_filepath[item]
         img = load_image(filepath)
-        img = resize(img=img, shape=self.shape,
+        img = resize(image=img, shape=self.shape,
                      keep_size_ratio=self.keep_size_ratio)
 
         if self.use_masks:
             filepath = self.mask_filepath[item]
             mask = load_image(filepath, cv2.IMREAD_GRAYSCALE)
-            mask = resize(img=mask, shape=self.shape, keep_size_ratio=self.keep_size_ratio, flag=cv2.INTER_NEAREST)
+            mask = resize(image=mask, shape=self.shape, keep_size_ratio=self.keep_size_ratio, flag=cv2.INTER_NEAREST)
 
         img = img.astype(np.float32) / 255.
-        kwargs = {'img': img}
+        kwargs = {'image': img}
         if self.composer:
             if self.use_masks:
                 kwargs['mask'] = mask
@@ -130,7 +130,7 @@ class SegmentationDataset(Dataset):
         else:
             return os.path.basename(filepaths)
 
-    def set_composer(self, composer):
+    def compose(self, composer):
         self.composer = composer
 
     def plot(self, item, show=True, save=False, savefolder='tmp/', classes=None):

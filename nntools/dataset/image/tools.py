@@ -9,23 +9,26 @@ class DataAugment:
         self.p = self.config['ratio']
 
     def auto_init(self):
-        if self.config['vertical_flip']:
+        def check(param):
+            return param in self.config and self.config[param]
+
+        if check('vertical_flip'):
             from .preprocess import vertical_flip
             self.ops.append(convert_function(vertical_flip, self.config))
 
-        if self.config['horizontal_flip']:
+        if check('horizontal_flip'):
             from .preprocess import horizontal_flip
             self.ops.append(convert_function(horizontal_flip, self.config))
 
-        if self.config['random_rotate']:
+        if check('random_rotate'):
             from .preprocess import random_rotation
             self.ops.append(convert_function(random_rotation, self.config))
 
-        if self.config['random_scale']:
+        if check('random_scale'):
             from .preprocess import random_scale
             self.ops.append(convert_function(random_scale, self.config))
 
-        if self.config['random_rotate']:
+        if check('random_rotate'):
             from .preprocess import random_rotation
             self.ops.append(convert_function(random_rotation, self.config))
 
@@ -37,15 +40,15 @@ class DataAugment:
             if self.p < np.random.uniform():
                 if is_mask:
                     img, mask = op(**kwargs)
-                    kwargs['img'] = img
+                    kwargs['image'] = img
                     kwargs['mask'] = mask
                 else:
                     img = op(**kwargs)
-                    kwargs['img'] = img
+                    kwargs['image'] = img
         if is_mask:
-            return kwargs['img'], kwargs['mask']
+            return kwargs['image'], kwargs['mask']
         else:
-            return kwargs['img']
+            return kwargs['image']
 
 
 class Composition:
@@ -66,16 +69,16 @@ class Composition:
         for op in self.ops:
             if is_mask:
                 img, mask = op(**kwargs)
-                kwargs['img'] = img
+                kwargs['image'] = img
                 kwargs['mask'] = mask
             else:
                 img = op(**kwargs)
-                kwargs['img'] = img
+                kwargs['image'] = img
 
         if is_mask:
-            return kwargs['img'], kwargs['mask']
+            return kwargs['image'], kwargs['mask']
         else:
-            return kwargs['img']
+            return kwargs['image']
 
     def __lshift__(self, other):
         return self.add(other)

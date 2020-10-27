@@ -1,24 +1,32 @@
 import functools
+import inspect
 
 
-def single_kwarg(func):
+def preprocess(func):
     @functools.wraps(func)
-    def wrapper_check_args(*args, **kwargs):
-        is_mask = 'mask' in kwargs
-        if is_mask:
+    def wrapper(*args, **kwargs):
+        list_parameters = inspect.signature(func).parameters.values()
+        accepts_mask = any([p.name == 'mask' for p in list_parameters])
+        accepts_image = any([p.name == 'mask' for p in list_parameters])
+
+        is_mask_in_param = 'mask' in kwargs
+        is_image_in_param = 'image' in kwargs
+
+        if not accepts_mask and is_mask_in_param:
             mask = kwargs.pop('mask')
-        img = func(*args, **kwargs)
-        if is_mask:
-            return img, mask
+            return func(*args, **kwargs), mask
+        if not accepts_image and is_image_in_param:
+            image = kwargs.pop('image')
+            return image, func(*args, **kwargs)
         else:
-            return img
+            return func(*args, **kwargs)
+    return wrapper
 
-    return wrapper_check_args
 
 
-def double_kwarg(func):
-    @functools.wraps(func)
-    def wrapper_check_args(*args, **kwargs):
-        return func(*args, **kwargs)
 
-    return wrapper_check_args
+
+
+
+
+
