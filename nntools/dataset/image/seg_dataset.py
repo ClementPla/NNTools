@@ -100,7 +100,6 @@ class SegmentationDataset(Dataset):
             mask = load_image(filepath, cv2.IMREAD_GRAYSCALE)
             mask = resize(image=mask, shape=self.shape, keep_size_ratio=self.keep_size_ratio, flag=cv2.INTER_NEAREST)
 
-        img = img.astype(np.float32) / 255.
         kwargs = {'image': img}
         if self.composer:
             if self.use_masks:
@@ -108,6 +107,8 @@ class SegmentationDataset(Dataset):
                 img, mask = self.composer(**kwargs)
             else:
                 img = self.composer(**kwargs)
+
+        img = img.astype(np.float32) / 255.
 
         if img.ndim == 3:
             img = img.transpose(2, 0, 1)
@@ -130,7 +131,7 @@ class SegmentationDataset(Dataset):
         else:
             return os.path.basename(filepaths)
 
-    def compose(self, composer):
+    def set_composition(self, composer):
         self.composer = composer
 
     def plot(self, item, show=True, save=False, savefolder='tmp/', classes=None):
@@ -181,5 +182,6 @@ class SegmentationDataset(Dataset):
     def subset(self, indices):
         self.img_filepath = self.img_filepath[indices]
         self.mask_filepath = self.mask_filepath[indices]
+
 
 

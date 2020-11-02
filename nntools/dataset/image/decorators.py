@@ -7,7 +7,7 @@ def preprocess(func):
     def wrapper(*args, **kwargs):
         list_parameters = inspect.signature(func).parameters.values()
         accepts_mask = any([p.name == 'mask' for p in list_parameters])
-        accepts_image = any([p.name == 'mask' for p in list_parameters])
+        accepts_image = any([p.name == 'image' for p in list_parameters])
 
         is_mask_in_param = 'mask' in kwargs
         is_image_in_param = 'image' in kwargs

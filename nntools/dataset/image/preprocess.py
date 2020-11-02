@@ -62,8 +62,8 @@ def vertical_flip(image, mask=None):
 
 
 @preprocess
-def random_rotation(image, rotation_angle=None, mask=None, flag=cv2.INTER_LINEAR, cval=0):
-    angle = sample(list(rotation_angle))
+def random_rotation(image, rotation_angle=(-10, 10), mask=None, flag=cv2.INTER_LINEAR, cval=0):
+    angle = sample(rotation_angle)
     image_center = tuple(np.array(image.shape[1::-1]) / 2)
     rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
     image = cv2.warpAffine(image, M=rot_mat, dsize=image.shape[1::-1], flags=flag, borderValue=cval)
@@ -75,7 +75,7 @@ def random_rotation(image, rotation_angle=None, mask=None, flag=cv2.INTER_LINEAR
 
 
 @preprocess
-def random_scale(image, scale_factor=None, mask=None, cval=0, flag=cv2.INTER_LINEAR, pad_mode='constant'):
+def random_scale(image, scale_factor=(0.75,1.25), mask=None, cval=0, flag=cv2.INTER_LINEAR, pad_mode='constant'):
     f = sample(list(scale_factor))
     kwargs = {'mode': pad_mode}
     if pad_mode == 'constant':

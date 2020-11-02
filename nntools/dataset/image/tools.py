@@ -20,10 +20,6 @@ class DataAugment:
             from .preprocess import horizontal_flip
             self.ops.append(convert_function(horizontal_flip, self.config))
 
-        if check('random_rotate'):
-            from .preprocess import random_rotation
-            self.ops.append(convert_function(random_rotation, self.config))
-
         if check('random_scale'):
             from .preprocess import random_scale
             self.ops.append(convert_function(random_scale, self.config))
@@ -37,7 +33,7 @@ class DataAugment:
     def __call__(self, **kwargs):
         is_mask = 'mask' in kwargs
         for op in self.ops:
-            if self.p < np.random.uniform():
+            if self.p > np.random.uniform():
                 if is_mask:
                     img, mask = op(**kwargs)
                     kwargs['image'] = img
@@ -67,13 +63,15 @@ class Composition:
     def __call__(self, **kwargs):
         is_mask = 'mask' in kwargs
         for op in self.ops:
-            if is_mask:
-                img, mask = op(**kwargs)
-                kwargs['image'] = img
-                kwargs['mask'] = mask
-            else:
-                img = op(**kwargs)
-                kwargs['image'] = img
+            out = op(**kwargs)
+            if isinstance(out, tuple):
+                if is_mask:
+                    kwargs['image'] = out[0]
+                    kwargs['mask'] = out[1]
+                else:
+                    kwargs['image'] = out[0]
+            elif isinstance(out, dict):
+                kwargs = out
 
         if is_mask:
             return kwargs['image'], kwargs['mask']
