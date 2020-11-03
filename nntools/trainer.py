@@ -214,7 +214,7 @@ class Trainer(Manager):
             MlflowClient().log_artifact(self.run_id, self.last_save)
 
     def log_artifact(self, path):
-        MlflowClient.log_artifact(self.run_id, path)
+        MlflowClient().log_artifact(self.run_id, path)
 
     def end(self, *args, **kwargs):
         pass
