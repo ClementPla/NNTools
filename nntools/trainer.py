@@ -188,7 +188,7 @@ class Trainer(Manager):
         with mlflow.start_run(run_name=self.config['Manager']['run']):
             self.initial_tracking()
 
-            # Needed because we can access it once multiprocessing is started
+            # Needed so we can access it once multiprocessing is started
             self.run_id = mlflow.active_run().info.run_id
 
             # Update the save point to uniquely identify a run
@@ -214,6 +214,9 @@ class Trainer(Manager):
     def register_trained_model(self):
         if self.last_save is not None:
             MlflowClient().log_artifact(self.run_id, self.last_save)
+
+    def log_artifact(self, path):
+        MlflowClient.log_artifact(self.run_id, path)
 
     def end(self, *args, **kwargs):
         pass
