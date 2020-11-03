@@ -43,6 +43,14 @@ class Manager(ABC):
             os.environ['MASTER_PORT'] = '12355'
         self.run_id = -1
 
+        mlflow.set_experiment(self.config['Manager']['experiment'])
+        mlflow.start_run(run_name=self.config['Manager']['run'])
+        self.run_id = mlflow.active_run().info.run_id
+
+        # Update the save point in an unique way by using the run id
+        self.network_savepoint = os.path.join(self.network_savepoint, str(self.run_id))
+        self.prediction_savepoint = os.path.join(self.prediction_savepoint, str(self.run_id))
+
     def convert_batch_norm(self, model):
         if self.config['CNN']['synchronized_batch_norm'] and self.multi_gpu:
             model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
@@ -157,14 +165,13 @@ class Trainer(Manager):
         self.train(model, rank)
         model.eval()
         self.end(model, rank)
-        self.clean_up()
 
     def initial_tracking(self):
-        mlflow.log_params(self.config['Training'])
-        mlflow.log_params(self.config['Optimizer'])
-        mlflow.log_params(self.config['Learning_rate_scheduler'])
-        mlflow.log_params(self.config['CNN'])
-        mlflow.log_params(self.config['Preprocessing'])
+        MlflowClient().log_params(self.run_id, self.config['Training'])
+        MlflowClient().log_params(self.run_id, self.config['Optimizer'])
+        MlflowClient().log_params(self.run_id, self.config['Learning_rate_scheduler'])
+        MlflowClient().log_params(self.run_id, self.config['CNN'])
+        MlflowClient().log_params(self.run_id, self.config['Preprocessing'])
 
     def log_params(self, **params):
         MlflowClient().log_params(self.run_id, params)
@@ -184,31 +191,22 @@ class Trainer(Manager):
             class_weights = self.get_class_weights()
             self.__setup_weights(weights=class_weights)
 
-        mlflow.set_experiment(self.config['Manager']['experiment'])
-        with mlflow.start_run(run_name=self.config['Manager']['run']):
-            self.initial_tracking()
+        self.initial_tracking()
 
-            # Needed so we can access it once multiprocessing is started
-            self.run_id = mlflow.active_run().info.run_id
-
-            # Update the save point to uniquely identify a run
-            self.network_savepoint = os.path.join(self.network_savepoint, str(self.run_id))
-            self.prediction_savepoint = os.path.join(self.prediction_savepoint, str(self.run_id))
-
-            create_folder(self.network_savepoint)
-            create_folder(self.prediction_savepoint)
-            try:
-                if self.multi_gpu:
-                    mp.spawn(self.start_process,
-                             nprocs=self.world_size,
-                             join=True)
-                else:
-                    self.start_process(rank=self.gpu[0])
-            except:
-                self.register_trained_model()
-                self.clean_up()
-                raise
+        create_folder(self.network_savepoint)
+        create_folder(self.prediction_savepoint)
+        try:
+            if self.multi_gpu:
+                mp.spawn(self.start_process,
+                         nprocs=self.world_size,
+                         join=True)
+            else:
+                self.start_process(rank=self.gpu[0])
+        except:
             self.register_trained_model()
+            self.clean_up()
+            raise
+        self.register_trained_model()
         save_yaml(self.config, os.path.join(self.run_folder, 'config.yaml'))
 
     def register_trained_model(self):
