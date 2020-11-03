@@ -104,16 +104,18 @@ class Trainer(Manager):
     def set_model(self, model):
         self.model = model
 
-    def get_dataloader(self, dataset, shuffle=True):
+    def get_dataloader(self, dataset, shuffle=True, batch_size=None):
+        if batch_size is None:
+            batch_size = self.batch_size
         if self.multi_gpu:
             sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=shuffle)
-            dataloader = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
+            dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
                                                      num_workers=self.config['Manager']['num_workers'],
                                                      pin_memory=True, sampler=sampler, worker_init_fn=set_non_torch_seed
                                                      )
         else:
             sampler = None
-            dataloader = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
+            dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
                                                      num_workers=self.config['Manager']['num_workers'],
                                                      pin_memory=True, shuffle=shuffle,
                                                      worker_init_fn=set_non_torch_seed)
@@ -161,11 +163,11 @@ class Trainer(Manager):
         if self.multi_gpu:
             dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size)
             model = DDP(model, device_ids=[rank])
-
         self.train(model, rank)
         model.eval()
+        if self.is_main_process(0):
+            self.register_trained_model()
         self.end(model, rank)
-
         self.clean_up()
 
     def initial_tracking(self):
@@ -208,7 +210,6 @@ class Trainer(Manager):
         except:
             self.register_trained_model()
             raise
-        self.register_trained_model()
         save_yaml(self.config, os.path.join(self.run_folder, 'config.yaml'))
 
     def register_trained_model(self):
