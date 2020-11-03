@@ -108,8 +108,6 @@ class SegmentationDataset(Dataset):
             else:
                 img = self.composer(**kwargs)
 
-        img = img.astype(np.float32) / 255.
-
         if img.ndim == 3:
             img = img.transpose(2, 0, 1)
 
