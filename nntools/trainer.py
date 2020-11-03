@@ -166,6 +166,8 @@ class Trainer(Manager):
         model.eval()
         self.end(model, rank)
 
+        self.clean_up()
+
     def initial_tracking(self):
         self.log_params(**self.config['Training'])
         self.log_params(**self.config['Optimizer'])
@@ -205,7 +207,6 @@ class Trainer(Manager):
                 self.start_process(rank=self.gpu[0])
         except:
             self.register_trained_model()
-            self.clean_up()
             raise
         self.register_trained_model()
         save_yaml(self.config, os.path.join(self.run_folder, 'config.yaml'))
