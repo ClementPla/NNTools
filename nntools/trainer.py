@@ -167,14 +167,15 @@ class Trainer(Manager):
         self.end(model, rank)
 
     def initial_tracking(self):
-        MlflowClient().log_params(self.run_id, self.config['Training'])
-        MlflowClient().log_params(self.run_id, self.config['Optimizer'])
-        MlflowClient().log_params(self.run_id, self.config['Learning_rate_scheduler'])
-        MlflowClient().log_params(self.run_id, self.config['CNN'])
-        MlflowClient().log_params(self.run_id, self.config['Preprocessing'])
+        self.log_params(**self.config['Training'])
+        self.log_params(**self.config['Optimizer'])
+        self.log_params(**self.config['Learning_rate_scheduler'])
+        self.log_params(**self.config['CNN'])
+        self.log_params(**self.config['Preprocessing'])
 
     def log_params(self, **params):
-        MlflowClient().log_params(self.run_id, params)
+        for k, v in params.items():
+            MlflowClient().log_param(self.run_id, k, v)
 
     def log_metrics(self, step, **metrics):
         for k, v in metrics.items():
