@@ -3,7 +3,6 @@ import os
 import time
 from abc import ABC, abstractmethod
 
-import mlflow
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
@@ -19,7 +18,7 @@ from nntools.utils.io import create_folder, save_yaml
 from nntools.utils.misc import convert_function
 from nntools.utils.random import set_seed, set_non_torch_seed
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP
-
+from mlflow.entities import RunStatus
 
 class Manager(ABC):
     def __init__(self, config):
@@ -231,8 +230,6 @@ class Experiment(Manager):
             self.start_run()
 
         self.initial_tracking()
-        create_folder(self.network_savepoint)
-        create_folder(self.prediction_savepoint)
         try:
             if self.multi_gpu:
                 mp.spawn(self._start_process,
@@ -240,9 +237,15 @@ class Experiment(Manager):
                          join=True)
             else:
                 self._start_process(rank=self.gpu[0])
-        except:
+        except KeyboardInterrupt:
             self.register_trained_model()
+            self.mlflow_client.set_terminated(self.run_id, status=RunStatus.KILLED)
+            raise KeyboardInterrupt
+        except:
+            self.mlflow_client.set_terminated(self.run_id, status=RunStatus.FAILED)
             raise
+        self.mlflow_client.set_terminated(self.run_id, status=RunStatus.FINISHED)
+
         save_yaml(self.config, os.path.join(self.run_folder, 'config.yaml'))
 
     def register_trained_model(self):
