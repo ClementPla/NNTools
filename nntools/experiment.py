@@ -238,6 +238,7 @@ class Experiment(Manager):
             else:
                 self._start_process(rank=self.gpu[0])
         except KeyboardInterrupt:
+            Tracker.warn("Attempt to register model at %s" % self.last_save)
             self.register_trained_model()
             self.mlflow_client.set_terminated(self.run_id, status=RunStatus.KILLED)
             raise KeyboardInterrupt
@@ -250,6 +251,7 @@ class Experiment(Manager):
 
     def register_trained_model(self):
         if self.last_save is not None:
+
             self.log_artifact(self.last_save)
 
     def end(self, *args, **kwargs):
