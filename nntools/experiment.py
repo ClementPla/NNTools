@@ -213,7 +213,7 @@ class Experiment(Manager):
         model = model.cuda(rank)
         if self.multi_gpu:
             dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size)
-            model = DDP(model, device_ids=[rank])
+            model = DDP(model, device_ids=[rank], find_unused_parameters=True)
         return model
 
     def initial_tracking(self):
