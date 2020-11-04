@@ -15,9 +15,9 @@ from torch.cuda.amp import autocast, GradScaler
 from nntools.dataset import get_class_count, class_weighting
 from nntools.nnet.loss import FuseLoss, DiceLoss
 from nntools.tracker import Tracker
-from nntools.utils.random import set_seed, set_non_torch_seed
-from nntools.utils.misc import convert_function
 from nntools.utils.io import create_folder, save_yaml
+from nntools.utils.misc import convert_function
+from nntools.utils.random import set_seed, set_non_torch_seed
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP
 
 
@@ -29,32 +29,49 @@ class Manager(ABC):
         self.run_folder = os.path.join(self.config['Manager']['save_point'],
                                        self.config['Manager']['experiment'],
                                        self.config['Manager']['run'])
+        create_folder(self.run_folder)
         self.network_savepoint = os.path.join(self.run_folder, 'trained_model')
         self.prediction_savepoint = os.path.join(self.run_folder, 'predictions')
-        mlflow.set_tracking_uri(os.path.join(self.config['Manager']['save_point'], 'mlruns'))
-        create_folder(self.run_folder)
+
         self.gpu = self.config['Manager']['gpu']
+
         if not isinstance(self.gpu, list):
             self.gpu = [self.gpu]
+
         self.world_size = len(self.config['Manager']['gpu'])
         self.multi_gpu = self.world_size > 1
         if self.multi_gpu:
             os.environ['MASTER_ADDR'] = 'localhost'
             os.environ['MASTER_PORT'] = '12355'
-        self.run_id = -1
 
-        mlflow.set_experiment(self.config['Manager']['experiment'])
-        mlflow.start_run(run_name=self.config['Manager']['run'])
-        self.run_id = mlflow.active_run().info.run_id
+        self.run_id = None
 
-        # Update the save point in an unique way by using the run id
-        self.network_savepoint = os.path.join(self.network_savepoint, str(self.run_id))
-        self.prediction_savepoint = os.path.join(self.prediction_savepoint, str(self.run_id))
+        self.mlflow_client = MlflowClient(os.path.join(self.config['Manager']['save_point'], 'mlruns'))
+        exp_name = self.config['Manager']['experiment']
+
+        exp = self.mlflow_client.get_experiment_by_name(exp_name)
+        if exp is None:
+            self.exp_id = self.mlflow_client.create_experiment(exp_name)
+        else:
+            self.exp_id = exp.experiment_id
 
     def convert_batch_norm(self, model):
         if self.config['CNN']['synchronized_batch_norm'] and self.multi_gpu:
             model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
         return model
+
+    def start_run(self, run_id=None):
+        if run_id is None:
+            run = mlflow.start_run(run_name=self.config['Manager']['run'], experiment_id=self.exp_id)
+        else:
+            run = mlflow.start_run(run_id=run_id, experiment_id=self.exp_id)
+
+        self.run_id = run.info.run_id
+        # Update the save point in an unique way by using the run id
+        self.network_savepoint = os.path.join(self.network_savepoint, str(self.run_id))
+        self.prediction_savepoint = os.path.join(self.prediction_savepoint, str(self.run_id))
+        create_folder(self.network_savepoint)
+        create_folder(self.prediction_savepoint)
 
     def clean_up(self):
         if self.multi_gpu:
@@ -63,10 +80,21 @@ class Manager(ABC):
     def is_main_process(self, rank):
         return rank == 0 or not self.multi_gpu
 
+    def log_params(self, **params):
+        for k, v in params.items():
+            self.mlflow_client.log_param(self.run_id, k, v)
 
-class Trainer(Manager):
+    def log_metrics(self, step, **metrics):
+        for k, v in metrics.items():
+            self.mlflow_client.log_metric(self.run_id, k, v, int(time.time() * 1000), step=step)
+
+    def log_artifact(self, path):
+        self.mlflow_client.log_artifact(self.run_id, path)
+
+
+class Experiment(Manager):
     def __init__(self, config):
-        super(Trainer, self).__init__(config)
+        super(Experiment, self).__init__(config)
 
         self.ignore_index = self.config['Training']['ignore_index'] if 'ignore_index' in self.config[
             'Training'] else -100
@@ -79,9 +107,10 @@ class Trainer(Manager):
         self.partial_optimizer = None
         self.partial_lr_scheduler = None
         self.tracked_metric = None
-        self.weights = None
+        self.class_weights = None
         self.model = None
         self.last_save = None
+        self.run_training = True
 
     def set_train_dataset(self, dataset):
         self.dataset = dataset
@@ -143,8 +172,8 @@ class Trainer(Manager):
         assert self.model is not None, "The model has not been configured, call set_model(model)"
         return self.model
 
-    def __setup_weights(self, weights):
-        self.weights = weights
+    def setup_class_weights(self, weights):
+        self.class_weights = weights
 
     def save_model(self, model, filename, **kwargs):
         self.last_save = model.save(savepoint=self.network_savepoint, filename=filename, **kwargs)
@@ -154,8 +183,18 @@ class Trainer(Manager):
             for f in files[:-self.config['Manager']['max_saved_model']]:
                 os.remove(f)
 
-    def start_process(self, rank=0):
-        mlflow.set_tracking_uri(os.path.join(self.config['Manager']['save_point'], 'mlruns'))
+    def _start_process(self, rank=0):
+        model = self.get_model_on_device(rank)
+        if self.run_training:
+            self.train(model, rank)
+
+        if self.is_main_process(0):
+            self.register_trained_model()
+        dist.barrier()
+        self.end(model, rank)
+        self.clean_up()
+
+    def get_model_on_device(self, rank):
         torch.cuda.set_device(rank)
         model = self.get_model()
         model = self.convert_batch_norm(model)
@@ -163,12 +202,7 @@ class Trainer(Manager):
         if self.multi_gpu:
             dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size)
             model = DDP(model, device_ids=[rank])
-        self.train(model, rank)
-        model.eval()
-        if self.is_main_process(0):
-            self.register_trained_model()
-        self.end(model, rank)
-        self.clean_up()
+        return model
 
     def initial_tracking(self):
         self.log_params(**self.config['Training'])
@@ -177,36 +211,34 @@ class Trainer(Manager):
         self.log_params(**self.config['CNN'])
         self.log_params(**self.config['Preprocessing'])
 
-    def log_params(self, **params):
-        for k, v in params.items():
-            MlflowClient().log_param(self.run_id, k, v)
-
-    def log_metrics(self, step, **metrics):
-        for k, v in metrics.items():
-            MlflowClient().log_metric(self.run_id, k, v, int(time.time() * 1000), step=step)
-
     def start(self):
         assert self.partial_optimizer is not None, "Missing optimizer for training"
         assert self.dataset is not None, "Missing dataset"
+
         if self.validation_dataset is None:
             Tracker.warn("Missing validation set, default behaviour is to save the model once per epoch")
+
         if self.partial_lr_scheduler is None:
             Tracker.warn("Missing learning rate scheduler, default behaviour is to keep the learning rate constant")
-        if self.config['Training']['weighted_loss']:
+
+        if self.config['Training']['weighted_loss'] and self.class_weights is None:
             class_weights = self.get_class_weights()
-            self.__setup_weights(weights=class_weights)
+            self.setup_class_weights(weights=class_weights)
+
+        if self.run_id is None:
+            Tracker.warn("Starting a new run")
+            self.start_run()
 
         self.initial_tracking()
-
         create_folder(self.network_savepoint)
         create_folder(self.prediction_savepoint)
         try:
             if self.multi_gpu:
-                mp.spawn(self.start_process,
+                mp.spawn(self._start_process,
                          nprocs=self.world_size,
                          join=True)
             else:
-                self.start_process(rank=self.gpu[0])
+                self._start_process(rank=self.gpu[0])
         except:
             self.register_trained_model()
             raise
@@ -214,16 +246,13 @@ class Trainer(Manager):
 
     def register_trained_model(self):
         if self.last_save is not None:
-            MlflowClient().log_artifact(self.run_id, self.last_save)
-
-    def log_artifact(self, path):
-        MlflowClient().log_artifact(self.run_id, path)
+            self.log_artifact(self.last_save)
 
     def end(self, *args, **kwargs):
         pass
 
     def train(self, model, rank=0):
-        loss_function = self.get_loss(self.weights, rank=rank)
+        loss_function = self.get_loss(self.class_weights, rank=rank)
         optimizer = self.partial_optimizer(model.get_trainable_parameters(self.config['Optimizer']['lr']))
 
         if self.partial_lr_scheduler is not None:
@@ -300,4 +329,3 @@ class Trainer(Manager):
     @abstractmethod
     def validate(self, model, iteration, rank=0):
         pass
-
