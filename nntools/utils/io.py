@@ -1,7 +1,8 @@
-import cv2
-import yaml
 import ntpath
 import os
+
+import cv2
+import yaml
 
 
 def load_image(filepath, flag=cv2.IMREAD_UNCHANGED):

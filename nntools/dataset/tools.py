@@ -1,5 +1,6 @@
-from nntools.utils.misc import convert_function
 import numpy as np
+
+from nntools.utils.misc import convert_function
 
 
 class DataAugment:
@@ -9,23 +10,21 @@ class DataAugment:
         self.p = self.config['ratio']
 
     def auto_init(self):
+        from nntools.dataset.image_tools import vertical_flip, horizontal_flip, random_scale, random_rotation
+
         def check(param):
             return param in self.config and self.config[param]
 
         if check('vertical_flip'):
-            from .preprocess import vertical_flip
             self.ops.append(convert_function(vertical_flip, self.config))
 
         if check('horizontal_flip'):
-            from .preprocess import horizontal_flip
             self.ops.append(convert_function(horizontal_flip, self.config))
 
         if check('random_scale'):
-            from .preprocess import random_scale
             self.ops.append(convert_function(random_scale, self.config))
 
         if check('random_rotate'):
-            from .preprocess import random_rotation
             self.ops.append(convert_function(random_rotation, self.config))
 
         return self

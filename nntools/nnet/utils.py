@@ -1,5 +1,7 @@
 import torch.nn as nn
+
 from .abstract_nn import AbstractNet
+
 
 def norm_layer(norm):
     return {'batch_norm': nn.BatchNorm2d,

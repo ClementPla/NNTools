@@ -56,7 +56,7 @@ class AbstractNet(nn.Module):
 
         filename, file_extension = splitext(path)
         if not file_extension:
-            path = path+'.pth'
+            path = path + '.pth'
 
         torch.save(save_dict, path)
         return path

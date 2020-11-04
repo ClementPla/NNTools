@@ -1,11 +1,35 @@
+import functools
+import inspect
+
 import cv2
 import numpy as np
 
-from nntools.dataset.image.decorators import preprocess
 from nntools.utils.random import sample
 
 
-@preprocess
+def nntools_wrapper(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        list_parameters = inspect.signature(func).parameters.values()
+        accepts_mask = any([p.name == 'mask' for p in list_parameters])
+        accepts_image = any([p.name == 'image' for p in list_parameters])
+
+        is_mask_in_param = 'mask' in kwargs
+        is_image_in_param = 'image' in kwargs
+
+        if not accepts_mask and is_mask_in_param:
+            mask = kwargs.pop('mask')
+            return func(*args, **kwargs), mask
+        if not accepts_image and is_image_in_param:
+            image = kwargs.pop('image')
+            return image, func(*args, **kwargs)
+        else:
+            return func(*args, **kwargs)
+
+    return wrapper
+
+
+@nntools_wrapper
 def normalize(image, mean=None, std=None):
     if image.dtype != np.float32:
         image = image.astype(np.float32) / 255.
@@ -16,7 +40,7 @@ def normalize(image, mean=None, std=None):
     return (image - mean) / std
 
 
-@preprocess
+@nntools_wrapper
 def random_crop(image, crop_size, mask=None, pad=False, pad_mode='reflect', cval=0):
     hcrop, wcrop = crop_size[0], crop_size[1]
     if pad:
@@ -36,7 +60,7 @@ def random_crop(image, crop_size, mask=None, pad=False, pad_mode='reflect', cval
     center_w = int(sample([wcrop // 2, w - (wcrop // 2)]))
     center_h = int(sample([hcrop // 2, h - (hcrop // 2)]))
     image = image[center_h - (hcrop // 2):center_h + (hcrop // 2),
-          center_w - (wcrop // 2):center_w + (wcrop // 2)]
+            center_w - (wcrop // 2):center_w + (wcrop // 2)]
     if mask is not None:
         mask = mask[center_h - (hcrop // 2):center_h + (hcrop // 2),
                center_w - (wcrop // 2):center_w + (wcrop // 2)]
@@ -45,7 +69,7 @@ def random_crop(image, crop_size, mask=None, pad=False, pad_mode='reflect', cval
     return image
 
 
-@preprocess
+@nntools_wrapper
 def horizontal_flip(image, mask=None):
     image = image[:, ::-1].copy()
     if mask is not None:
@@ -54,7 +78,7 @@ def horizontal_flip(image, mask=None):
     return image
 
 
-@preprocess
+@nntools_wrapper
 def vertical_flip(image, mask=None):
     image = image[::-1, :].copy()
     if mask is not None:
@@ -63,7 +87,7 @@ def vertical_flip(image, mask=None):
     return image
 
 
-@preprocess
+@nntools_wrapper
 def random_rotation(image, rotation_angle=(-10, 10), mask=None, flag=cv2.INTER_LINEAR, cval=0):
     angle = sample(rotation_angle)
     image_center = tuple(np.array(image.shape[1::-1]) / 2)
@@ -76,8 +100,8 @@ def random_rotation(image, rotation_angle=(-10, 10), mask=None, flag=cv2.INTER_L
         return image
 
 
-@preprocess
-def random_scale(image, scale_factor=(0.75,1.25), mask=None, cval=0, flag=cv2.INTER_LINEAR, pad_mode='constant'):
+@nntools_wrapper
+def random_scale(image, scale_factor=(0.75, 1.25), mask=None, cval=0, flag=cv2.INTER_LINEAR, pad_mode='constant'):
     f = sample(list(scale_factor))
     kwargs = {'mode': pad_mode}
     if pad_mode == 'constant':
@@ -118,7 +142,7 @@ def random_scale(image, scale_factor=(0.75,1.25), mask=None, cval=0, flag=cv2.IN
         return image, mask
 
 
-@preprocess
+@nntools_wrapper
 def resize(image, keep_size_ratio=True, shape=(512, 512), flag=cv2.INTER_LINEAR):
     if isinstance(shape, int):
         shape = (shape, shape)
@@ -133,4 +157,3 @@ def resize(image, keep_size_ratio=True, shape=(512, 512), flag=cv2.INTER_LINEAR)
 
     image = cv2.resize(image, dsize=shape, interpolation=flag)
     return image
-

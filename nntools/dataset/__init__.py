@@ -1,9 +1,11 @@
-from nntools.dataset.image import SegmentationDataset, preprocess
-from nntools.dataset.utils import get_class_count, class_weighting
-
+from nntools.dataset.image_tools import nntools_wrapper
+from nntools.dataset.seg_dataset import SegmentationDataset
+from nntools.dataset.tools import Composition, DataAugment
+from nntools.dataset.utils import get_class_count, class_weighting, random_split
 
 if __name__ == '__main__':
-    from nntools.dataset.image.tools import Composition, DataAugment
+    from nntools.dataset.tools import Composition, DataAugment
+
     root_img = '/home/clement/Documents/phd/DR/MessidorAnnotation/img/images/'
     root_gt = '/home/clement/Documents/phd/DR/MessidorAnnotation/labelId/'
     dataset = SegmentationDataset(root_img, root_gt, shape=(800, 800))
@@ -24,11 +26,9 @@ if __name__ == '__main__':
         A.CLAHE(p=0.8),
         A.RandomBrightnessContrast(p=0.8),
         A.RandomGamma(p=0.8)])
-    from nntools.dataset.image.tools import Composition, DataAugment
+    from nntools.dataset.tools import Composition, DataAugment
 
     composer = Composition()
     composer << DataAugment(random_rotate=True, ratio=0.5).auto_init() << aug
     dataset.set_composition(composer)
     dataset.plot(0)
-
-

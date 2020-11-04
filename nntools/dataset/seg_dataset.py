@@ -6,15 +6,10 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from nntools.dataset.image.preprocess import resize
+from nntools.dataset.image_tools import resize
 from nntools.tracker.warnings import Tracker
 from nntools.utils.io import load_image, path_leaf
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from matplotlib import cm
-
-plt.rcParams['image.cmap'] = 'gray'
 fileExtensions = ["jpg", "jpeg", "png", "tiff"]
 
 
@@ -114,11 +109,11 @@ class SegmentationDataset(Dataset):
         elif img.ndim == 2:
             img = np.expand_dims(img, 0)
 
-        output = (torch.from_numpy(img), )
+        output = (torch.from_numpy(img),)
         if self.use_masks:
-            output = output + (torch.from_numpy(mask).long(), )
+            output = output + (torch.from_numpy(mask).long(),)
         if self.return_indices:
-            output = output + (item, )
+            output = output + (item,)
         return output
 
     def filename(self, items):
@@ -133,13 +128,18 @@ class SegmentationDataset(Dataset):
         self.composer = composer
 
     def plot(self, item, show=True, save=False, savefolder='tmp/', classes=None):
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
+        from matplotlib import cm
+
+        plt.rcParams['image.cmap'] = 'gray'
 
         if self.use_masks:
             img, mask = self[item]
             img = img.numpy()
             mask = mask.numpy()
             mask = np.squeeze(mask)
-            n_classes = self.n_classes if self.n_classes is not None else np.max(mask)+1
+            n_classes = self.n_classes if self.n_classes is not None else np.max(mask) + 1
             cmap = cm.get_cmap(self.cmap_name, n_classes)
 
             fig, ax = plt.subplots(1, 2)
@@ -180,6 +180,3 @@ class SegmentationDataset(Dataset):
     def subset(self, indices):
         self.img_filepath = self.img_filepath[indices]
         self.mask_filepath = self.mask_filepath[indices]
-
-
-

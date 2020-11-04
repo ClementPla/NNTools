@@ -1,11 +1,12 @@
+import copy
 import os
 
 import cv2
 import numpy as np
-import copy
-from nntools.tracker.warnings import Tracker
 from torch import randperm, default_generator
 from torch._utils import _accumulate
+
+from nntools.tracker.warnings import Tracker
 
 
 def get_class_count(dataset, save=True, load=True):
@@ -37,7 +38,7 @@ def class_weighting(class_count, mode='balanced', ignore_index=-100, eps=1):
     if mode == 'balanced':
         n_samples = sum([c for i, c in enumerate(class_count) if i != ignore_index])
         n_classes = len(np.nonzero(class_count))
-        class_weights = n_samples / (n_classes * class_count+eps)
+        class_weights = n_samples / (n_classes * class_count + eps)
 
     elif mode == 'log_prob':
         p_class = class_count / class_count.sum()
@@ -60,4 +61,3 @@ def random_split(dataset, lengths, generator=default_generator):
         d.subset(indx)
         datasets.append(d)
     return tuple(datasets)
-
