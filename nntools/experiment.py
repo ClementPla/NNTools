@@ -11,7 +11,7 @@ import torch.nn as nn
 import tqdm
 from mlflow.tracking.client import MlflowClient
 from torch.cuda.amp import autocast, GradScaler
-
+from mlflow.utils.mlflow_tags import MLFLOW_PARENT_RUN_ID, MLFLOW_RUN_NAME
 from nntools.dataset import get_class_count, class_weighting
 from nntools.nnet.loss import FuseLoss, DiceLoss
 from nntools.tracker import Tracker
@@ -61,10 +61,11 @@ class Manager(ABC):
         return model
 
     def start_run(self, run_id=None):
+        tags = {MLFLOW_RUN_NAME: self.config['Manager']['run']}
         if run_id is None:
-            run = mlflow.start_run(run_name=self.config['Manager']['run'], experiment_id=self.exp_id)
+            run = self.mlflow_client.create_run(experiment_id=self.exp_id, tags=tags)
         else:
-            run = mlflow.start_run(run_id=run_id, experiment_id=self.exp_id)
+            run = self.mlflow_client.get_run(run_id=run_id)
 
         self.run_id = run.info.run_id
         # Update the save point in an unique way by using the run id
