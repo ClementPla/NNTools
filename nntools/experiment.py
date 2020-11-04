@@ -184,11 +184,23 @@ class Experiment(Manager):
                 os.remove(f)
 
     def _start_process(self, rank=0):
-        model = self.get_model_on_device(rank)
-        if self.run_training:
-            self.train(model, rank)
+        try:
+            model = self.get_model_on_device(rank)
+            if self.run_training:
+                self.train(model, rank)
+        except KeyboardInterrupt:
+            Tracker.warn("Attempt to register model at %s" % self.last_save)
+            if self.is_main_process(rank):
+                self.register_trained_model()
+                self.mlflow_client.set_terminated(self.run_id, status='KILLED')
+            self.clean_up()
+            raise KeyboardInterrupt
+        except:
+            self.mlflow_client.set_terminated(self.run_id, status='FAILED')
+            self.clean_up()
+            raise
 
-        if self.is_main_process(0):
+        if self.is_main_process(rank):
             self.register_trained_model()
         dist.barrier()
         self.end(model, rank)
@@ -230,23 +242,14 @@ class Experiment(Manager):
             self.start_run()
 
         self.initial_tracking()
-        try:
-            if self.multi_gpu:
-                mp.spawn(self._start_process,
-                         nprocs=self.world_size,
-                         join=True)
-            else:
-                self._start_process(rank=self.gpu[0])
-        except KeyboardInterrupt:
-            Tracker.warn("Attempt to register model at %s" % self.last_save)
-            self.register_trained_model()
-            self.mlflow_client.set_terminated(self.run_id, status=RunStatus.KILLED)
-            raise KeyboardInterrupt
-        except:
-            self.mlflow_client.set_terminated(self.run_id, status=RunStatus.FAILED)
-            raise
-        self.mlflow_client.set_terminated(self.run_id, status=RunStatus.FINISHED)
+        if self.multi_gpu:
+            mp.spawn(self._start_process,
+                     nprocs=self.world_size,
+                     join=True)
+        else:
+            self._start_process(rank=self.gpu[0])
 
+        self.mlflow_client.set_terminated(self.run_id, status='FINISHED')
         save_yaml(self.config, os.path.join(self.run_folder, 'config.yaml'))
 
     def register_trained_model(self):
