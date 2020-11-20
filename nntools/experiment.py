@@ -261,7 +261,7 @@ class Experiment(Manager):
 
     def train(self, model, rank=0):
         loss_function = self.get_loss(self.class_weights, rank=rank)
-        optimizer = self.partial_optimizer(model.get_trainable_parameters(self.config['Optimizer']['lr']))
+        optimizer = self.partial_optimizer(model.get_trainable_parameters(self.config['Optimizer']['params_solver']['lr']))
 
         if self.partial_lr_scheduler is not None:
             lr_scheduler = self.partial_lr_scheduler(optimizer)
