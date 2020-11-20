@@ -127,7 +127,7 @@ class SegmentationDataset(Dataset):
     def set_composition(self, composer):
         self.composer = composer
 
-    def plot(self, item, show=True, save=False, savefolder='tmp/', classes=None):
+    def plot(self, item, show=True, save=False, save_folder='tmp/', classes=None):
         import matplotlib.pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable
         from matplotlib import cm
@@ -171,10 +171,10 @@ class SegmentationDataset(Dataset):
         if show:
             fig.show()
         if save:
-            if not os.path.exists(savefolder):
-                os.mkdir(savefolder)
+            if not os.path.exists(save_folder):
+                os.mkdir(save_folder)
             filename = os.path.basename(self.img_filepath[item])
-            fig.savefig(os.path.join(savefolder, filename))
+            fig.savefig(os.path.join(save_folder, filename))
             plt.close(fig)
 
     def subset(self, indices):

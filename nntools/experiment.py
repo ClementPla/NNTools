@@ -18,7 +18,6 @@ from nntools.utils.io import create_folder, save_yaml
 from nntools.utils.misc import convert_function
 from nntools.utils.random import set_seed, set_non_torch_seed
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP
-from mlflow.entities import RunStatus
 
 class Manager(ABC):
     def __init__(self, config):
@@ -196,7 +195,8 @@ class Experiment(Manager):
             self.clean_up()
             raise KeyboardInterrupt
         except:
-            self.mlflow_client.set_terminated(self.run_id, status='FAILED')
+            if self.is_main_process(rank):
+                self.mlflow_client.set_terminated(self.run_id, status='FAILED')
             self.clean_up()
             raise
 
@@ -254,7 +254,6 @@ class Experiment(Manager):
 
     def register_trained_model(self):
         if self.last_save is not None:
-
             self.log_artifact(self.last_save)
 
     def end(self, *args, **kwargs):
@@ -305,10 +304,11 @@ class Experiment(Manager):
                             model.eval()
                             valid_metric = self.validate(model, iteration, rank)
                             model.train()
-                    if self.multi_gpu:
-                        dist.barrier()
                     if self.is_main_process(rank):
                         self.log_metrics(iteration, trainining_loss=loss.item())
+
+                    if self.multi_gpu:
+                        dist.barrier()
 
                 if self.is_main_process(rank):
                     progressBar.update(1)
@@ -317,13 +317,17 @@ class Experiment(Manager):
             If the validation set is not provided, we save the model once per epoch
             """
             if self.validation_dataset is None:
-                self.save_model(model, filename='iteration_%i_loss_%f' % (iteration, loss.item()))
+                if self.is_main_process(rank):
+                    self.save_model(model, filename='iteration_%i_loss_%f' % (iteration, loss.item()))
 
             # The learning rate scheduler is called once per epoch
             self.lr_scheduler_step(lr_scheduler, iteration, valid_metric)
 
             if self.is_main_process(rank):
                 progressBar.close()
+
+            if self.multi_gpu:
+                dist.barrier()
 
     def lr_scheduler_step(self, lr_scheduler, iteration, validation_metrics=None):
         if lr_scheduler is None:
