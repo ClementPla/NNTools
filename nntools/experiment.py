@@ -256,7 +256,7 @@ class Experiment(Manager):
         if self.last_save is not None:
             self.log_artifact(self.last_save)
 
-    def end(self, *args, **kwargs):
+    def end(self, model, rank):
         pass
 
     def train(self, model, rank=0):
