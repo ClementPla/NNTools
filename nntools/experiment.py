@@ -339,6 +339,5 @@ class Experiment(Manager):
         else:
             lr_scheduler.step(iteration)
 
-    @abstractmethod
     def validate(self, model, iteration, rank=0):
         pass
