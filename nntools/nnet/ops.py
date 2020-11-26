@@ -50,3 +50,25 @@ class Conv2d(nn.Module):
 
     def forward(self, x):
         return self.bn(self.conv(x))
+
+
+
+class ResidualBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, t=2, **kwargs):
+        super(ResidualBlock, self).__init__()
+        convs = []
+        for i in range(t):
+            if not i:
+                convs.append(Conv2d(in_channels, out_channels, **kwargs))
+            else:
+                convs.append((Conv2d(out_channels, out_channels, **kwargs)))
+        self.convs = nn.Sequential(*convs)
+        if in_channels != out_channels:
+            self.conv_1x1 = Conv2d(in_channels, out_channels, kernel_size=1, activation=nn.Identity())
+        else:
+            self.conv_1x1 = nn.Identity()
+
+    def forward(self, x):
+        conv_x = self.convs(x)
+        x = self.conv_1x1(x)
+        return conv_x+x
