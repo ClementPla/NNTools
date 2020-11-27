@@ -29,6 +29,7 @@ class ExchangeBlock(nn.Module):
 
     def forward(self, x1, x2):
         x1_m = x1.mean(axis=(2, 3))
+        print(x1_m.shape, self.W11)
         alpha_1 = self.W12(self.W11(x1_m)).unsqueeze(2).unsqueeze(3)
 
         x2_m = x2.mean(axis=(2, 3))
