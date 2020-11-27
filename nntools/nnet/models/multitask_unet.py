@@ -48,7 +48,7 @@ class ExchangeBlock(nn.Module):
 class MultiTaskUnet(AbstractNet):
     def __init__(self, img_chan=3, output_chs=(2, 2), merge_output=True):
         super(MultiTaskUnet, self).__init__()
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
         self.conv1 = ResidualBlock(img_chan, 64, activation=nn.SELU())
         self.conv2 = ResidualBlock(64, 128, activation=nn.SELU())
