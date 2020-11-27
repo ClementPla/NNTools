@@ -29,7 +29,6 @@ class ExchangeBlock(nn.Module):
 
     def forward(self, x1, x2):
         x1_m = x1.mean(axis=(2, 3))
-        print(x1_m.shape, self.W11)
         alpha_1 = self.W12(self.W11(x1_m)).unsqueeze(2).unsqueeze(3)
 
         x2_m = x2.mean(axis=(2, 3))
@@ -110,7 +109,7 @@ class MultiTaskUnet(AbstractNet):
 
         y12 = self.branch_3['left'](y12)  # b x 128 x h/2 x w/2
         y22 = self.branch_3['right'](y22)  # b x 128 x h/2 x w/2
-        y12, y22 = self.branch_2['exchange'](y12, y22)  # b x 64 x h/2 x w/2
+        y12, y22 = self.branch_3['exchange'](y12, y22)  # b x 64 x h/2 x w/2
 
         y11 = torch.cat([self.up(y12), x1], dim=1)  # b x 64 x h x w
         y21 = torch.cat([self.up(y22), x1], dim=1)  # b x 64 x h x w
