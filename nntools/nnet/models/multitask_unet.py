@@ -65,8 +65,8 @@ class MultiTaskUnet(AbstractNet):
                                        'right': Conv2d(512, 256, activation=nn.SELU()),
                                        'exchange': ExchangeBlock(256, 128, activation=nn.SELU())})
 
-        self.branch_3 = nn.ModuleDict({'left': Conv2d(512, 256, activation=nn.SELU()),
-                                       'right': Conv2d(512, 256, activation=nn.SELU()),
+        self.branch_3 = nn.ModuleDict({'left': Conv2d(256, 128, activation=nn.SELU()),
+                                       'right': Conv2d(256, 128, activation=nn.SELU()),
                                        'exchange': ExchangeBlock(128, 64, activation=nn.SELU())})
 
         self.branch_4 = nn.ModuleDict({'left': nn.Sequential(Conv2d(128, 64, activation=nn.SELU()),
