@@ -52,7 +52,7 @@ class MultiTaskUnet(AbstractNet):
 
         self.conv1 = ResidualBlock(img_chan, 64, activation=nn.SELU())
         self.conv2 = ResidualBlock(64, 128, activation=nn.SELU())
-        self.conv3 = ResidualBlock(128,256, activation=nn.SELU())
+        self.conv3 = ResidualBlock(128, 256, activation=nn.SELU())
         self.conv4 = ResidualBlock(256, 512, activation=nn.SELU())
         self.conv5 = ResidualBlock(512, 512, t=1, activation=nn.SELU())
 
@@ -88,10 +88,10 @@ class MultiTaskUnet(AbstractNet):
         x3 = self.conv3(x2_s)  # b x 256 x h/4 x w/4
         x3_s = self.maxpool(x3)  # b x 256 x h/8 x w/8
 
-        x4 = self.conv3(x3_s)  # b x 512 x h/8 x w/8
+        x4 = self.conv4(x3_s)  # b x 512 x h/8 x w/8
         x4_s = self.maxpool(x4)  # b x 512 x h/16 x w/16
 
-        x5 = self.conv3(x4_s)  # b x 512 x h/16 x w/16
+        x5 = self.conv5(x4_s)  # b x 512 x h/16 x w/16
 
         y4 = torch.cat([self.up(x5), x4], dim=1)  # b x 1024 x h/8 x w/8
         y14 = self.branch_1['left'](y4)  # b x 512 x h/8 x w/8
