@@ -11,4 +11,7 @@ def norm_layer(norm):
 
 
 def nnt_format(model):
-    return AbstractNet(model)
+    if not isinstance(AbstractNet, model):
+        return AbstractNet(model)
+    else:
+        return model
