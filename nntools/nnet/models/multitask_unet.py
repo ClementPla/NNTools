@@ -50,11 +50,11 @@ class MultiTaskUnet(AbstractNet):
         super(MultiTaskUnet, self).__init__()
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2)
 
-        self.conv1 = ResidualBlock(ch_in=img_chan, ch_out=64, activation=nn.SELU())
-        self.conv2 = ResidualBlock(ch_in=64, ch_out=128, activation=nn.SELU())
-        self.conv3 = ResidualBlock(ch_in=128, ch_out=256, activation=nn.SELU())
-        self.conv4 = ResidualBlock(ch_in=256, ch_out=512, activation=nn.SELU())
-        self.conv5 = ResidualBlock(ch_in=512, ch_out=512, t=1, activation=nn.SELU())
+        self.conv1 = ResidualBlock(img_chan, 64, activation=nn.SELU())
+        self.conv2 = ResidualBlock(64, 128, activation=nn.SELU())
+        self.conv3 = ResidualBlock(128,256, activation=nn.SELU())
+        self.conv4 = ResidualBlock(256, 512, activation=nn.SELU())
+        self.conv5 = ResidualBlock(512, 512, t=1, activation=nn.SELU())
 
         self.up = nn.Upsample(scale_factor=2)
         self.branch_1 = nn.ModuleDict({'left': Conv2d(1024, 512, activation=nn.SELU()),
