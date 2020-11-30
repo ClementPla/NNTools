@@ -18,6 +18,8 @@ from nntools.utils.io import create_folder, save_yaml
 from nntools.utils.misc import convert_function
 from nntools.utils.random import set_seed, set_non_torch_seed
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP
+from nntools.nnet import nnt_format
+
 
 class Manager(ABC):
     def __init__(self, config):
@@ -130,7 +132,7 @@ class Experiment(Manager):
         self.partial_lr_scheduler = convert_function(func, kwargs)
 
     def set_model(self, model):
-        self.model = model
+        self.model = nnt_format(model)
 
     def get_dataloader(self, dataset, shuffle=True, batch_size=None):
         if batch_size is None:
