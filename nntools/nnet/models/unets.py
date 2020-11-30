@@ -458,7 +458,7 @@ class NestedUNet(AbstractNet):
     https://arxiv.org/pdf/1807.10165.pdf
     """
 
-    def __init__(self, in_ch=3, out_ch=1):
+    def __init__(self, img_ch=3, output_ch=1):
         super(NestedUNet, self).__init__()
 
         n1 = 64
@@ -467,7 +467,7 @@ class NestedUNet(AbstractNet):
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
         self.Up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
 
-        self.conv0_0 = conv_block_nested(in_ch, filters[0], filters[0])
+        self.conv0_0 = conv_block_nested(img_ch, filters[0], filters[0])
         self.conv1_0 = conv_block_nested(filters[0], filters[1], filters[1])
         self.conv2_0 = conv_block_nested(filters[1], filters[2], filters[2])
         self.conv3_0 = conv_block_nested(filters[2], filters[3], filters[3])
@@ -487,7 +487,7 @@ class NestedUNet(AbstractNet):
 
         self.conv0_4 = conv_block_nested(filters[0] * 4 + filters[1], filters[0], filters[0])
 
-        self.final = nn.Conv2d(filters[0], out_ch, kernel_size=1)
+        self.final = nn.Conv2d(filters[0], output_ch, kernel_size=1)
 
     def forward(self, x):
         x0_0 = self.conv0_0(x)
