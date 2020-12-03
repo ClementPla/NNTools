@@ -161,7 +161,7 @@ class SegmentationDataset(Dataset):
             cax.get_xaxis().set_visible(False)
 
         else:
-            img = self[item]
+            img = self[item][0]
             img = img.numpy()
             fig, ax = plt.subplots(1, 1)
             fig.set_size_inches(8, 8)

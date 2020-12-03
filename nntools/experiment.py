@@ -1,7 +1,7 @@
 import glob
 import os
 import time
-from abc import ABC, abstractmethod
+from abc import ABC
 
 import torch
 import torch.distributed as dist
@@ -202,7 +202,7 @@ class Experiment(Manager):
             self.clean_up()
             raise
 
-        if self.is_main_process(rank):
+        if self.is_main_process(rank) and self.run_training:
             self.register_trained_model()
         dist.barrier()
         self.end(model, rank)
