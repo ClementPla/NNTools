@@ -16,7 +16,6 @@ def nntools_wrapper(func):
 
         is_mask_in_param = 'mask' in kwargs
         is_image_in_param = 'image' in kwargs
-
         if not accepts_mask and is_mask_in_param:
             mask = kwargs.pop('mask')
             return func(*args, **kwargs), mask

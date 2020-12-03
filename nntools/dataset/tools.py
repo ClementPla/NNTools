@@ -71,6 +71,11 @@ class Composition:
                     kwargs['image'] = out[0]
             elif isinstance(out, dict):
                 kwargs = out
+            else:
+                if is_mask:
+                    kwargs['mask'] = out
+                else:
+                    kwargs['image'] = out
 
         if is_mask:
             return kwargs['image'], kwargs['mask']

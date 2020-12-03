@@ -14,6 +14,8 @@ if __name__ == '__main__':
 
     img_path = '/home/clement/Documents/phd/DR/MessidorAnnotation/img/images/'
     gt_path = '/home/clement/Documents/phd/DR/MessidorAnnotation/labelId/'
+    gt_path = None
+
     dataset = SegmentationDataset(img_path, gt_path, shape=(1500, 1500))
 
     aug = A.Compose([
@@ -27,8 +29,10 @@ if __name__ == '__main__':
         A.RandomBrightnessContrast(p=0.8),
         A.RandomGamma(p=0.8)])
     from nntools.dataset.tools import Composition, DataAugment
+    from nntools.dataset.image_tools import normalize
+    config = {'mean': [0.485, 0.456, 0.406], 'std': [0.229, 0.224, 0.225]}
 
-    composer = Composition()
-    composer << DataAugment(random_rotate=True, ratio=0.5).auto_init() << aug
+    composer = Composition(**config)
+    composer << normalize
     dataset.set_composition(composer)
     dataset.plot(0)
