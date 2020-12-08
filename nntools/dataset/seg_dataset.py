@@ -10,7 +10,7 @@ from nntools.dataset.image_tools import resize
 from nntools.tracker.warnings import Tracker
 from nntools.utils.io import load_image, path_leaf
 
-fileExtensions = ["jpg", "jpeg", "png", "tiff"]
+supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
 
 
 class SegmentationDataset(Dataset):
@@ -40,7 +40,7 @@ class SegmentationDataset(Dataset):
         self.return_indices = False
 
     def list_files(self, recursive):
-        for extension in fileExtensions:
+        for extension in supportedExtensions:
             prefix = "**/*." if recursive else "*."
             self.img_filepath.extend(glob.glob(self.path_img + prefix + extension, recursive=recursive))
             if self.use_masks:
