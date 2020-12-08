@@ -32,11 +32,13 @@ def nntools_wrapper(func):
 def normalize(image, mean=None, std=None):
     if image.dtype != np.float32:
         image = image.astype(np.float32) / 255.
-    mean = [0, 0, 0] if mean is None else mean
-    std = [1, 1, 1] if std is None else std
-    mean = np.asarray(mean)[np.newaxis, np.newaxis, :].astype(np.float32)
-    std = np.asarray(std)[np.newaxis, np.newaxis, :].astype(np.float32)
-    return (image - mean) / std
+    if mean is not None:
+        mean = np.asarray(mean)[np.newaxis, np.newaxis, :].astype(np.float32)
+        image = image - mean
+    if std is not None:
+        std = np.asarray(std)[np.newaxis, np.newaxis, :].astype(np.float32)
+        image = image / std
+    return image
 
 
 @nntools_wrapper
