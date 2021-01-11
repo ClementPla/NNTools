@@ -32,6 +32,7 @@ class Manager(ABC):
         create_folder(self.run_folder)
         self.network_savepoint = os.path.join(self.run_folder, 'trained_model')
         self.prediction_savepoint = os.path.join(self.run_folder, 'predictions')
+        self.model = None
 
         self.gpu = self.config['Manager']['gpu']
 
@@ -92,11 +93,38 @@ class Manager(ABC):
     def log_artifact(self, path):
         self.mlflow_client.log_artifact(self.run_id, path)
 
-    def get_gpu(self, rank):
+    def get_gpu_from_rank(self, rank):
         if self.multi_gpu:
             return self.gpu[rank]
         else:
             return self.gpu
+
+    def get_model_on_device(self, rank):
+        torch.cuda.set_device(self.get_gpu_from_rank(rank))
+        model = self.get_model()
+        model = self.convert_batch_norm(model)
+        model = model.cuda(self.get_gpu_from_rank(rank))
+        if self.multi_gpu:
+            dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size)
+            model = DDP(model, device_ids=[self.get_gpu_from_rank(rank)], find_unused_parameters=True)
+        return model
+
+    def get_model(self):
+        assert self.model is not None, "The model has not been configured, call set_model(model)"
+        return self.model
+
+    def set_model(self, model):
+        self.model = nnt_format(model)
+
+    def batch_to_device(self, batch, rank):
+        device = self.get_gpu_from_rank(rank)
+
+        if isinstance(batch, tuple) or isinstance(batch, list):
+            batch = (b.cuda(device) for b in batch)
+        else:
+            batch = batch.cuda(device)
+
+        return batch
 
 
 class Experiment(Manager):
@@ -115,7 +143,6 @@ class Experiment(Manager):
         self.partial_lr_scheduler = None
         self.tracked_metric = None
         self.class_weights = None
-        self.model = None
         self.last_save = None
         self.run_training = True
 
@@ -136,9 +163,6 @@ class Experiment(Manager):
 
     def set_scheduler(self, func, **kwargs):
         self.partial_lr_scheduler = convert_function(func, kwargs)
-
-    def set_model(self, model):
-        self.model = nnt_format(model)
 
     def get_dataloader(self, dataset, shuffle=True, batch_size=None):
         if batch_size is None:
@@ -164,7 +188,7 @@ class Experiment(Manager):
             if weights is None:
                 loss.append(nn.CrossEntropyLoss(ignore_index=self.ignore_index))
             else:
-                loss.append(nn.CrossEntropyLoss(weight=weights.cuda(self.get_gpu(rank)),
+                loss.append(nn.CrossEntropyLoss(weight=weights.cuda(self.get_gpu_from_rank(rank)),
                                                 ignore_index=self.ignore_index))
         if 'dice' in loss_args:
             loss.append(DiceLoss(ignore_index=self.ignore_index))
@@ -175,9 +199,6 @@ class Experiment(Manager):
         return torch.tensor(class_weighting(class_count, mode=self.config['Training']['weighting_function'],
                                             ignore_index=self.ignore_index))
 
-    def get_model(self):
-        assert self.model is not None, "The model has not been configured, call set_model(model)"
-        return self.model
 
     def setup_class_weights(self, weights):
         self.class_weights = weights
@@ -213,16 +234,6 @@ class Experiment(Manager):
         dist.barrier()
         self.end(model, rank)
         self.clean_up()
-
-    def get_model_on_device(self, rank):
-        torch.cuda.set_device(self.get_gpu(rank))
-        model = self.get_model()
-        model = self.convert_batch_norm(model)
-        model = model.cuda(self.get_gpu(rank))
-        if self.multi_gpu:
-            dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size)
-            model = DDP(model, device_ids=[self.get_gpu(rank)], find_unused_parameters=True)
-        return model
 
     def initial_tracking(self):
         self.log_params(**self.config['Training'])
@@ -290,13 +301,10 @@ class Experiment(Manager):
 
             for i, batch in (enumerate(train_loader)):
                 iteration = i + e * len(train_loader)
-                img = batch[0].cuda(self.get_gpu(rank))
-                gt = batch[1].cuda(self.get_gpu(rank))
-
+                img, gt = self.batch_to_device(batch, rank)
                 with autocast(enabled=self.config['Training']['amp']):
                     pred = model(img)
                     loss = loss_function(pred, gt) / iters_to_accumulate
-
                 scaler.scale(loss).backward()
                 if (i + 1) % iters_to_accumulate == 0:
                     scaler.step(optimizer)
