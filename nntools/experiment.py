@@ -92,6 +92,12 @@ class Manager(ABC):
     def log_artifact(self, path):
         self.mlflow_client.log_artifact(self.run_id, path)
 
+    def get_gpu(self, rank):
+        if self.multi_gpu:
+            return self.gpu[rank]
+        else:
+            return self.gpu
+
 
 class Experiment(Manager):
     def __init__(self, config):
@@ -158,7 +164,7 @@ class Experiment(Manager):
             if weights is None:
                 loss.append(nn.CrossEntropyLoss(ignore_index=self.ignore_index))
             else:
-                loss.append(nn.CrossEntropyLoss(weight=weights.cuda(rank),
+                loss.append(nn.CrossEntropyLoss(weight=weights.cuda(self.get_gpu(rank)),
                                                 ignore_index=self.ignore_index))
         if 'dice' in loss_args:
             loss.append(DiceLoss(ignore_index=self.ignore_index))
@@ -209,10 +215,10 @@ class Experiment(Manager):
         self.clean_up()
 
     def get_model_on_device(self, rank):
-        torch.cuda.set_device(rank)
+        torch.cuda.set_device(self.get_gpu(rank))
         model = self.get_model()
         model = self.convert_batch_norm(model)
-        model = model.cuda(rank)
+        model = model.cuda(self.get_gpu(rank))
         if self.multi_gpu:
             dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size)
             model = DDP(model, device_ids=[rank], find_unused_parameters=True)
@@ -284,8 +290,8 @@ class Experiment(Manager):
 
             for i, batch in (enumerate(train_loader)):
                 iteration = i + e * len(train_loader)
-                img = batch[0].cuda(rank)
-                gt = batch[1].cuda(rank)
+                img = batch[0].cuda(self.get_gpu(rank))
+                gt = batch[1].cuda(self.get_gpu(rank))
 
                 with autocast(enabled=self.config['Training']['amp']):
                     pred = model(img)

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from nntools.nnet import AbstractNet
-from nntools.nnet.ops import ResidualBlock, Conv2d
+from nntools.nnet.ops.conv import ResidualBlock, Conv2d
 
 
 class ExchangeBlock(nn.Module):

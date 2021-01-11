@@ -5,8 +5,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ..abstract_nn import AbstractNet
-from ..ops import Conv2d
+from nntools.nnet.abstract_nn import AbstractNet
+from nntools.nnet.ops.conv import Conv2d
 
 
 class DeepLabv3Plus(AbstractNet):
