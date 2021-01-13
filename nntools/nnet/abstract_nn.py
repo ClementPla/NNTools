@@ -17,6 +17,7 @@ class AbstractNet(nn.Module):
     def __init__(self, model=None):
         self._today = datetime.datetime.now().date()
         self.savepoint = None
+        self.params_group = {}
 
         super(AbstractNet, self).__init__()
         if model is not None:
@@ -74,7 +75,16 @@ class AbstractNet(nn.Module):
         self.load_state_dict(state_dict, strict=strict)
 
     def get_trainable_parameters(self, lr=None):
-        return self.parameters()
+        if self.params_group is not None:
+            return self.params_group
+        else:
+            return self.parameters()
 
     def forward(self, *args, **kwargs):
         return self.network(*args, **kwargs)
+
+    def set_params_group(self, params_group):
+        self.params_group = params_group
+
+
+

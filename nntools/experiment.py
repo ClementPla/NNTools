@@ -114,7 +114,12 @@ class Manager(ABC):
         return self.model
 
     def set_model(self, model):
-        self.model = nnt_format(model)
+        model = nnt_format(model)
+        self.model = model
+        return model
+
+    def set_params_group(self, params_group):
+        self.model.set_params_group(params_group)
 
     def batch_to_device(self, batch, rank):
         device = self.get_gpu_from_rank(rank)
@@ -198,7 +203,6 @@ class Experiment(Manager):
         class_count = get_class_count(self.dataset, save=True, load=True)
         return torch.tensor(class_weighting(class_count, mode=self.config['Training']['weighting_function'],
                                             ignore_index=self.ignore_index))
-
 
     def setup_class_weights(self, weights):
         self.class_weights = weights
