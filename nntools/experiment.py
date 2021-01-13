@@ -340,6 +340,8 @@ class Experiment(Manager):
                             model.eval()
                             valid_metric = self.validate(model, iteration, rank)
                             model.train()
+                            # The learning rate scheduler is called once per validation
+                            self.lr_scheduler_step(lr_scheduler, iteration, valid_metric)
                     if self.is_main_process(rank):
                         self.log_metrics(iteration, trainining_loss=loss.item())
 
@@ -355,9 +357,6 @@ class Experiment(Manager):
             if self.validation_dataset is None:
                 if self.is_main_process(rank):
                     self.save_model(model, filename='iteration_%i_loss_%f' % (iteration, loss.item()))
-
-            # The learning rate scheduler is called once per epoch
-            self.lr_scheduler_step(lr_scheduler, iteration, valid_metric)
 
             if self.is_main_process(rank):
                 progressBar.close()
