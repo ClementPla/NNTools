@@ -74,7 +74,7 @@ class Manager(ABC):
             run = self.mlflow_client.get_run(run_id=run_id)
 
         self.run_id = run.info.run_id
-        self.mlflow_client.set_terminated(self.run_id, status='RUNNING ')
+        self.mlflow_client.set_terminated(self.run_id, status='RUNNING')
 
         if self.continue_training:
             "Set the current iteration to the max iteration stored in the run"
