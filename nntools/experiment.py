@@ -22,7 +22,7 @@ from nntools.nnet import nnt_format
 
 
 class Manager(ABC):
-    def __init__(self, config):
+    def __init__(self, config, run_id=None):
         self.config = config
         self.seed = self.config['Manager']['seed']
         set_seed(self.seed)
@@ -33,8 +33,9 @@ class Manager(ABC):
         self.network_savepoint = os.path.join(self.run_folder, 'trained_model')
         self.prediction_savepoint = os.path.join(self.run_folder, 'predictions')
         self.model = None
-
+        self.current_iteration = 0
         self.gpu = self.config['Manager']['gpu']
+        self.continue_training = True
 
         if not isinstance(self.gpu, list):
             self.gpu = [self.gpu]
@@ -45,7 +46,7 @@ class Manager(ABC):
             os.environ['MASTER_ADDR'] = 'localhost'
             os.environ['MASTER_PORT'] = '12355'
 
-        self.run_id = None
+        self.run_id = run_id
 
         self.mlflow_client = MlflowClient(os.path.join(self.config['Manager']['save_point'], 'mlruns'))
         exp_name = self.config['Manager']['experiment']
@@ -62,13 +63,23 @@ class Manager(ABC):
         return model
 
     def start_run(self, run_id=None):
+
         tags = {MLFLOW_RUN_NAME: self.config['Manager']['run']}
-        if run_id is None:
+        if run_id is None and self.run_id is None:
             run = self.mlflow_client.create_run(experiment_id=self.exp_id, tags=tags)
-        else:
+        elif run_id is None:
+            run = self.mlflow_client.get_run(run_id=self.run_id)
+        elif self.run_id is None:
             run = self.mlflow_client.get_run(run_id=run_id)
 
         self.run_id = run.info.run_id
+
+        if self.continue_training:
+            "Set the current iteration to the max iteration stored in the run"
+            for k, v in run.data.metrics.items():
+                his = self.mlflow_client.get_metric_history(self.run_id, k)
+                self.current_iteration = max(self.current_iteration, his[-1].step)
+
         # Update the save point in an unique way by using the run id
         self.network_savepoint = os.path.join(self.network_savepoint, str(self.run_id))
         self.prediction_savepoint = os.path.join(self.prediction_savepoint, str(self.run_id))
@@ -111,6 +122,9 @@ class Manager(ABC):
 
     def get_model(self):
         assert self.model is not None, "The model has not been configured, call set_model(model)"
+        if self.continue_training:
+            self.model.load(self.network_savepoint, load_most_recent=True)
+
         return self.model
 
     def set_model(self, model):
@@ -133,8 +147,8 @@ class Manager(ABC):
 
 
 class Experiment(Manager):
-    def __init__(self, config):
-        super(Experiment, self).__init__(config)
+    def __init__(self, config, run_id=None):
+        super(Experiment, self).__init__(config, run_id)
 
         self.ignore_index = self.config['Training']['ignore_index'] if 'ignore_index' in self.config[
             'Training'] else -100
@@ -270,7 +284,7 @@ class Experiment(Manager):
                      nprocs=self.world_size,
                      join=True)
         else:
-            self._start_process(rank=self.gpu[0])
+            self._start_process(rank=self.get_gpu_from_rank(0))
 
         self.mlflow_client.set_terminated(self.run_id, status='FINISHED')
         save_yaml(self.config, os.path.join(self.run_folder, 'config.yaml'))
@@ -290,7 +304,7 @@ class Experiment(Manager):
             lr_scheduler = self.partial_lr_scheduler(optimizer)
         else:
             lr_scheduler = None
-        iteration = 0
+        iteration = self.current_iteration - 1
         train_loader, train_sampler = self.get_dataloader(self.dataset)
         iters_to_accumulate = self.config['Training']['iters_to_accumulate']
         scaler = GradScaler(enabled=self.config['Training']['grad_scaling'])
@@ -304,7 +318,7 @@ class Experiment(Manager):
                 progressBar = tqdm.tqdm(total=len(train_loader))
 
             for i, batch in (enumerate(train_loader)):
-                iteration = i + e * len(train_loader)
+                self.current_iteration += 1
                 img, gt = self.batch_to_device(batch, rank)
                 with autocast(enabled=self.config['Training']['amp']):
                     pred = model(img)
