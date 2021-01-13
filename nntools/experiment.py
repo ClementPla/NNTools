@@ -67,6 +67,7 @@ class Manager(ABC):
         tags = {MLFLOW_RUN_NAME: self.config['Manager']['run']}
         if run_id is None and self.run_id is None:
             run = self.mlflow_client.create_run(experiment_id=self.exp_id, tags=tags)
+            self.continue_training = False
         elif run_id is None:
             run = self.mlflow_client.get_run(run_id=self.run_id)
         elif self.run_id is None:
