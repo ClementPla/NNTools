@@ -74,7 +74,6 @@ class Manager(ABC):
         elif self.run_id is None:
             run = self.mlflow_client.get_run(run_id=run_id)
         self.run_id = run.info.run_id
-        mlflow.start_run(run_id=self.run_id, experiment_id=self.exp_id)
 
         if self.continue_training:
             "Set the current iteration to the max iteration stored in the run"
