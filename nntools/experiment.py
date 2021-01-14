@@ -74,6 +74,7 @@ class Manager(ABC):
         elif self.run_id is None:
             run = self.mlflow_client.get_run(run_id=run_id)
         self.run_id = run.info.run_id
+        self.mlflow_client.set_terminated(self.run_id, status='RUNNING')
 
         if self.continue_training:
             "Set the current iteration to the max iteration stored in the run"
@@ -320,7 +321,7 @@ class Experiment(Manager):
                 progressBar = tqdm.tqdm(total=len(train_loader))
 
             for i, batch in (enumerate(train_loader)):
-                self.current_iteration += 1
+                iteration += 1
                 img, gt = self.batch_to_device(batch, rank)
                 with autocast(enabled=self.config['Training']['amp']):
                     pred = model(img)
