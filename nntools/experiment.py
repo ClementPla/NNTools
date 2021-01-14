@@ -8,6 +8,7 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch.nn as nn
 import tqdm
+import mlflow
 from mlflow.tracking.client import MlflowClient
 from torch.cuda.amp import autocast, GradScaler
 from mlflow.utils.mlflow_tags import MLFLOW_PARENT_RUN_ID, MLFLOW_RUN_NAME
@@ -72,9 +73,8 @@ class Manager(ABC):
             run = self.mlflow_client.get_run(run_id=self.run_id)
         elif self.run_id is None:
             run = self.mlflow_client.get_run(run_id=run_id)
-
         self.run_id = run.info.run_id
-        self.mlflow_client.set_terminated(self.run_id, status='RUNNING')
+        mlflow.start_run(self.run_id)
 
         if self.continue_training:
             "Set the current iteration to the max iteration stored in the run"
@@ -241,6 +241,7 @@ class Experiment(Manager):
             if self.is_main_process(rank):
                 self.register_trained_model()
                 self.mlflow_client.set_terminated(self.run_id, status='KILLED')
+                
             self.clean_up()
             raise KeyboardInterrupt
         except:
@@ -301,7 +302,7 @@ class Experiment(Manager):
     def train(self, model, rank=0):
         loss_function = self.get_loss(self.class_weights, rank=rank)
         optimizer = self.partial_optimizer(model.get_trainable_parameters(self.config['Optimizer']['params_solver']['lr']))
-
+        valid_metric = None
         if self.partial_lr_scheduler is not None:
             lr_scheduler = self.partial_lr_scheduler(optimizer)
         else:
@@ -340,8 +341,6 @@ class Experiment(Manager):
                             model.eval()
                             valid_metric = self.validate(model, iteration, rank)
                             model.train()
-                            # The learning rate scheduler is called once per validation
-                            self.lr_scheduler_step(lr_scheduler, iteration, valid_metric)
                     if self.is_main_process(rank):
                         self.log_metrics(iteration, trainining_loss=loss.item())
 
@@ -357,6 +356,10 @@ class Experiment(Manager):
             if self.validation_dataset is None:
                 if self.is_main_process(rank):
                     self.save_model(model, filename='iteration_%i_loss_%f' % (iteration, loss.item()))
+
+            # The learning rate scheduler is called once per epoch
+            if valid_metric is not None:
+                self.lr_scheduler_step(lr_scheduler, iteration, valid_metric)
 
             if self.is_main_process(rank):
                 progressBar.close()
