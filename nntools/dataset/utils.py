@@ -11,7 +11,7 @@ from nntools.tracker.warnings import Tracker
 
 def get_classification_class_count(dataset):
     gts = dataset.gts
-    unique, count = np.unique(gts)
+    unique, count = np.unique(gts, return_counts=True)
     return count
 
 
