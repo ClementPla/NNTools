@@ -106,7 +106,7 @@ class Manager(ABC):
         self.mlflow_client.log_artifact(self.run_id, path)
 
     def get_gpu_from_rank(self, rank):
-        return self.gpu
+        return self.gpu[rank]
 
     def get_model_on_device(self, rank):
         torch.cuda.set_device(self.get_gpu_from_rank(rank))
