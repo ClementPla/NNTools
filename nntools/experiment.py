@@ -214,7 +214,7 @@ class Experiment(Manager):
             kwargs = {'ignore_index': self.ignore_index}
             if k in ['Dice', 'Focal', 'Jaccard', 'Lovasz']:
                 kwargs['mode'] = mode
-            if k in ['CrossEntropy', 'SoftBinaryCrossEntropy', 'SoftCrossEntropy'] and weights is not None:
+            if k in ['CrossEntropy', 'SoftBinaryCrossEntropy'] and weights is not None:
                 kwargs['weight'] = weights.cuda(self.get_gpu_from_rank(rank))
             if config[k] is not None:
                 kwargs.update(config[k])
