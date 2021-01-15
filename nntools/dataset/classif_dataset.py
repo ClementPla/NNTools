@@ -9,7 +9,7 @@ import torch
 class ClassificationDataset(ImageDataset):
     def __init__(self, img_url,
                  shape=None,
-                 keep_size_ratio=True,
+                 keep_size_ratio=False,
                  recursive_loading=True,
                  map_class=None,
                  label_present=True):

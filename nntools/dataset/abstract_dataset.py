@@ -10,7 +10,7 @@ supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm",
 class ImageDataset(Dataset):
     def __init__(self, img_url,
                  shape=None,
-                 keep_size_ratio=True,
+                 keep_size_ratio=False,
                  recursive_loading=True):
 
         self.path_img = img_url

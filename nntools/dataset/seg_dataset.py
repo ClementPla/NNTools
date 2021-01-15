@@ -18,7 +18,7 @@ class SegmentationDataset(ImageDataset):
     def __init__(self, img_url,
                  mask_url,
                  shape=None,
-                 keep_size_ratio=True,
+                 keep_size_ratio=False,
                  recursive_loading=True,
                  n_classes=None):
         self.path_masks = mask_url
