@@ -12,7 +12,7 @@ import mlflow
 from mlflow.tracking.client import MlflowClient
 from torch.cuda.amp import autocast, GradScaler
 from mlflow.utils.mlflow_tags import MLFLOW_PARENT_RUN_ID, MLFLOW_RUN_NAME
-from nntools.dataset import get_class_count, class_weighting
+from nntools.dataset import get_segmentation_class_count, class_weighting
 from nntools.nnet.loss import FuseLoss, DiceLoss
 from nntools.tracker import Tracker
 from nntools.utils.io import create_folder, save_yaml
@@ -216,9 +216,12 @@ class Experiment(Manager):
         return loss
 
     def get_class_weights(self):
-        class_count = get_class_count(self.dataset, save=True, load=True)
-        return torch.tensor(class_weighting(class_count, mode=self.config['Training']['weighting_function'],
-                                            ignore_index=self.ignore_index))
+        class_count = self.dataset.get_class_count()
+        kwargs = {}
+        if 'weighting_param' in self.config['Training']:
+            kwargs = self.config['Training']['params_weighting']
+
+        return torch.tensor(class_weighting(class_count, ignore_index=self.ignore_index, **kwargs))
 
     def setup_class_weights(self, weights):
         self.class_weights = weights

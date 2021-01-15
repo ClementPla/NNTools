@@ -9,14 +9,19 @@ from torch._utils import _accumulate
 from nntools.tracker.warnings import Tracker
 
 
-def get_class_count(dataset, save=True, load=True):
+def get_classification_class_count(dataset, save=False, load=False):
+    gts = dataset.gts
+    unique, count = np.unique(gts)
+    return count
+
+def get_segmentation_class_count(dataset, save=True, load=True):
     shape = dataset.shape
     path = dataset.path_masks
     filepath = os.path.join(path, 'classe_count.npy')
 
     if os.path.isfile(filepath) and load:
         return np.load(filepath)
-    list_masks = dataset.mask_filepath
+    list_masks = dataset.gts
 
     classes_counts = np.zeros(1024, dtype=int)  # Arbitrary large number (nb classes unknown at this point)
 
@@ -33,7 +38,7 @@ def get_class_count(dataset, save=True, load=True):
     return classes_counts
 
 
-def class_weighting(class_count, mode='balanced', ignore_index=-100, eps=1):
+def class_weighting(class_count, mode='balanced', ignore_index=-100, eps=1, log_smoothing=1.01):
     assert mode in ['balanced', 'log_prob']
     if mode == 'balanced':
         n_samples = sum([c for i, c in enumerate(class_count) if i != ignore_index])
@@ -42,7 +47,7 @@ def class_weighting(class_count, mode='balanced', ignore_index=-100, eps=1):
 
     elif mode == 'log_prob':
         p_class = class_count / class_count.sum()
-        class_weights = (1 / np.log(1.01 + p_class)).astype(np.float32)
+        class_weights = (1 / np.log(log_smoothing + p_class)).astype(np.float32)
     if ignore_index >= 0:
         class_weights[ignore_index] = 0
 
