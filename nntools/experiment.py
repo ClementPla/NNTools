@@ -58,7 +58,7 @@ class Manager(ABC):
             self.exp_id = exp.experiment_id
 
     def convert_batch_norm(self, model):
-        if self.config['CNN']['synchronized_batch_norm'] and self.multi_gpu:
+        if self.config['Network']['synchronized_batch_norm'] and self.multi_gpu:
             model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
         return model
 
@@ -154,7 +154,7 @@ class Experiment(Manager):
         self.ignore_index = self.config['Training']['ignore_index'] if 'ignore_index' in self.config[
             'Training'] else -100
         self.batch_size = self.config['Training']['batch_size'] // self.world_size
-        self.n_classes = config['CNN']['n_classes']
+        self.n_classes = config['Network']['n_classes']
 
         self.dataset = None
         self.validation_dataset = None
@@ -270,7 +270,7 @@ class Experiment(Manager):
         self.log_params(**self.config['Training'])
         self.log_params(**self.config['Optimizer'])
         self.log_params(**self.config['Learning_rate_scheduler'])
-        self.log_params(**self.config['CNN'])
+        self.log_params(**self.config['Network'])
         self.log_params(**self.config['Preprocessing'])
         self.log_params(**self.config['Loss'])
 
