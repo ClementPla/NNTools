@@ -55,3 +55,26 @@ class ClassificationDataset(ImageDataset):
     def get_class_count(self):
         from .utils import get_classification_class_count
         return get_classification_class_count(self)
+
+    def plot(self, item, show=True, save=False, save_folder='tmp/'):
+        import matplotlib.pyplot as plt
+
+        plt.rcParams['image.cmap'] = 'gray'
+        img, l = self[item][:2]
+        img = img.numpy()
+        fig, ax = plt.subplots(1, 1)
+        fig.set_size_inches(8, 8)
+        ax.imshow(np.squeeze(img.transpose((1, 2, 0))))
+        ax.set_axis_off()
+        fig.tight_layout()
+        label = list(self.map_class.keys())[list(self.map_class.values()).index(int(l))]
+        ax.set_title("Class %s (%i)" % (label, l))
+        
+        if show:
+            fig.show()
+        if save:
+            if not os.path.exists(save_folder):
+                os.mkdir(save_folder)
+            filename = os.path.basename(self.img_filepath[item])
+            fig.savefig(os.path.join(save_folder, filename))
+            plt.close(fig)
