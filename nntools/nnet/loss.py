@@ -10,7 +10,7 @@ MULTICLASS_MODE = MULTICLASS_MODE
 SUPPORTED_LOSS = {'CrossEntropy': nn.CrossEntropyLoss,
                   'Dice': smp_l.DiceLoss,
                   'Focal': smp_l.FocalLoss,
-                  'Jaccard': smp_l.Jaccard,
+                  'Jaccard': smp_l.JaccardLoss,
                   'SoftBinaryCrossEntropy': smp_l.SoftBCEWithLogitsLoss,
                   'SoftCrossEntropy': smp_l.SoftCrossEntropyLoss,
                   'Lovasz': smp_l.LovaszLoss}
