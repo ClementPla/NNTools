@@ -272,6 +272,7 @@ class Experiment(Manager):
         self.log_params(**self.config['Learning_rate_scheduler'])
         self.log_params(**self.config['CNN'])
         self.log_params(**self.config['Preprocessing'])
+        self.log_params(**self.config['Loss'])
 
     def start(self):
         assert self.partial_optimizer is not None, "Missing optimizer for training"
