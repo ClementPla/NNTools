@@ -35,6 +35,7 @@ class ClassificationDataset(ImageDataset):
                 self.map_class = {unique_labels[i]: i for i in np.arange(len(unique_labels))}
             for k, v in self.map_class.items():
                 self.gts[self.gts == k] = v
+        self.gts = self.gts.astype(int)
         self.img_filepath = np.asarray(self.img_filepath)
 
     def __getitem__(self, item):
