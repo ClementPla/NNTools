@@ -218,7 +218,7 @@ class Experiment(Manager):
     def get_class_weights(self):
         class_count = self.dataset.get_class_count()
         kwargs = {}
-        if 'weighting_param' in self.config['Training']:
+        if 'params_weighting' in self.config['Training']:
             kwargs = self.config['Training']['params_weighting']
 
         return torch.tensor(class_weighting(class_count, ignore_index=self.ignore_index, **kwargs))
