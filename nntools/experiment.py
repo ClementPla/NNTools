@@ -8,12 +8,11 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch.nn as nn
 import tqdm
-import mlflow
 from mlflow.tracking.client import MlflowClient
 from torch.cuda.amp import autocast, GradScaler
 from mlflow.utils.mlflow_tags import MLFLOW_PARENT_RUN_ID, MLFLOW_RUN_NAME
-from nntools.dataset import get_segmentation_class_count, class_weighting
-from nntools.nnet.loss import FuseLoss, DiceLoss
+from nntools.dataset import class_weighting
+from nntools.nnet.loss import FuseLoss, SUPPORTED_LOSS, BINARY_MODE, MULTICLASS_MODE
 from nntools.tracker import Tracker
 from nntools.utils.io import create_folder, save_yaml
 from nntools.utils.misc import convert_function
@@ -203,17 +202,25 @@ class Experiment(Manager):
         return dataloader, sampler
 
     def get_loss(self, weights=None, rank=0):
-        loss = FuseLoss()
-        loss_args = self.config['Training']['segmentation_losses'].lower()
-        if 'ce' in loss_args:
-            if weights is None:
-                loss.append(nn.CrossEntropyLoss(ignore_index=self.ignore_index))
-            else:
-                loss.append(nn.CrossEntropyLoss(weight=weights.cuda(self.get_gpu_from_rank(rank)),
-                                                ignore_index=self.ignore_index))
-        if 'dice' in loss_args:
-            loss.append(DiceLoss(ignore_index=self.ignore_index))
-        return loss
+        config = self.config['Loss']
+        fuse_loss = FuseLoss(fusion=config.pop('fusion', 'mean'))
+        mode = MULTICLASS_MODE if self.n_classes>2 else BINARY_MODE
+
+        list_losses = [k for k in config.keys()]
+        existing_losses = [l for l in SUPPORTED_LOSS.keys()]
+        for k in list_losses:
+            if k not in existing_losses:
+                raise NotImplementedError("Loss %s is not implemented" % k)
+            kwargs = {'ignore_index': self.ignore_index}
+            if k in ['Dice', 'Focal', 'Jaccard', 'Lovasz']:
+                kwargs['mode'] = mode
+            if k in ['CrossEntropy', 'SoftBinaryCrossEntropy', 'SoftCrossEntropy'] and weights is not None:
+                kwargs['weight'] = weights.cuda(self.get_gpu_from_rank(rank))
+            if config[k] is not None:
+                kwargs.update(config[k])
+            fuse_loss.add(SUPPORTED_LOSS[k](**kwargs))
+
+        return fuse_loss
 
     def get_class_weights(self):
         class_count = self.dataset.get_class_count()

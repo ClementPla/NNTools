@@ -9,10 +9,11 @@ from torch._utils import _accumulate
 from nntools.tracker.warnings import Tracker
 
 
-def get_classification_class_count(dataset, save=False, load=False):
+def get_classification_class_count(dataset):
     gts = dataset.gts
     unique, count = np.unique(gts)
     return count
+
 
 def get_segmentation_class_count(dataset, save=True, load=True):
     shape = dataset.shape

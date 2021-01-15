@@ -1,10 +1,24 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import segmentation_models_pytorch.losses as smp_l
+from segmentation_models_pytorch.losses import BINARY_MODE, MULTICLASS_MODE
+
+BINARY_MODE = BINARY_MODE
+MULTICLASS_MODE = MULTICLASS_MODE
+
+SUPPORTED_LOSS = {'CrossEntropy': nn.CrossEntropyLoss,
+                  'Dice': smp_l.DiceLoss,
+                  'Focal': smp_l.FocalLoss,
+                  'Jaccard': smp_l.Jaccard,
+                  'SoftBinaryCrossEntropy': smp_l.SoftBCEWithLogitsLoss,
+                  'SoftCrossEntropy': smp_l.SoftCrossEntropyLoss,
+                  'Lovasz': smp_l.LovaszLoss}
 
 
 class FuseLoss:
-    def __init__(self, losses=None):
+    def __init__(self, losses=None, fusion='mean'):
+        self.fusion = fusion
         if losses is None:
             losses = []
         if not isinstance(losses, list):
@@ -12,10 +26,16 @@ class FuseLoss:
         self.losses = losses
 
     def __call__(self, x, y):
-        return sum([l(x, y) for l in self.losses])
+        list_losses = [l(x, y) for l in self.losses]
+        if self.fusion == 'sum':
+            return sum(list_losses)
+        if self.fusion == 'mean':
+            return sum(list_losses)/len(list_losses)
 
-    def append(self, loss):
+    # TODO : Add weighting scheme for each loss
+    def add(self, loss):
         self.losses.append(loss)
+
 
 
 class DiceLoss(nn.Module):
