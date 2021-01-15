@@ -39,15 +39,11 @@ class ClassificationDataset(ImageDataset):
 
     def __getitem__(self, item):
         img = self.load_image(item)
-        kwargs = {'image':img}
+        kwargs = {'image': img}
         if self.composer:
             img = self.composer(**kwargs)
 
-        if img.ndim == 3:
-            img = img.transpose(2, 0, 1)
-
-        elif img.ndim == 2:
-            img = np.expand_dims(img, 0)
+        img = self.transpose_img(img)
 
         output = (torch.from_numpy(img),)
         if self.label_present:

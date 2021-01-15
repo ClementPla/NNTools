@@ -51,6 +51,15 @@ class ImageDataset(Dataset):
     def get_class_count(self):
         pass
 
+    def transpose_img(self, img):
+        if img.ndim == 3:
+            img = img.transpose(2, 0, 1)
+
+        elif img.ndim == 2:
+            img = np.expand_dims(img, 0)
+
+        return img
+
     def subset(self, indices):
         self.img_filepath = self.img_filepath[indices]
         self.gts = self.gts[indices]

@@ -91,6 +91,8 @@ class SegmentationDataset(ImageDataset):
             else:
                 img = self.composer(**kwargs)
 
+        img = self.transpose_img(img)
+
         output = (torch.from_numpy(img),)
         if self.use_masks:
             output = output + (torch.from_numpy(mask).long(),)
