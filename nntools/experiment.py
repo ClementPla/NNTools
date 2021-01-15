@@ -40,7 +40,7 @@ class Manager(ABC):
         if not isinstance(self.gpu, list):
             self.gpu = [self.gpu]
 
-        self.world_size = len(self.config['Manager']['gpu'])
+        self.world_size = len(self.gpu)
         self.multi_gpu = self.world_size > 1
         if self.multi_gpu:
             os.environ['MASTER_ADDR'] = 'localhost'
