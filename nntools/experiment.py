@@ -239,7 +239,6 @@ class Experiment(Manager):
                 os.remove(f)
 
     def _start_process(self, rank=0):
-        self.postpone_killed_flag = False
         try:
             model = self.get_model_on_device(rank)
             if self.run_training:
@@ -289,6 +288,7 @@ class Experiment(Manager):
     def start(self):
         assert self.partial_optimizer is not None, "Missing optimizer for training"
         assert self.dataset is not None, "Missing dataset"
+        self.postpone_killed_flag = False
 
         if self.validation_dataset is None:
             Tracker.warn("Missing validation set, default behaviour is to save the model once per epoch")
