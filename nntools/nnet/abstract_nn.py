@@ -75,7 +75,7 @@ class AbstractNet(nn.Module):
         self.load_state_dict(state_dict, strict=strict)
 
     def get_trainable_parameters(self, lr=None):
-        if self.params_group is not None:
+        if self.params_group:
             return self.params_group
         else:
             return self.parameters()
