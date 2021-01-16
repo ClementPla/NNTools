@@ -239,6 +239,7 @@ class Experiment(Manager):
                 os.remove(f)
 
     def _start_process(self, rank=0):
+        self.postpone_killed_flag = False
         try:
             model = self.get_model_on_device(rank)
             if self.run_training:
@@ -247,20 +248,34 @@ class Experiment(Manager):
             Tracker.warn("Attempt to register model at %s" % self.last_save)
             if self.is_main_process(rank):
                 self.register_trained_model()
-                self.mlflow_client.set_terminated(self.run_id, status='KILLED')
 
-            self.clean_up()
-            raise KeyboardInterrupt
+                run_end = (input("Call end function ? [y]/n") or "y").lower()
+                if run_end == 'y':
+                    self.postpone_killed_flag = True
+                else:
+                    self.mlflow_client.set_terminated(self.run_id, status='KILLED')
+            if self.multi_gpu:
+                dist.barrier()
+            if not self.postpone_killed_flag:
+                self.clean_up()
+                raise KeyboardInterrupt
+
         except:
             if self.is_main_process(rank):
                 self.mlflow_client.set_terminated(self.run_id, status='FAILED')
+            if self.multi_gpu:
+                dist.barrier()
             self.clean_up()
             raise
 
-        if self.is_main_process(rank) and self.run_training:
+        if self.is_main_process(rank) and self.run_training and not self.postpone_killed_flag:
             self.register_trained_model()
-        dist.barrier()
+        if self.multi_gpu:
+            dist.barrier()
+
         self.end(model, rank)
+        if self.postpone_killed_flag and self.is_main_process(rank):
+            self.mlflow_client.set_terminated(self.run_id, status='KILLED')
         self.clean_up()
 
     def initial_tracking(self):
@@ -297,7 +312,8 @@ class Experiment(Manager):
         else:
             self._start_process(rank=self.get_gpu_from_rank(0))
 
-        self.mlflow_client.set_terminated(self.run_id, status='FINISHED')
+        if not self.postpone_killed_flag:
+            self.mlflow_client.set_terminated(self.run_id, status='FINISHED')
         save_yaml(self.config, os.path.join(self.run_folder, 'config.yaml'))
 
     def register_trained_model(self):
