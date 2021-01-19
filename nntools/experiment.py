@@ -8,6 +8,7 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch.nn as nn
 import tqdm
+import yaml
 from mlflow.tracking.client import MlflowClient
 from torch.cuda.amp import autocast, GradScaler
 from mlflow.utils.mlflow_tags import MLFLOW_PARENT_RUN_ID, MLFLOW_RUN_NAME
@@ -36,7 +37,7 @@ class Manager(ABC):
         self.current_iteration = 0
         self.gpu = self.config['Manager']['gpu']
         self.continue_training = True
-
+        self.register_params = True
         if not isinstance(self.gpu, list):
             self.gpu = [self.gpu]
 
@@ -284,6 +285,9 @@ class Experiment(Manager):
         self.log_params(**self.config['Network'])
         self.log_params(**self.config['Preprocessing'])
         self.log_params(**self.config['Loss'])
+        with open(os.path.join(self.network_savepoint, 'config.yaml'), 'w') as outfile:
+            yaml.dump(self.config, outfile)
+        self.log_artifact(os.path.join(self.network_savepoint, 'config.yaml'))
 
     def start(self):
         assert self.partial_optimizer is not None, "Missing optimizer for training"
@@ -303,8 +307,8 @@ class Experiment(Manager):
         if self.run_id is None:
             Tracker.warn("Starting a new run")
             self.start_run()
-
-        self.initial_tracking()
+        if self.register_params:
+            self.initial_tracking()
         if self.multi_gpu:
             mp.spawn(self._start_process,
                      nprocs=self.world_size,
