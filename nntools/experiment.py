@@ -115,7 +115,6 @@ class Manager(ABC):
         model = self.convert_batch_norm(model)
         model = model.cuda(self.get_gpu_from_rank(rank))
         if self.multi_gpu:
-            dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size)
             model = DDP(model, device_ids=[self.get_gpu_from_rank(rank)], find_unused_parameters=True)
         return model
 
@@ -202,7 +201,7 @@ class Experiment(Manager):
     def get_loss(self, weights=None, rank=0):
         config = self.config['Loss']
         fuse_loss = FuseLoss(fusion=config.pop('fusion', 'mean'))
-        mode = MULTICLASS_MODE if self.n_classes>2 else BINARY_MODE
+        mode = MULTICLASS_MODE if self.n_classes > 2 else BINARY_MODE
 
         list_losses = [k for k in config.keys()]
         existing_losses = [l for l in SUPPORTED_LOSS.keys()]
@@ -240,6 +239,9 @@ class Experiment(Manager):
                 os.remove(f)
 
     def _start_process(self, rank=0):
+        if self.multi_gpu:
+            dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size)
+
         try:
             model = self.get_model_on_device(rank)
             if self.run_training:
@@ -314,7 +316,7 @@ class Experiment(Manager):
                      nprocs=self.world_size,
                      join=True)
         else:
-            self._start_process(rank=self.get_gpu_from_rank(0))
+            self._start_process(rank=0)
 
         if not self.postpone_killed_flag:
             self.mlflow_client.set_terminated(self.run_id, status='FINISHED')
