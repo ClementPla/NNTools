@@ -110,7 +110,7 @@ class Manager(ABC):
         return self.gpu[rank]
 
     def get_model_on_device(self, rank):
-        print('Rank %i, gpu %i', rank, self.get_gpu_from_rank(rank))
+        print('Rank %i, gpu %i'%(rank, self.get_gpu_from_rank(rank)))
         torch.cuda.set_device(self.get_gpu_from_rank(rank))
         model = self.get_model()
         model = self.convert_batch_norm(model)
