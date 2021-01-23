@@ -240,6 +240,7 @@ class Experiment(Manager):
                 os.remove(f)
 
     def _start_process(self, rank=0):
+        torch.cuda.set_device(rank)
         if self.multi_gpu:
             dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size)
 
@@ -361,7 +362,7 @@ class Experiment(Manager):
                 if (i + 1) % iters_to_accumulate == 0:
                     scaler.step(optimizer)
                     scaler.update()
-                    optimizer.zero_grad()
+                    model.zero_grad()
 
                 """
                 Validation step
