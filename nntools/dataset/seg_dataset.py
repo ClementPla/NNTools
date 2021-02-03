@@ -100,6 +100,9 @@ class SegmentationDataset(ImageDataset):
             output = output + (item,)
         return output
 
+    def standardize(self, img):
+        return (img-img.min())/(img.max()-img.min())
+
     def plot(self, item, show=True, save=False, save_folder='tmp/', classes=None):
         import matplotlib.pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -110,6 +113,7 @@ class SegmentationDataset(ImageDataset):
         if self.use_masks:
             img, mask = self[item]
             img = img.numpy()
+            img = self.standardize(img)
             mask = mask.numpy()
             mask = np.squeeze(mask)
             n_classes = self.n_classes if self.n_classes is not None else np.max(mask) + 1
@@ -136,6 +140,7 @@ class SegmentationDataset(ImageDataset):
         else:
             img = self[item][0]
             img = img.numpy()
+            img = self.standardize(img)
             fig, ax = plt.subplots(1, 1)
             fig.set_size_inches(8, 8)
             ax.imshow(np.squeeze(img.transpose((1, 2, 0))))

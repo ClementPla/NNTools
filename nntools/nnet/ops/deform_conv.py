@@ -1,5 +1,4 @@
 import torch
-import torchvision.models.segmentation as models
 from mmdet.ops.dcn.deform_conv import DeformConv, DeformConvFunction
 from torch import nn
 from torch.nn.modules.utils import _pair
@@ -7,14 +6,6 @@ from torch.nn.parameter import Parameter
 
 
 deform_conv = DeformConvFunction.apply
-
-
-def _get_network(network):
-    return {
-        "deeplabv3_resnet101": models.deeplabv3_resnet101,
-        "fcn_resnet101": models.fcn_resnet101,
-        "deeplabv3_resnet50": models.deeplabv3_resnet50
-    }[network]
 
 
 class DeformConvPackWithBias(DeformConv):
