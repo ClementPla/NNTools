@@ -1,14 +1,15 @@
 import torch
-from mmdet.ops.dcn.deform_conv import DeformConv, DeformConvFunction
+from mmcv.ops import DeformConv2d, deform_conv2d
+
 from torch import nn
 from torch.nn.modules.utils import _pair
 from torch.nn.parameter import Parameter
 
 
-deform_conv = DeformConvFunction.apply
+deform_conv = deform_conv2d
 
 
-class DeformConvPackWithBias(DeformConv):
+class DeformConvPackWithBias(DeformConv2d):
     def __init__(self,
                  in_channels,
                  out_channels,
@@ -56,7 +57,7 @@ class DeformConvPackWithBias(DeformConv):
             return out
         
 
-class RestrictedDeformConvPack(DeformConv):
+class RestrictedDeformConvPack(DeformConv2d):
     def __init__(self, *args, **kwargs):
         super(RestrictedDeformConvPack, self).__init__(*args, **kwargs)
 
