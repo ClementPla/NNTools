@@ -35,7 +35,7 @@ class DeformConvPackWithBias(DeformConv2d):
 
         self.conv_offset = nn.Conv2d(
             self.in_channels,
-            self.deformable_groups * 2 * self.kernel_size[0] *
+            self.deform_groups * 2 * self.kernel_size[0] *
             self.kernel_size[1],
             kernel_size=self.kernel_size,
             stride=_pair(self.stride),
