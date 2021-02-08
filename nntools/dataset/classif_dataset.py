@@ -40,7 +40,7 @@ class ClassificationDataset(ImageDataset):
             if self.csv_filepath:
                 import pandas
                 csv = pandas.read_csv(self.csv_filepath)
-                img_names = [self.filename(i) for i in range(len(self.img_filepath))]
+                img_names = [os.path.basename(p) for p in self.img_filepath]
                 argsort = np.argsort(img_names)
                 self.img_filepath = self.img_filepath[argsort]
                 csv_names = np.asarray(csv[self.file_column])
