@@ -83,6 +83,7 @@ class ClassificationDataset(ImageDataset):
         plt.rcParams['image.cmap'] = 'gray'
         img, l = self[item][:2]
         img = img.numpy()
+        img = (img -img.min())/(img.max() - img.min())
         fig, ax = plt.subplots(1, 1)
         fig.set_size_inches(8, 8)
         ax.imshow(np.squeeze(img.transpose((1, 2, 0))))
