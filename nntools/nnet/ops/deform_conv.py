@@ -18,7 +18,7 @@ class DeformConvPackWithBias(DeformConv2d):
                  padding=0,
                  dilation=1,
                  groups=1,
-                 deformable_groups=1,
+                 deform_groups=1,
                  bias=False):
         super(DeformConvPackWithBias, self).__init__(in_channels,
                                                  out_channels,
@@ -27,7 +27,7 @@ class DeformConvPackWithBias(DeformConv2d):
                                                  padding=padding,
                                                  dilation=dilation,
                                                  groups=groups,
-                                                 deformable_groups=deformable_groups,
+                                                 deform_groups=deform_groups,
                                                  bias=False)
         self.use_bias = bias
         if self.use_bias:

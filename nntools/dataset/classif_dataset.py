@@ -12,9 +12,17 @@ class ClassificationDataset(ImageDataset):
                  keep_size_ratio=False,
                  recursive_loading=True,
                  map_class=None,
-                 label_present=True):
+                 label_present=True,
+                 label_per_folder=True,
+                 csv_filepath=None,
+                 file_column='image',
+                 gt_column='level'):
         self.map_class = map_class
         self.label_present = label_present
+        self.label_per_folder = label_per_folder
+        self.csv_filepath = csv_filepath
+        self.file_column = file_column
+        self.gt_column = gt_column
 
         super(ClassificationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading)
 
@@ -23,9 +31,22 @@ class ClassificationDataset(ImageDataset):
             prefix = "**/*." if recursive else "*."
             self.img_filepath.extend(glob.glob(self.path_img + prefix + extension, recursive=recursive))
 
+        self.img_filepath = np.asarray(self.img_filepath)
+
         if self.label_present:
-            for f in self.img_filepath:
-                self.gts.append(os.path.basename(os.path.dirname(f)))
+            if self.label_per_folder:
+                for f in self.img_filepath:
+                    self.gts.append(os.path.basename(os.path.dirname(f)))
+            if self.csv_filepath:
+                import pandas
+                csv = pandas.read_csv(self.csv_filepath)
+                img_names = [self.file_column[i] for i in range(len(self.img_filepath))]
+                argsort = np.argsort(img_names)
+                self.img_filepath = self.img_filepath[argsort]
+                csv_names = np.asarray(csv[self.file_column])
+                argsort = np.argsort(csv_names)
+                csv_gts = np.asarray(csv[self.gt_column])
+                self.gts = csv_gts[argsort]
 
             unique_labels = np.unique(self.gts)
             self.n_classes = len(unique_labels)
@@ -36,7 +57,6 @@ class ClassificationDataset(ImageDataset):
             for k, v in self.map_class.items():
                 self.gts[self.gts == k] = v
         self.gts = self.gts.astype(int)
-        self.img_filepath = np.asarray(self.img_filepath)
 
     def __getitem__(self, item):
         img = self.load_image(item)
