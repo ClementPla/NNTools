@@ -32,7 +32,9 @@ class Manager(ABC):
 
         self.tracker = Tracker(self.config['Manager']['experiment'], run_id)
         self.tracker.create_client(os.path.join(self.config['Manager']['save_point'], 'mlruns'))
-
+        self.tracker.set_run_folder(os.path.join(self.config['Manager']['save_point'],
+                                                 self.config['Manager']['experiment'],
+                                                 self.config['Manager']['run']))
         self.tracker.init_default_path()
 
         self.model = None
@@ -56,9 +58,7 @@ class Manager(ABC):
         return model
 
     def start_run(self, run_id=None):
-        self.tracker.set_run_folder(os.path.join(self.config['Manager']['save_point'],
-                                                 self.config['Manager']['experiment'],
-                                                 self.config['Manager']['run']))
+
 
         tags = {MLFLOW_RUN_NAME: self.config['Manager']['run']}
         if run_id is None and self.tracker.run_id is None:
