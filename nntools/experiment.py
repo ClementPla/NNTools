@@ -310,9 +310,9 @@ class Experiment(Manager):
 
     def register_trained_model(self):
         if self.last_save['best_valid']:
-            self.log_artifact(self.last_save['best_valid'])
+            log_artifact(self.tracker, self.last_save['best_valid'])
         if self.last_save['last']:
-            self.log_artifact(self.last_save['last'])
+            log_artifact(self.tracker, self.last_save['last'])
 
     def end(self, model, rank):
         pass
@@ -363,7 +363,7 @@ class Experiment(Manager):
                             self.lr_scheduler_step(lr_scheduler, e, i, len(train_loader), valid_metric)
 
                     if self.is_main_process(rank):
-                        self.log_metrics(iteration, trainining_loss=loss.item())
+                        log_metrics(self.tracker, iteration, trainining_loss=loss.item())
                         self.save_model(model, filename='last')
 
                     if self.multi_gpu:
