@@ -6,7 +6,7 @@ import numpy as np
 from torch import randperm, default_generator
 from torch._utils import _accumulate
 
-from nntools.tracker.warnings import Tracker
+from nntools.tracker import Log
 
 
 def get_classification_class_count(dataset):
@@ -35,7 +35,7 @@ def get_segmentation_class_count(dataset, save=True, load=True):
     classes_counts = classes_counts[:np.max(np.nonzero(classes_counts)) + 1]
     if save:
         np.save(filepath, classes_counts)
-        Tracker.warn('Weights stored in ' + filepath)
+        Log.warn('Weights stored in ' + filepath)
     return classes_counts
 
 
