@@ -8,7 +8,7 @@ def to_iterable(param, iterable_type=list):
     return param
 
 
-def convert_function(func, list_args):
+def partial_fill_kwargs(func, list_args):
     kwargs = {}
     for p in inspect.signature(func).parameters.values():
         if p.name in list_args:

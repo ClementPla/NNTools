@@ -1,6 +1,6 @@
 import numpy as np
 
-from nntools.utils.misc import convert_function
+from nntools.utils.misc import partial_fill_kwargs
 
 
 class DataAugment:
@@ -16,16 +16,16 @@ class DataAugment:
             return param in self.config and self.config[param]
 
         if check('vertical_flip'):
-            self.ops.append(convert_function(vertical_flip, self.config))
+            self.ops.append(partial_fill_kwargs(vertical_flip, self.config))
 
         if check('horizontal_flip'):
-            self.ops.append(convert_function(horizontal_flip, self.config))
+            self.ops.append(partial_fill_kwargs(horizontal_flip, self.config))
 
         if check('random_scale'):
-            self.ops.append(convert_function(random_scale, self.config))
+            self.ops.append(partial_fill_kwargs(random_scale, self.config))
 
         if check('random_rotate'):
-            self.ops.append(convert_function(random_rotation, self.config))
+            self.ops.append(partial_fill_kwargs(random_rotation, self.config))
 
         return self
 
@@ -56,7 +56,7 @@ class Composition:
             if isinstance(f, DataAugment):
                 self.ops.append(f)
             else:
-                self.ops.append(convert_function(f, self.config))
+                self.ops.append(partial_fill_kwargs(f, self.config))
         return self
 
     def __call__(self, **kwargs):

@@ -16,8 +16,10 @@ from nntools.dataset import class_weighting
 from nntools.nnet.loss import FuseLoss, SUPPORTED_LOSS, BINARY_MODE, MULTICLASS_MODE
 from nntools.tracker import Tracker
 from nntools.utils.io import create_folder, save_yaml
-from nntools.utils.misc import convert_function
+from nntools.utils.misc import partial_fill_kwargs
 from nntools.utils.random import set_seed, set_non_torch_seed
+from nntools.utils.scheduler import SCHEDULER
+from nntools.utils.optims import OPTIMS
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP
 from nntools.nnet import nnt_format
 
@@ -110,7 +112,7 @@ class Manager(ABC):
         return self.gpu[rank]
 
     def get_model_on_device(self, rank):
-        print('Rank %i, gpu %i'%(rank, self.get_gpu_from_rank(rank)))
+        print('Rank %i, gpu %i' % (rank, self.get_gpu_from_rank(rank)))
         torch.cuda.set_device(self.get_gpu_from_rank(rank))
         model = self.get_model()
         model = self.convert_batch_norm(model)
@@ -161,8 +163,22 @@ class Experiment(Manager):
         self.partial_lr_scheduler = None
         self.tracked_metric = None
         self.class_weights = None
-        self.last_save = None
+        self.last_save = {'best_valid': None,
+                          'last': None}
         self.run_training = True
+
+        self.ctx_train = {}
+
+    def initial_tracking(self):
+        self.log_params(**self.config['Training'])
+        self.log_params(**self.config['Optimizer'])
+        self.log_params(**self.config['Learning_rate_scheduler'])
+        self.log_params(**self.config['Network'])
+        self.log_params(**self.config['Preprocessing'])
+        self.log_params(**self.config['Loss'])
+        with open(os.path.join(self.network_savepoint, 'config.yaml'), 'w') as outfile:
+            yaml.dump(self.config, outfile)
+        self.log_artifact(os.path.join(self.network_savepoint, 'config.yaml'))
 
     def set_train_dataset(self, dataset):
         self.dataset = dataset
@@ -173,14 +189,21 @@ class Experiment(Manager):
     def set_test_dataset(self, dataset):
         self.test_dataset = dataset
 
-    def set_optimizer(self, func, **kwargs):
+    def set_optimizer(self, **config):
         """
         :return: A partial function of an optimizers. Partial passed arguments are hyperparameters
         """
-        self.partial_optimizer = convert_function(func, kwargs)
+        solver = config.pop['solver']
+        func = OPTIMS[solver]
+        self.partial_optimizer = partial_fill_kwargs(func, config)
 
-    def set_scheduler(self, func, **kwargs):
-        self.partial_lr_scheduler = convert_function(func, kwargs)
+    def set_scheduler(self, **config):
+        scheduler = config.pop['scheduler']
+        scheduler_options = SCHEDULER[scheduler]
+        self.ctx_train['scheduler_opt'] = {'call_on': scheduler[1]}
+        self.ctx_train['scheduler_opt']['callback'] = scheduler[2]
+
+        self.partial_lr_scheduler = partial_fill_kwargs(scheduler_options[0], config)
 
     def get_dataloader(self, dataset, shuffle=True, batch_size=None):
         if batch_size is None:
@@ -232,9 +255,13 @@ class Experiment(Manager):
         self.class_weights = weights
 
     def save_model(self, model, filename, **kwargs):
-        self.last_save = model.save(savepoint=self.network_savepoint, filename=filename, **kwargs)
+        save = model.save(savepoint=self.network_savepoint, filename=filename, **kwargs)
+        if 'best_valid' in filename:
+            self.last_save['best_valid'] = save
+        else:
+            self.last_save['last'] = save
         if self.config['Manager']['max_saved_model']:
-            files = glob.glob(self.network_savepoint + "/*.pth")
+            files = glob.glob(self.network_savepoint + "/best_valid_*.pth")
             files.sort(key=os.path.getmtime)
             for f in files[:-self.config['Manager']['max_saved_model']]:
                 os.remove(f)
@@ -247,13 +274,13 @@ class Experiment(Manager):
         try:
             model = self.get_model_on_device(rank)
             if self.run_training:
-                self.train(model, rank)
+                with autocast(enabled=self.config['Training']['amp']):
+                    self.train(model, rank)
         except KeyboardInterrupt:
-            Tracker.warn("Attempt to register model at %s" % self.last_save)
             if self.is_main_process(rank):
+                Tracker.warn("Attempt to register model at %s" % self.last_save)
                 self.register_trained_model()
-
-                run_end = (input("Call end function ? [y]/n") or "y").lower()
+                run_end = (input("Call end function ? [y]/n ") or "y").lower()
                 if run_end == 'y':
                     self.postpone_killed_flag = True
                 else:
@@ -263,8 +290,8 @@ class Experiment(Manager):
             if not self.postpone_killed_flag:
                 self.clean_up()
                 raise KeyboardInterrupt
-
         except:
+
             if self.is_main_process(rank):
                 self.mlflow_client.set_terminated(self.run_id, status='FAILED')
             if self.multi_gpu:
@@ -273,29 +300,22 @@ class Experiment(Manager):
             raise
 
         if self.is_main_process(rank) and self.run_training and not self.postpone_killed_flag:
+            self.save_model(model, 'last')
             self.register_trained_model()
         if self.multi_gpu:
             dist.barrier()
 
-        self.end(model, rank)
+        with autocast(enabled=self.config['Training']['amp']):
+            self.end(model, rank)
+
         if self.postpone_killed_flag and self.is_main_process(rank):
             self.mlflow_client.set_terminated(self.run_id, status='KILLED')
         self.clean_up()
 
-    def initial_tracking(self):
-        self.log_params(**self.config['Training'])
-        self.log_params(**self.config['Optimizer'])
-        self.log_params(**self.config['Learning_rate_scheduler'])
-        self.log_params(**self.config['Network'])
-        self.log_params(**self.config['Preprocessing'])
-        self.log_params(**self.config['Loss'])
-        with open(os.path.join(self.network_savepoint, 'config.yaml'), 'w') as outfile:
-            yaml.dump(self.config, outfile)
-        self.log_artifact(os.path.join(self.network_savepoint, 'config.yaml'))
-
     def start(self):
         assert self.partial_optimizer is not None, "Missing optimizer for training"
         assert self.dataset is not None, "Missing dataset"
+
         self.postpone_killed_flag = False
 
         if self.validation_dataset is None:
@@ -325,8 +345,10 @@ class Experiment(Manager):
         save_yaml(self.config, os.path.join(self.run_folder, 'config.yaml'))
 
     def register_trained_model(self):
-        if self.last_save is not None:
-            self.log_artifact(self.last_save)
+        if self.last_save['best_valid']:
+            self.log_artifact(self.last_save['best_valid'])
+        if self.last_save['last']:
+            self.log_artifact(self.last_save['last'])
 
     def end(self, model, rank):
         pass
@@ -334,7 +356,6 @@ class Experiment(Manager):
     def train(self, model, rank=0):
         loss_function = self.get_loss(self.class_weights, rank=rank)
         optimizer = self.partial_optimizer(model.get_trainable_parameters(self.config['Optimizer']['params_solver']['lr']))
-        valid_metric = None
         if self.partial_lr_scheduler is not None:
             lr_scheduler = self.partial_lr_scheduler(optimizer)
         else:
@@ -355,14 +376,17 @@ class Experiment(Manager):
             for i, batch in (enumerate(train_loader)):
                 iteration += 1
                 img, gt = self.batch_to_device(batch, rank)
-                with autocast(enabled=self.config['Training']['amp']):
-                    pred = model(img)
-                    loss = loss_function(pred, gt) / iters_to_accumulate
+                pred = model(img)
+                loss = loss_function(pred, gt) / iters_to_accumulate
                 scaler.scale(loss).backward()
                 if (i + 1) % iters_to_accumulate == 0:
                     scaler.step(optimizer)
                     scaler.update()
                     model.zero_grad()
+
+                if self.ctx_train['scheduler_opt']['call_on'] == 'on_iteration':
+                    self.lr_scheduler_step(lr_scheduler, e, i, len(train_loader))
+
 
                 """
                 Validation step
@@ -370,11 +394,12 @@ class Experiment(Manager):
                 if iteration % self.config['Validation']['log_interval'] == 0:
                     if self.validation_dataset is not None:
                         with torch.no_grad():
-                            model.eval()
                             valid_metric = self.validate(model, iteration, rank)
-                            model.train()
+                            self.lr_scheduler_step(lr_scheduler, e, i, len(train_loader), valid_metric)
+
                     if self.is_main_process(rank):
                         self.log_metrics(iteration, trainining_loss=loss.item())
+                        self.save_model(model, filename='last')
 
                     if self.multi_gpu:
                         dist.barrier()
@@ -389,25 +414,20 @@ class Experiment(Manager):
                 if self.is_main_process(rank):
                     self.save_model(model, filename='iteration_%i_loss_%f' % (iteration, loss.item()))
 
-            # The learning rate scheduler is called once per epoch
-            if valid_metric is not None:
-                self.lr_scheduler_step(lr_scheduler, iteration, valid_metric)
+            if self.ctx_train['scheduler_opt']['call_on'] == 'on_epoch':
+                self.lr_scheduler_step(lr_scheduler, e, iteration, len(train_loader))
 
             if self.is_main_process(rank):
                 progressBar.close()
 
-            if self.multi_gpu:
-                dist.barrier()
-
-    def lr_scheduler_step(self, lr_scheduler, iteration, validation_metrics=None):
+    def lr_scheduler_step(self, lr_scheduler, epoch, iteration, size_epoch, validation_metrics=None):
         if lr_scheduler is None:
             return
-        if self.config['Learning_rate_scheduler']['update_type'] == 'on_validation':
-            assert validation_metrics is not None, "Missing validation score to update the learning rate sheduler. Check" \
-                                                   "what the validate function returns"
+
+        if self.ctx_train['scheduler_opt']['call_on'] == 'on_validation':
             lr_scheduler.step(validation_metrics)
         else:
-            lr_scheduler.step(iteration)
+            lr_scheduler.step(self.ctx_train['scheduler_opt']['callback'](epoch, iteration, size_epoch))
 
     def validate(self, model, iteration, rank=0):
         pass
