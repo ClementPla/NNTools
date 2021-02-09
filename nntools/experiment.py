@@ -59,9 +59,9 @@ class Manager(ABC):
 
     def start_run(self, run_id=None):
 
-
         tags = {MLFLOW_RUN_NAME: self.config['Manager']['run']}
         if run_id is None and self.tracker.run_id is None:
+            self.continue_training = False
             self.tracker.create_run(tags)
         else:
             self.tracker.get_run(run_id)
