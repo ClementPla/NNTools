@@ -193,12 +193,12 @@ class Experiment(Manager):
         """
         :return: A partial function of an optimizers. Partial passed arguments are hyperparameters
         """
-        solver = config.pop['solver']
+        solver = config.pop('solver')
         func = OPTIMS[solver]
         self.partial_optimizer = partial_fill_kwargs(func, config['params_solver'])
 
     def set_scheduler(self, **config):
-        scheduler = config.pop['scheduler']
+        scheduler = config.pop('scheduler')
         scheduler_options = SCHEDULER[scheduler]
         self.ctx_train['scheduler_opt'] = {'call_on': scheduler[1]}
         self.ctx_train['scheduler_opt']['callback'] = scheduler[2]
