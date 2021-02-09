@@ -195,7 +195,7 @@ class Experiment(Manager):
         """
         solver = config.pop['solver']
         func = OPTIMS[solver]
-        self.partial_optimizer = partial_fill_kwargs(func, config)
+        self.partial_optimizer = partial_fill_kwargs(func, config['params_solver'])
 
     def set_scheduler(self, **config):
         scheduler = config.pop['scheduler']
@@ -203,7 +203,7 @@ class Experiment(Manager):
         self.ctx_train['scheduler_opt'] = {'call_on': scheduler[1]}
         self.ctx_train['scheduler_opt']['callback'] = scheduler[2]
 
-        self.partial_lr_scheduler = partial_fill_kwargs(scheduler_options[0], config)
+        self.partial_lr_scheduler = partial_fill_kwargs(scheduler_options[0], config['params_scheduler'])
 
     def get_dataloader(self, dataset, shuffle=True, batch_size=None):
         if batch_size is None:
