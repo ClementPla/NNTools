@@ -1,6 +1,8 @@
-from torch.utils.data import Dataset
-import numpy as np
 import os
+
+import numpy as np
+from torch.utils.data import Dataset
+
 from nntools.dataset.image_tools import resize
 from nntools.utils.io import load_image
 
@@ -63,5 +65,3 @@ class ImageDataset(Dataset):
     def subset(self, indices):
         self.img_filepath = self.img_filepath[indices]
         self.gts = self.gts[indices]
-
-

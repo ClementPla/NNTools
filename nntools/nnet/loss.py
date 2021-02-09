@@ -1,7 +1,7 @@
+import segmentation_models_pytorch.losses as smp_l
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import segmentation_models_pytorch.losses as smp_l
 from segmentation_models_pytorch.losses import BINARY_MODE, MULTICLASS_MODE
 
 BINARY_MODE = BINARY_MODE
@@ -30,12 +30,11 @@ class FuseLoss:
         if self.fusion == 'sum':
             return sum(list_losses)
         if self.fusion == 'mean':
-            return sum(list_losses)/len(list_losses)
+            return sum(list_losses) / len(list_losses)
 
     # TODO : Add weighting scheme for each loss
     def add(self, loss):
         self.losses.append(loss)
-
 
 
 class DiceLoss(nn.Module):

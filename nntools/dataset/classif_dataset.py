@@ -1,7 +1,10 @@
-from .abstract_dataset import ImageDataset
 import glob
-import numpy as np
 import os
+
+import numpy as np
+
+from .abstract_dataset import ImageDataset
+
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
 import torch
 
@@ -70,7 +73,7 @@ class ClassificationDataset(ImageDataset):
         if self.label_present:
             output += (torch.tensor(self.gts[item], dtype=torch.long),)
         if self.return_indices:
-            output += (item, )
+            output += (item,)
         return output
 
     def get_class_count(self):
@@ -83,7 +86,7 @@ class ClassificationDataset(ImageDataset):
         plt.rcParams['image.cmap'] = 'gray'
         img, l = self[item][:2]
         img = img.numpy()
-        img = (img -img.min())/(img.max() - img.min())
+        img = (img - img.min()) / (img.max() - img.min())
         fig, ax = plt.subplots(1, 1)
         fig.set_size_inches(8, 8)
         ax.imshow(np.squeeze(img.transpose((1, 2, 0))))

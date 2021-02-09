@@ -10,18 +10,19 @@ import torch.nn as nn
 import tqdm
 import yaml
 from mlflow.tracking.client import MlflowClient
+from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
 from torch.cuda.amp import autocast, GradScaler
-from mlflow.utils.mlflow_tags import MLFLOW_PARENT_RUN_ID, MLFLOW_RUN_NAME
+
 from nntools.dataset import class_weighting
+from nntools.nnet import nnt_format
 from nntools.nnet.loss import FuseLoss, SUPPORTED_LOSS, BINARY_MODE, MULTICLASS_MODE
 from nntools.tracker import Tracker
 from nntools.utils.io import create_folder, save_yaml
 from nntools.utils.misc import partial_fill_kwargs
+from nntools.utils.optims import OPTIMS
 from nntools.utils.random import set_seed, set_non_torch_seed
 from nntools.utils.scheduler import SCHEDULER
-from nntools.utils.optims import OPTIMS
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP
-from nntools.nnet import nnt_format
 
 
 class Manager(ABC):
@@ -200,8 +201,8 @@ class Experiment(Manager):
     def set_scheduler(self, **config):
         scheduler = config.pop('scheduler')
         scheduler_options = SCHEDULER[scheduler]
-        self.ctx_train['scheduler_opt'] = {'call_on': scheduler[1]}
-        self.ctx_train['scheduler_opt']['callback'] = scheduler[2]
+        self.ctx_train['scheduler_opt'] = {'call_on': scheduler_options[1]}
+        self.ctx_train['scheduler_opt']['callback'] = scheduler_options[2]
 
         self.partial_lr_scheduler = partial_fill_kwargs(scheduler_options[0], config['params_scheduler'])
 
@@ -355,7 +356,8 @@ class Experiment(Manager):
 
     def train(self, model, rank=0):
         loss_function = self.get_loss(self.class_weights, rank=rank)
-        optimizer = self.partial_optimizer(model.get_trainable_parameters(self.config['Optimizer']['params_solver']['lr']))
+        optimizer = self.partial_optimizer(
+            model.get_trainable_parameters(self.config['Optimizer']['params_solver']['lr']))
         if self.partial_lr_scheduler is not None:
             lr_scheduler = self.partial_lr_scheduler(optimizer)
         else:
@@ -386,7 +388,6 @@ class Experiment(Manager):
 
                 if self.ctx_train['scheduler_opt']['call_on'] == 'on_iteration':
                     self.lr_scheduler_step(lr_scheduler, e, i, len(train_loader))
-
 
                 """
                 Validation step

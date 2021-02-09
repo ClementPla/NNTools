@@ -4,7 +4,6 @@ import os
 import cv2
 import numpy as np
 import torch
-from torch.utils.data import Dataset
 
 from nntools.dataset.image_tools import resize
 from nntools.tracker.warnings import Tracker
@@ -101,7 +100,7 @@ class SegmentationDataset(ImageDataset):
         return output
 
     def standardize(self, img):
-        return (img-img.min())/(img.max()-img.min())
+        return (img - img.min()) / (img.max() - img.min())
 
     def plot(self, item, show=True, save=False, save_folder='tmp/', classes=None):
         import matplotlib.pyplot as plt

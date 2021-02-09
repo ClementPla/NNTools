@@ -6,6 +6,7 @@ https://github.com/bigmb/Unet-Segmentation-Pytorch-Nest-of-Unets/blob/master/Mod
 import torch
 import torch.nn as nn
 from torch.nn import init
+
 from nntools.nnet import AbstractNet
 
 
@@ -208,9 +209,6 @@ class UNet(AbstractNet):
         d1 = self.Conv_1x1(d2)
 
         return d1
-
-
-
 
 
 class R2UNet(AbstractNet):

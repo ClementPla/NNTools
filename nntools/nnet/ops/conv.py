@@ -52,7 +52,6 @@ class Conv2d(nn.Module):
         return self.bn(self.conv(x))
 
 
-
 class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels, t=2, **kwargs):
         super(ResidualBlock, self).__init__()
@@ -71,4 +70,4 @@ class ResidualBlock(nn.Module):
     def forward(self, x):
         conv_x = self.convs(x)
         x = self.conv_1x1(x)
-        return conv_x+x
+        return conv_x + x

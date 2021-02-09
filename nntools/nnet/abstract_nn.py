@@ -85,6 +85,3 @@ class AbstractNet(nn.Module):
 
     def set_params_group(self, params_group):
         self.params_group = params_group
-
-
-

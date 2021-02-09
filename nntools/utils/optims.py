@@ -1,6 +1,5 @@
 import torch
 
-
 OPTIMS = {'Adam': torch.optim.Adam,
           'AdamW': torch.optim.AdamW,
           'Adadelta': torch.optim.Adadelta,

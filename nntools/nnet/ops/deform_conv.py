@@ -5,7 +5,6 @@ from torch import nn
 from torch.nn.modules.utils import _pair
 from torch.nn.parameter import Parameter
 
-
 deform_conv = deform_conv2d
 
 
@@ -21,14 +20,14 @@ class DeformConvPackWithBias(DeformConv2d):
                  deform_groups=1,
                  bias=False):
         super(DeformConvPackWithBias, self).__init__(in_channels,
-                                                 out_channels,
-                                                 kernel_size,
-                                                 stride=stride,
-                                                 padding=padding,
-                                                 dilation=dilation,
-                                                 groups=groups,
-                                                 deform_groups=deform_groups,
-                                                 bias=False)
+                                                     out_channels,
+                                                     kernel_size,
+                                                     stride=stride,
+                                                     padding=padding,
+                                                     dilation=dilation,
+                                                     groups=groups,
+                                                     deform_groups=deform_groups,
+                                                     bias=False)
         self.use_bias = bias
         if self.use_bias:
             self.bias = Parameter(torch.Tensor(1, out_channels, 1, 1))
@@ -55,7 +54,7 @@ class DeformConvPackWithBias(DeformConv2d):
             return out + self.bias.unsqueeze(0).unsqueeze(2).unsqueeze(3)
         else:
             return out
-        
+
 
 class RestrictedDeformConvPack(DeformConv2d):
     def __init__(self, *args, **kwargs):
@@ -105,6 +104,7 @@ class RestrictedDeformConvPack(DeformConv2d):
                                       strict, missing_keys, unexpected_keys,
                                       error_msgs)
 
+
 class RestrictedDeformConvPackWithBias(RestrictedDeformConvPack):
     def __init__(self,
                  in_channels,
@@ -140,4 +140,3 @@ class RestrictedDeformConvPackWithBias(RestrictedDeformConvPack):
             return out + self.bias.unsqueeze(0).unsqueeze(2).unsqueeze(3)
         else:
             return out
-
