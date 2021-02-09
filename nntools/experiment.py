@@ -279,6 +279,7 @@ class Experiment(Manager):
     def start(self):
         assert self.partial_optimizer is not None, "Missing optimizer for training"
         assert self.train_dataset is not None, "Missing dataset"
+
         self.set_status_to_killed = False
 
         if self.validation_dataset is None:

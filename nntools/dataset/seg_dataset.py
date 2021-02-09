@@ -6,7 +6,7 @@ import numpy as np
 import torch
 
 from nntools.dataset.image_tools import resize
-from nntools.tracker.warnings import Tracker
+from nntools.tracker import Log
 from nntools.utils.io import load_image, path_leaf
 
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
@@ -49,7 +49,7 @@ class SegmentationDataset(ImageDataset):
         img_filenames = np.asarray([path_leaf(path).split('.')[0] for path in self.img_filepath])
         mask_filenames = np.asarray([path_leaf(path).split('.')[0] for path in self.gts])
         if self.use_masks and len(img_filenames) != len(mask_filenames):
-            Tracker.warn("Mismatch between the number of image (%i) and masks (%i) found!" % (
+            Log.warn("Mismatch between the number of image (%i) and masks (%i) found!" % (
                 len(img_filenames), len(mask_filenames)))
 
         img_argsort = np.argsort(self.img_filepath)
