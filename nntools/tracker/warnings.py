@@ -1,7 +1,7 @@
 import warnings
 
 
-class Tracker:
+class Log:
     verbose = False
     warning = True
 
