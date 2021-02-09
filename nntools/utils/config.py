@@ -1,4 +1,4 @@
-from nntools.utils import load_yaml
+from nntools.utils.io import load_yaml
 
 
 class Config:
