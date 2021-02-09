@@ -1,7 +1,6 @@
 from nntools.utils import load_yaml
 
 
-
 class Config:
     def __init__(self, path):
         self.config_dict = load_yaml(path)

@@ -1,7 +1,8 @@
 import os
 
 from mlflow.tracking.client import MlflowClient
-from nntools.utils.io import create_folder, save_yaml
+
+from nntools.utils.io import create_folder
 
 
 class Tracker:
@@ -57,4 +58,3 @@ class Tracker:
 
         create_folder(self.network_savepoint)
         create_folder(self.prediction_savepoint)
-

@@ -1,6 +1,6 @@
+import datetime
 import glob
 import os
-import time
 from abc import ABC
 
 import torch
@@ -8,7 +8,6 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch.nn as nn
 import tqdm
-import yaml
 from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
 from torch.cuda.amp import autocast, GradScaler
 
@@ -17,7 +16,7 @@ from nntools.nnet import nnt_format
 from nntools.nnet.loss import FuseLoss, SUPPORTED_LOSS, BINARY_MODE, MULTICLASS_MODE
 from nntools.tracker import Log, Tracker, log_params, log_metrics, log_artifact
 from nntools.utils.io import save_yaml
-from nntools.utils.misc import partial_fill_kwargs
+from nntools.utils.misc import partial_fill_kwargs, call_with_filtered_kwargs
 from nntools.utils.optims import OPTIMS
 from nntools.utils.random import set_seed, set_non_torch_seed
 from nntools.utils.scheduler import SCHEDULERS
@@ -199,18 +198,18 @@ class Experiment(Manager):
         mode = MULTICLASS_MODE if self.n_classes > 2 else BINARY_MODE
 
         list_losses = [k for k in config.keys()]
-        existing_losses = [l for l in SUPPORTED_LOSS.keys()]
+        if weights is not None:
+            weights.cuda(self.get_gpu_from_rank(rank))
+        kwargs = {'ignore_index': self.ignore_index, 'mode': mode}
+
         for k in list_losses:
-            if k not in existing_losses:
-                raise NotImplementedError("Loss %s is not implemented" % k)
-            kwargs = {'ignore_index': self.ignore_index}
-            if k in ['Dice', 'Focal', 'Jaccard', 'Lovasz']:
-                kwargs['mode'] = mode
-            if k in ['CrossEntropy', 'SoftBinaryCrossEntropy'] and weights is not None:
-                kwargs['weight'] = weights.cuda(self.get_gpu_from_rank(rank))
+            loss = SUPPORTED_LOSS[k]
+            loss_args = kwargs.copy()
+            loss_args['weight'] = weights
             if config[k] is not None:
-                kwargs.update(config[k])
-            fuse_loss.add(SUPPORTED_LOSS[k](**kwargs))
+                loss_args.update(config[k])
+
+            fuse_loss.add(call_with_filtered_kwargs(loss, loss_args)())
 
         return fuse_loss
 
@@ -236,57 +235,57 @@ class Experiment(Manager):
 
     def _start_process(self, rank=0):
         torch.cuda.set_device(rank)
+
         if self.multi_gpu:
-            dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size)
-        try:
-            model = self.get_model_on_device(rank)
-            if self.run_training:
+            dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size,
+                                    timeout=datetime.timedelta(0, 5))
+        model = self.get_model_on_device(rank)
+        if self.run_training:
+            try:
                 with autocast(enabled=self.config['Training']['amp']):
                     self.train(model, rank)
-        except KeyboardInterrupt:
-            if self.is_main_process(rank):
-                Log.warn("Killed Process. The model will be registered at %s" % self.last_save)
-                self.save_model(model, 'last')
-                self.register_trained_model()
-                run_end = (input("Call end function ? [y]/n ") or "y").lower()
-                self.tracker.set_status('KILLED')
+            except KeyboardInterrupt:
+                self.keyboard_exception_raised = True
 
-                if run_end == 'y':
-                    self.set_status_to_killed = True
+            finally:
+                self.tracker.set_status('FAILED')
 
-                if not self.set_status_to_killed:
-                    self.clean_up()
-                    raise KeyboardInterrupt
-        except:
-            self.tracker.set_status('FAILED')
-            self.clean_up()
-            raise
+            if self.multi_gpu:
+                dist.barrier()
 
-        if self.multi_gpu:
-            dist.barrier()
+            if self.keyboard_exception_raised:
+                if self.is_main_process(rank):
+                    Log.warn("Killed Process. The model will be registered at %s" % self.last_save)
+                    self.save_model(model, 'last')
+                    self.register_trained_model()
 
-        if self.is_main_process(rank) and self.run_training and not self.set_status_to_killed:
+                    run_end = (input("Call end function ? [y]/n ") or "y").lower()
+                    self.tracker.set_status('KILLED')
+                    if run_end != 'y':
+                        self.call_end_function = False
+
+        if self.is_main_process(rank) and self.run_training:
             self.save_model(model, 'last')
             self.register_trained_model()
 
-        with autocast(enabled=self.config['Training']['amp']):
-            self.end(model, rank)
+        if self.call_end_function:
+            with autocast(enabled=self.config['Training']['amp']):
+                self.end(model, rank)
 
-        if self.set_status_to_killed and self.is_main_process(rank):
-            self.tracker.set_status(status='KILLED')
         self.clean_up()
 
     def start(self):
         assert self.partial_optimizer is not None, "Missing optimizer for training"
         assert self.train_dataset is not None, "Missing dataset"
 
-        self.set_status_to_killed = False
+        self.keyboard_exception_raised = True
+        self.call_end_function = True
 
         if self.validation_dataset is None:
-            Tracker.warn("Missing validation set, default behaviour is to save the model once per epoch")
+            Log.warn("Missing validation set, default behaviour is to save the model once per epoch")
 
         if self.partial_lr_scheduler is None:
-            Tracker.warn("Missing learning rate scheduler, default behaviour is to keep the learning rate constant")
+            Log.warn("Missing learning rate scheduler, default behaviour is to keep the learning rate constant")
 
         if self.config['Training']['weighted_loss'] and self.class_weights is None:
             class_weights = self.get_class_weights()
@@ -304,8 +303,9 @@ class Experiment(Manager):
         else:
             self._start_process(rank=0)
 
-        if not self.set_status_to_killed:
+        if self.call_end_function:
             self.tracker.set_status(status='FINISHED')
+
         save_yaml(self.config, os.path.join(self.tracker.run_folder, 'config.yaml'))
 
     def register_trained_model(self):

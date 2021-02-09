@@ -20,4 +20,3 @@ def log_artifact(tracker, *paths):
     client = tracker.client
     for p in paths:
         client.log_artifact(run_id, p)
-
