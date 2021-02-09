@@ -15,9 +15,3 @@ class Config:
 
     def __setitem__(self, key, value):
         self.config_dict[key] = value
-
-    def __getattr__(self, item):
-        if item in self.config_dict:
-            return self.config_dict[item]
-        else:
-            super(Config, self).__getattr__(item)
