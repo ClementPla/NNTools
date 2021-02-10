@@ -209,7 +209,7 @@ class Experiment(Manager):
             if config[k] is not None:
                 loss_args.update(config[k])
 
-            fuse_loss.add(call_with_filtered_kwargs(loss, loss_args)())
+            fuse_loss.add(call_with_filtered_kwargs(loss, loss_args))
 
         return fuse_loss
 
