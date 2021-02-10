@@ -243,9 +243,10 @@ class Experiment(Manager):
         if self.run_training:
             try:
                 self.train(model, rank)
+
             except KeyboardInterrupt:
                 self.keyboard_exception_raised = True
-
+                
             finally:
                 self.tracker.set_status('FAILED')
 
@@ -255,8 +256,6 @@ class Experiment(Manager):
             if self.keyboard_exception_raised:
                 if self.is_main_process(rank):
                     Log.warn("Killed Process. The model will be registered at %s" % self.last_save)
-                    self.save_model(model, 'last')
-                    self.register_trained_model()
                     self.tracker.set_status('KILLED')
 
         if self.is_main_process(rank) and self.run_training:
@@ -273,8 +272,8 @@ class Experiment(Manager):
         assert self.partial_optimizer is not None, "Missing optimizer for training"
         assert self.train_dataset is not None, "Missing dataset"
 
-        self.keyboard_exception_raised = True
-
+        self.keyboard_exception_raised = False
+        self.call_end_function = True
         if self.validation_dataset is None:
             Log.warn("Missing validation set, default behaviour is to save the model once per epoch")
 
@@ -297,7 +296,7 @@ class Experiment(Manager):
         else:
             self._start_process(rank=0)
 
-        if self.keyboard_exception_raised:
+        if not self.keyboard_exception_raised:
             self.tracker.set_status(status='FINISHED')
 
         save_yaml(self.config, os.path.join(self.tracker.run_folder, 'config.yaml'))
