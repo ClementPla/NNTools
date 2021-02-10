@@ -354,7 +354,7 @@ class Experiment(Manager):
                     if self.validation_dataset is not None:
                         with torch.no_grad():
                             with autocast(enabled=self.config['Training']['amp']):
-                                valid_metric = self.validate(model, iteration, rank)
+                                valid_metric = self.validate(model, iteration, rank, loss_function)
                             self.lr_scheduler_step(lr_scheduler, e, i, len(train_loader), valid_metric)
 
                     if self.is_main_process(rank):
@@ -388,5 +388,5 @@ class Experiment(Manager):
         else:
             lr_scheduler.step(self.ctx_train['scheduler_opt'].callback(epoch, iteration, size_epoch))
 
-    def validate(self, model, iteration, rank=0):
+    def validate(self, model, iteration, rank=0, loss_function=None):
         pass
