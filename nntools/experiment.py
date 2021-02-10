@@ -149,6 +149,9 @@ class Experiment(Manager):
         log_params(self.tracker, **self.config['Learning_rate_scheduler'])
         log_params(self.tracker, **self.config['Network'])
         log_params(self.tracker, **self.config['Loss'])
+        for k in self.config['params_loss']:
+            log_params(self.tracker, **self.config['params_loss'][k])
+
         log_params(self.tracker, **self.config['Preprocessing'])
         log_artifact(self.tracker, self.config.get_path())
 
@@ -206,8 +209,8 @@ class Experiment(Manager):
             loss = SUPPORTED_LOSS[k]
             loss_args = kwargs.copy()
             loss_args['weight'] = weights
-            if config[k] is not None:
-                loss_args.update(config[k])
+            if k in self.config['params_loss']:
+                loss_args.update(self.config['param_loss'][k])
 
             fuse_loss.add(call_with_filtered_kwargs(loss, loss_args))
 
@@ -264,7 +267,7 @@ class Experiment(Manager):
 
         if self.call_end_function:
             with autocast(enabled=self.config['Training']['amp']):
-                self.end(model, rank)
+                    self.end(model, rank)
 
         self.clean_up()
 
