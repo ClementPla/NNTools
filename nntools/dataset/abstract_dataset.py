@@ -22,7 +22,7 @@ class ImageDataset(Dataset):
         self.recursive_loading = recursive_loading
         self.img_filepath = []
         self.gts = []
-
+        self.auto_resize = True
         self.return_indices = False
         self.list_files(recursive_loading)
 
@@ -35,8 +35,9 @@ class ImageDataset(Dataset):
     def load_image(self, item):
         filepath = self.img_filepath[item]
         img = load_image(filepath)
-        img = resize(image=img, shape=self.shape,
-                     keep_size_ratio=self.keep_size_ratio)
+        if self.auto_resize:
+            img = resize(image=img, shape=self.shape,
+                         keep_size_ratio=self.keep_size_ratio)
         return img
 
     def filename(self, items):

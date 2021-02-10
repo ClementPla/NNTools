@@ -345,8 +345,8 @@ class Experiment(Manager):
                     scaler.update()
                     model.zero_grad()
 
-                if self.ctx_train['scheduler_opt'].call_on == 'on_iteration':
-                    self.lr_scheduler_step(lr_scheduler, e, i, len(train_loader))
+                    if self.ctx_train['scheduler_opt'].call_on == 'on_iteration':
+                        self.lr_scheduler_step(lr_scheduler, e, i, len(train_loader))
 
                 """
                 Validation step
