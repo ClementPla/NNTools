@@ -242,8 +242,7 @@ class Experiment(Manager):
         model = self.get_model_on_device(rank)
         if self.run_training:
             try:
-                with autocast(enabled=self.config['Training']['amp']):
-                    self.train(model, rank)
+                self.train(model, rank)
             except KeyboardInterrupt:
                 self.keyboard_exception_raised = True
 
@@ -258,11 +257,7 @@ class Experiment(Manager):
                     Log.warn("Killed Process. The model will be registered at %s" % self.last_save)
                     self.save_model(model, 'last')
                     self.register_trained_model()
-
-                    run_end = (input("Call end function ? [y]/n ") or "y").lower()
                     self.tracker.set_status('KILLED')
-                    if run_end != 'y':
-                        self.call_end_function = False
 
         if self.is_main_process(rank) and self.run_training:
             self.save_model(model, 'last')
@@ -279,7 +274,6 @@ class Experiment(Manager):
         assert self.train_dataset is not None, "Missing dataset"
 
         self.keyboard_exception_raised = True
-        self.call_end_function = True
 
         if self.validation_dataset is None:
             Log.warn("Missing validation set, default behaviour is to save the model once per epoch")
@@ -303,7 +297,7 @@ class Experiment(Manager):
         else:
             self._start_process(rank=0)
 
-        if self.call_end_function:
+        if self.keyboard_exception_raised:
             self.tracker.set_status(status='FINISHED')
 
         save_yaml(self.config, os.path.join(self.tracker.run_folder, 'config.yaml'))
@@ -342,7 +336,8 @@ class Experiment(Manager):
             for i, batch in (enumerate(train_loader)):
                 iteration += 1
                 img, gt = self.batch_to_device(batch, rank)
-                pred = model(img)
+                with autocast(enabled=self.config['Training']['amp']):
+                    pred = model(img)
                 loss = loss_function(pred, gt) / iters_to_accumulate
                 scaler.scale(loss).backward()
                 if (i + 1) % iters_to_accumulate == 0:
@@ -359,7 +354,8 @@ class Experiment(Manager):
                 if iteration % self.config['Validation']['log_interval'] == 0:
                     if self.validation_dataset is not None:
                         with torch.no_grad():
-                            valid_metric = self.validate(model, iteration, rank)
+                            with autocast(enabled=self.config['Training']['amp']):
+                                valid_metric = self.validate(model, iteration, rank)
                             self.lr_scheduler_step(lr_scheduler, e, i, len(train_loader), valid_metric)
 
                     if self.is_main_process(rank):
