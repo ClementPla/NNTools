@@ -210,7 +210,7 @@ class Experiment(Manager):
             loss_args = kwargs.copy()
             loss_args['weight'] = weights
             if k in self.config['params_loss']:
-                loss_args.update(self.config['param_loss'][k])
+                loss_args.update(self.config['params_loss'][k])
 
             fuse_loss.add(call_with_filtered_kwargs(loss, loss_args))
 
