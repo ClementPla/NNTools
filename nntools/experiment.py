@@ -40,6 +40,8 @@ class Manager(ABC):
         self.gpu = self.config['Manager']['gpu']
         self.continue_training = True
         self.register_params = True
+        self.call_end_function = True
+        self.keyboard_exception_raised = False
 
         if not isinstance(self.gpu, list):
             self.gpu = [self.gpu]
@@ -276,7 +278,6 @@ class Experiment(Manager):
         assert self.train_dataset is not None, "Missing dataset"
 
         self.keyboard_exception_raised = False
-        self.call_end_function = True
         if self.validation_dataset is None:
             Log.warn("Missing validation set, default behaviour is to save the model once per epoch")
 
@@ -358,7 +359,9 @@ class Experiment(Manager):
                         with torch.no_grad():
                             with autocast(enabled=self.config['Training']['amp']):
                                 valid_metric = self.validate(model, iteration, rank, loss_function)
-                            self.lr_scheduler_step(lr_scheduler, e, i, len(train_loader), valid_metric)
+
+                    if self.ctx_train['scheduler_opt'].call_on == 'on_validation':
+                        self.lr_scheduler_step(lr_scheduler, e, i, len(train_loader), valid_metric)
 
                     if self.is_main_process(rank):
                         log_metrics(self.tracker, iteration, trainining_loss=loss.item())
