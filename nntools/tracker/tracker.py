@@ -20,12 +20,12 @@ class Tracker:
     def set_run_folder(self, path):
         self.add_path('run_folder', path)
 
-    def create_client(self, path):
-        self.client = MlflowClient(path)
+    def create_client(self, tracker_uri, artifact_uri=None):
+        self.client = MlflowClient(tracker_uri)
 
         exp = self.client.get_experiment_by_name(self.exp_name)
         if exp is None:
-            self.exp_id = self.client.create_experiment(self.exp_name)
+            self.exp_id = self.client.create_experiment(self.exp_name, artifact_location=artifact_uri)
         else:
             self.exp_id = exp.experiment_id
 

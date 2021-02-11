@@ -30,7 +30,7 @@ class Manager(ABC):
         set_seed(self.seed)
 
         self.tracker = Tracker(self.config['Manager']['experiment'], run_id)
-        self.tracker.create_client(self.config['Manager']['tracking_uri'])
+        self.tracker.create_client(self.config['Manager']['tracking_uri'], self.config['Manager']['artifact_uri'])
         self.tracker.set_run_folder(os.path.join(self.config['Manager']['save_point'],
                                                  self.config['Manager']['experiment'],
                                                  self.config['Manager']['run']))
