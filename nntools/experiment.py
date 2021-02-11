@@ -150,9 +150,15 @@ class Experiment(Manager):
         log_params(self.tracker, **self.config['Optimizer'])
         log_params(self.tracker, **self.config['Learning_rate_scheduler'])
         log_params(self.tracker, **self.config['Network'])
-        log_params(self.tracker, **self.config['Loss'])
-        for k in self.config['params_loss']:
-            log_params(self.tracker, **self.config['params_loss'][k])
+        log_params(self.tracker, Loss=self.config['Loss']['type'])
+        if 'fusion' in self.config['Loss']:
+            log_params(self.tracker, Loss_fusion=self.config['Loss']['fusion'])
+
+        if 'params_loss' in self.config['Loss']:
+            log_params(self.tracker, **self.config['params_loss'])
+
+        if 'params_weighting' in self.config['Loss']:
+            log_params(self.tracker, **self.config['params_weighting'])
 
         log_params(self.tracker, **self.config['Preprocessing'])
         log_artifact(self.tracker, self.config.get_path())
@@ -170,12 +176,12 @@ class Experiment(Manager):
         """
         :return: A partial function of an optimizers. Partial passed arguments are hyperparameters
         """
-        solver = config.pop('solver')
+        solver = config['solver']
         func = OPTIMS[solver]
         self.partial_optimizer = partial_fill_kwargs(func, config['params_solver'])
 
     def set_scheduler(self, **config):
-        scheduler_name = config.pop('scheduler')
+        scheduler_name = config['scheduler']
         scheduler = SCHEDULERS[scheduler_name]
         self.ctx_train['scheduler_opt'] = scheduler
         self.partial_lr_scheduler = partial_fill_kwargs(scheduler.func, config['params_scheduler'])
@@ -199,15 +205,17 @@ class Experiment(Manager):
 
     def get_loss(self, weights=None, rank=0):
         config = self.config['Loss']
-        fuse_loss = FuseLoss(fusion=config.pop('fusion', 'mean'))
+        fuse_loss = FuseLoss(fusion=config.get('fusion', 'mean'))
         mode = MULTICLASS_MODE if self.n_classes > 2 else BINARY_MODE
 
-        list_losses = [k for k in config.keys()]
+        list_losses = config['type'].split('|')
+
         if weights is not None:
-            weights.cuda(self.get_gpu_from_rank(rank))
+            weights = weights.cuda(self.get_gpu_from_rank(rank))
         kwargs = {'ignore_index': self.ignore_index, 'mode': mode}
 
         for k in list_losses:
+            k = k.strip()
             loss = SUPPORTED_LOSS[k]
             loss_args = kwargs.copy()
             loss_args['weight'] = weights
@@ -220,7 +228,7 @@ class Experiment(Manager):
 
     def get_class_weights(self):
         class_count = self.train_dataset.get_class_count()
-        kwargs = self.config['Training'].pop('params_weighting', {})
+        kwargs = self.config['Loss'].get('params_weighting', {})
         return torch.tensor(class_weighting(class_count, ignore_index=self.ignore_index, **kwargs))
 
     def setup_class_weights(self, weights):
@@ -268,7 +276,7 @@ class Experiment(Manager):
             self.register_trained_model()
 
         if self.call_end_function:
-            with autocast(enabled=self.config['Training']['amp']):
+            with autocast(enabled=self.config['Manager']['amp']):
                     self.end(model, rank)
 
         self.clean_up()
@@ -284,7 +292,7 @@ class Experiment(Manager):
         if self.partial_lr_scheduler is None:
             Log.warn("Missing learning rate scheduler, default behaviour is to keep the learning rate constant")
 
-        if self.config['Training']['weighted_loss'] and self.class_weights is None:
+        if self.config['Loss']['weighted_loss'] and self.class_weights is None:
             class_weights = self.get_class_weights()
             self.setup_class_weights(weights=class_weights)
 
@@ -325,8 +333,8 @@ class Experiment(Manager):
             lr_scheduler = None
         iteration = self.tracker.current_iteration - 1
         train_loader, train_sampler = self.get_dataloader(self.train_dataset)
-        iters_to_accumulate = self.config['Training']['iters_to_accumulate']
-        scaler = GradScaler(enabled=self.config['Training']['grad_scaling'])
+        iters_to_accumulate = self.config['Training'].get('iters_to_accumulate', 1)
+        scaler = GradScaler(enabled=self.config['Manager'].get('grad_scaling', True))
 
         for e in range(self.config['Training']['epochs']):
             if train_sampler is not None:
@@ -339,7 +347,7 @@ class Experiment(Manager):
             for i, batch in (enumerate(train_loader)):
                 iteration += 1
                 img, gt = self.batch_to_device(batch, rank)
-                with autocast(enabled=self.config['Training']['amp']):
+                with autocast(enabled=self.config['Manager']['amp']):
                     pred = model(img)
                 loss = loss_function(pred, gt) / iters_to_accumulate
                 scaler.scale(loss).backward()
@@ -357,7 +365,7 @@ class Experiment(Manager):
                 if iteration % self.config['Validation']['log_interval'] == 0:
                     if self.validation_dataset is not None:
                         with torch.no_grad():
-                            with autocast(enabled=self.config['Training']['amp']):
+                            with autocast(enabled=self.config['Manager']['amp']):
                                 valid_metric = self.validate(model, iteration, rank, loss_function)
 
                     if self.ctx_train['scheduler_opt'].call_on == 'on_validation':
