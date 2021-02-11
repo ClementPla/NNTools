@@ -155,10 +155,10 @@ class Experiment(Manager):
             log_params(self.tracker, Loss_fusion=self.config['Loss']['fusion'])
 
         if 'params_loss' in self.config['Loss']:
-            log_params(self.tracker, **self.config['params_loss'])
+            log_params(self.tracker, **self.config['Loss']['params_loss'])
 
         if 'params_weighting' in self.config['Loss']:
-            log_params(self.tracker, **self.config['params_weighting'])
+            log_params(self.tracker, **self.config['Loss']['params_weighting'])
 
         log_params(self.tracker, **self.config['Preprocessing'])
         log_artifact(self.tracker, self.config.get_path())
