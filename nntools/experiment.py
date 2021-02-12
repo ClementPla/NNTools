@@ -156,9 +156,12 @@ class Experiment(Manager):
 
         if 'params_loss' in self.config['Loss']:
             log_params(self.tracker, **self.config['Loss']['params_loss'])
-
-        if 'params_weighting' in self.config['Loss']:
+        
+        log_params(self.tracker, weighted_loss=self.config['Loss']['weighted_loss'])
+        if 'params_weighting' in self.config['Loss'] and self.config['Loss'].get('weighted_loss', False):
             log_params(self.tracker, **self.config['Loss']['params_weighting'])
+            log_params(self.tracker, **self.config['Loss']['params_weighting'])
+
 
         log_params(self.tracker, **self.config['Preprocessing'])
         log_artifact(self.tracker, self.config.get_path())
