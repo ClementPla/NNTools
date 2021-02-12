@@ -233,7 +233,10 @@ class Experiment(Manager):
         return torch.tensor(class_weighting(class_count, ignore_index=self.ignore_index, **kwargs))
 
     def setup_class_weights(self, weights):
-        self.class_weights = weights
+        if self.config['Manager']['amp']:
+            self.class_weights = weights.half()
+        else:
+            self.class_weights = weights
 
     def save_model(self, model, filename, **kwargs):
         save = model.save(savepoint=self.tracker.network_savepoint, filename=filename, **kwargs)
