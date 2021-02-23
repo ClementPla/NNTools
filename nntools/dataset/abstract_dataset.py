@@ -2,7 +2,6 @@ import os
 
 import numpy as np
 from torch.utils.data import Dataset
-
 from nntools.dataset.image_tools import resize
 from nntools.utils.io import load_image
 

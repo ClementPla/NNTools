@@ -12,8 +12,7 @@ from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
 from torch.cuda.amp import autocast, GradScaler
 
 from nntools.dataset import class_weighting
-from nntools.nnet import nnt_format
-from nntools.nnet.loss import FuseLoss, SUPPORTED_LOSS, BINARY_MODE, MULTICLASS_MODE
+from nntools.nnet import nnt_format, FuseLoss, SUPPORTED_LOSS, BINARY_MODE, MULTICLASS_MODE
 from nntools.tracker import Log, Tracker, log_params, log_metrics, log_artifact
 from nntools.utils.io import save_yaml
 from nntools.utils.misc import partial_fill_kwargs, call_with_filtered_kwargs
@@ -112,7 +111,7 @@ class Manager(ABC):
     def batch_to_device(self, batch, rank):
         device = self.get_gpu_from_rank(rank)
         if isinstance(batch, tuple) or isinstance(batch, list):
-            batch = (b.cuda(device) for b in batch)
+            batch = (b.cuda(device) if isinstance(b, torch.Tensor) else b for b in batch)
         else:
             batch = batch.cuda(device)
         return batch
@@ -156,12 +155,10 @@ class Experiment(Manager):
 
         if 'params_loss' in self.config['Loss']:
             log_params(self.tracker, **self.config['Loss']['params_loss'])
-        
+
         log_params(self.tracker, weighted_loss=self.config['Loss']['weighted_loss'])
         if 'params_weighting' in self.config['Loss'] and self.config['Loss'].get('weighted_loss', False):
             log_params(self.tracker, **self.config['Loss']['params_weighting'])
-            log_params(self.tracker, **self.config['Loss']['params_weighting'])
-
 
         log_params(self.tracker, **self.config['Preprocessing'])
         log_artifact(self.tracker, self.config.get_path())
@@ -266,7 +263,6 @@ class Experiment(Manager):
 
             except KeyboardInterrupt:
                 self.keyboard_exception_raised = True
-
             finally:
                 self.tracker.set_status('FAILED')
 
@@ -329,6 +325,12 @@ class Experiment(Manager):
     def end(self, model, rank):
         pass
 
+    def forward_train(self, model, loss_function, rank, batch):
+        img, gt = self.batch_to_device(batch, rank)
+        pred = model(img)
+        loss = loss_function(pred, gt)
+        return loss
+
     def train(self, model, rank=0):
         loss_function = self.get_loss(self.class_weights, rank=rank)
         optimizer = self.partial_optimizer(
@@ -353,10 +355,10 @@ class Experiment(Manager):
 
             for i, batch in (enumerate(train_loader)):
                 iteration += 1
-                img, gt = self.batch_to_device(batch, rank)
                 with autocast(enabled=self.config['Manager']['amp']):
-                    pred = model(img)
-                loss = loss_function(pred, gt) / iters_to_accumulate
+                    loss = self.forward_train(model, loss_function, rank, batch)
+
+                loss = loss / iters_to_accumulate
                 scaler.scale(loss).backward()
                 if (i + 1) % iters_to_accumulate == 0:
                     scaler.step(optimizer)

@@ -20,6 +20,7 @@ def discrete_epoch(epoch, iteration, epoch_size):
 from collections import namedtuple
 
 Scheduler = namedtuple('Scheduler', ['func', 'call_on', 'callback'])
+
 SCHEDULERS = {
     'LambdaLR': Scheduler(torch.optim.lr_scheduler.LambdaLR, 'on_epoch', empty),
     'MultiplicativeLR': Scheduler(torch.optim.lr_scheduler.MultiplicativeLR, 'on_epoch', empty),
@@ -33,3 +34,5 @@ SCHEDULERS = {
     'CosineAnnealingWarmRestarts': Scheduler(
         torch.optim.lr_scheduler.CosineAnnealingWarmRestarts, 'on_iteration', identity)
 }
+
+

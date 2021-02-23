@@ -16,9 +16,9 @@ def partial_fill_kwargs(func, list_args):
     return partial(func, **kwargs)
 
 
-def call_with_filtered_kwargs(func, list_args):
+def call_with_filtered_kwargs(func, dict_args):
     kwargs = {}
     for p in inspect.signature(func).parameters.values():
-        if p.name in list_args:
-            kwargs[p.name] = list_args[p.name]
+        if p.name in dict_args:
+            kwargs[p.name] = dict_args[p.name]
     return func(**kwargs)

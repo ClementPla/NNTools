@@ -94,7 +94,6 @@ class ClassificationDataset(ImageDataset):
         fig.tight_layout()
         label = list(self.map_class.keys())[list(self.map_class.values()).index(int(l))]
         ax.set_title("Class %s (%i)" % (label, l))
-
         if show:
             fig.show()
         if save:
