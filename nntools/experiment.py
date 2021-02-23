@@ -326,9 +326,12 @@ class Experiment(Manager):
         pass
 
     def forward_train(self, model, loss_function, rank, batch):
-        img, gt = self.batch_to_device(batch, rank)
-        pred = model(img)
-        loss = loss_function(pred, gt)
+        batch = self.batch_to_device(batch, rank)
+        pred = model(batch[0])
+        if isinstance(pred, tuple):
+            loss = loss_function(*pred, *batch[1:])
+        else:
+            loss = loss_function(pred, *batch[1:])
         return loss
 
     def train(self, model, rank=0):
