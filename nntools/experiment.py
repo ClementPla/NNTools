@@ -111,7 +111,7 @@ class Manager(ABC):
     def batch_to_device(self, batch, rank):
         device = self.get_gpu_from_rank(rank)
         if isinstance(batch, tuple) or isinstance(batch, list):
-            batch = (b.cuda(device) if isinstance(b, torch.Tensor) else b for b in batch)
+            batch = [b.cuda(device) if isinstance(b, torch.Tensor) else b for b in batch]
         else:
             batch = batch.cuda(device)
         return batch
