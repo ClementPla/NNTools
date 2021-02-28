@@ -10,7 +10,7 @@ import torch.nn as nn
 import tqdm
 from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
 from torch.cuda.amp import autocast, GradScaler
-
+from torch.nn.utils import clip_grad_norm_
 from nntools.dataset import class_weighting
 from nntools.nnet import nnt_format, FuseLoss, SUPPORTED_LOSS, BINARY_MODE, MULTICLASS_MODE
 from nntools.tracker import Log, Tracker, log_params, log_metrics, log_artifact
@@ -96,7 +96,7 @@ class Manager(ABC):
     def get_model(self):
         assert self.model is not None, "The model has not been configured, call set_model(model)"
         if self.continue_training:
-            self.model.load(self.tracker.network_savepoint, load_most_recent=True)
+            self.model.load(self.tracker.network_savepoint, load_most_recent=True, map_location='cpu')
 
         return self.model
 
@@ -347,6 +347,7 @@ class Experiment(Manager):
         train_loader, train_sampler = self.get_dataloader(self.train_dataset)
         iters_to_accumulate = self.config['Training'].get('iters_to_accumulate', 1)
         scaler = GradScaler(enabled=self.config['Manager'].get('grad_scaling', True))
+        clip_grad = self.config['Training'].get('grad_clipping', False)
 
         for e in range(self.config['Training']['epochs']):
             if train_sampler is not None:
@@ -364,6 +365,8 @@ class Experiment(Manager):
                 loss = loss / iters_to_accumulate
                 scaler.scale(loss).backward()
                 if (i + 1) % iters_to_accumulate == 0:
+                    if clip_grad:
+                        clip_grad_norm_(model.parameters(), float(clip_grad))
                     scaler.step(optimizer)
                     scaler.update()
                     model.zero_grad()
