@@ -1,5 +1,5 @@
 import random
-
+import imgaug
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
@@ -30,5 +30,6 @@ def set_seed(seed):
 
 
 def set_non_torch_seed(seed):
+    imgaug.random.seed(seed)
     random.seed(seed)
     np.random.seed(seed)
