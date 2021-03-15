@@ -302,10 +302,10 @@ class Experiment(Manager):
             self.setup_class_weights(weights=class_weights)
 
         self.start_run()
-
+        print('Getting here')
         if self.register_params:
             self.initial_tracking()
-
+        print('Got here')
         if self.multi_gpu:
             mp.spawn(self._start_process,
                      nprocs=self.world_size,
