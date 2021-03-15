@@ -302,15 +302,15 @@ class Experiment(Manager):
         self.start_run()
 
         if self.register_params:
-            print('Getting here')
             self.initial_tracking()
 
-        print('Got here')
-
         if self.multi_gpu:
+            print('Getting here')
             mp.spawn(self._start_process,
                      nprocs=self.world_size,
                      join=True)
+            print('Got here')
+
         else:
             self._start_process(rank=0)
 
