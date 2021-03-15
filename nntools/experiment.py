@@ -254,7 +254,6 @@ class Experiment(Manager):
 
     def _start_process(self, rank=0):
         torch.cuda.set_device(rank)
-        print('Here', rank)
         if self.multi_gpu:
             dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size,
                                     timeout=datetime.timedelta(0, 30))
@@ -300,12 +299,12 @@ class Experiment(Manager):
         if self.config['Loss']['weighted_loss'] and self.class_weights is None:
             class_weights = self.get_class_weights()
             self.setup_class_weights(weights=class_weights)
-
-        self.start_run()
         print('Getting here')
+        self.start_run()
+        print('Got here')
+
         if self.register_params:
             self.initial_tracking()
-        print('Got here')
         if self.multi_gpu:
             mp.spawn(self._start_process,
                      nprocs=self.world_size,
