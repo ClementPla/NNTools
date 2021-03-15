@@ -268,9 +268,6 @@ class Experiment(Manager):
             finally:
                 self.tracker.set_status('FAILED')
 
-            if self.multi_gpu:
-                dist.barrier()
-
             if self.keyboard_exception_raised:
                 if self.is_main_process(rank):
                     Log.warn("Killed Process. The model will be registered at %s" % self.saved_models)
@@ -279,6 +276,9 @@ class Experiment(Manager):
         if self.is_main_process(rank) and (self.run_training or self.save_last):
             self.save_model(model, 'last')
             self.register_trained_model()
+
+        if self.multi_gpu:
+            dist.barrier()
 
         if self.call_end_function:
             with autocast(enabled=self.config['Manager']['amp']):
