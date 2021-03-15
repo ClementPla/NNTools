@@ -299,12 +299,14 @@ class Experiment(Manager):
         if self.config['Loss']['weighted_loss'] and self.class_weights is None:
             class_weights = self.get_class_weights()
             self.setup_class_weights(weights=class_weights)
-        print('Getting here')
         self.start_run()
-        print('Got here')
 
         if self.register_params:
+            print('Getting here')
             self.initial_tracking()
+
+        print('Got here')
+
         if self.multi_gpu:
             mp.spawn(self._start_process,
                      nprocs=self.world_size,
