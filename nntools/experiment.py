@@ -138,8 +138,10 @@ class Experiment(Manager):
         self.tracked_metric = None
         self.class_weights = None
 
-        self.last_save = {'best_valid': None,
+        self.saved_models = {'best_valid': None,
                           'last': None}
+
+        self.save_last = True
 
         self.run_training = True
         self.ctx_train = {}
@@ -241,9 +243,9 @@ class Experiment(Manager):
     def save_model(self, model, filename, **kwargs):
         save = model.save(savepoint=self.tracker.network_savepoint, filename=filename, **kwargs)
         if 'best_valid' in filename:
-            self.last_save['best_valid'] = save
+            self.saved_models['best_valid'] = save
         else:
-            self.last_save['last'] = save
+            self.saved_models['last'] = save
         if self.config['Manager']['max_saved_model']:
             files = glob.glob(self.tracker.network_savepoint + "/best_valid_*.pth")
             files.sort(key=os.path.getmtime)
@@ -255,7 +257,7 @@ class Experiment(Manager):
 
         if self.multi_gpu:
             dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size,
-                                    timeout=datetime.timedelta(0, 5))
+                                    timeout=datetime.timedelta(0, 30))
         model = self.get_model_on_device(rank)
         if self.run_training:
             try:
@@ -271,16 +273,16 @@ class Experiment(Manager):
 
             if self.keyboard_exception_raised:
                 if self.is_main_process(rank):
-                    Log.warn("Killed Process. The model will be registered at %s" % self.last_save)
+                    Log.warn("Killed Process. The model will be registered at %s" % self.saved_models)
                     self.tracker.set_status('KILLED')
 
-        if self.is_main_process(rank) and self.run_training:
+        if self.is_main_process(rank) and (self.run_training or self.save_last):
             self.save_model(model, 'last')
             self.register_trained_model()
 
         if self.call_end_function:
             with autocast(enabled=self.config['Manager']['amp']):
-                    self.end(model, rank)
+                self.end(model, rank)
 
         self.clean_up()
 
@@ -317,10 +319,10 @@ class Experiment(Manager):
         save_yaml(self.config, os.path.join(self.tracker.run_folder, 'config.yaml'))
 
     def register_trained_model(self):
-        if self.last_save['best_valid']:
-            log_artifact(self.tracker, self.last_save['best_valid'])
-        if self.last_save['last']:
-            log_artifact(self.tracker, self.last_save['last'])
+        if self.saved_models['best_valid']:
+            log_artifact(self.tracker, self.saved_models['best_valid'])
+        if self.saved_models['last']:
+            log_artifact(self.tracker, self.saved_models['last'])
 
     def end(self, model, rank):
         pass
