@@ -164,6 +164,7 @@ class Experiment(Manager):
             log_params(self.tracker, **self.config['Loss']['params_weighting'])
 
         log_params(self.tracker, **self.config['Preprocessing'])
+        save_yaml(self.config, os.path.join(self.tracker.run_folder, 'config.yaml'))
         log_artifact(self.tracker, self.config.get_path())
 
     def set_train_dataset(self, dataset):
@@ -319,7 +320,6 @@ class Experiment(Manager):
         if not self.keyboard_exception_raised:
             self.tracker.set_status(status='FINISHED')
 
-        save_yaml(self.config, os.path.join(self.tracker.run_folder, 'config.yaml'))
 
     def register_trained_model(self):
         if self.saved_models['best_valid']:
