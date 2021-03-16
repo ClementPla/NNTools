@@ -189,11 +189,11 @@ class Experiment(Manager):
         self.ctx_train['scheduler_opt'] = scheduler
         self.partial_lr_scheduler = partial_fill_kwargs(scheduler.func, config['params_scheduler'])
 
-    def get_dataloader(self, dataset, shuffle=True, batch_size=None):
+    def get_dataloader(self, dataset, shuffle=True, batch_size=None, drop_last=False):
         if batch_size is None:
             batch_size = self.batch_size
         if self.multi_gpu:
-            sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=shuffle)
+            sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=shuffle, drop_last=drop_last)
             dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
                                                      num_workers=self.config['Manager']['num_workers'],
                                                      pin_memory=True, sampler=sampler, worker_init_fn=set_non_torch_seed
