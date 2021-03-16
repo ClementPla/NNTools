@@ -259,7 +259,6 @@ class Experiment(Manager):
             dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size,
                                     timeout=datetime.timedelta(0, 30))
         model = self.get_model_on_device(rank)
-        print('Got here')
         if self.run_training:
             try:
                 self.train(model, rank)
@@ -277,7 +276,7 @@ class Experiment(Manager):
         if self.is_main_process(rank) and (self.run_training or self.save_last):
             self.save_model(model, 'last')
             self.register_trained_model()
-
+        print('Got here')
         if self.multi_gpu:
             dist.barrier()
 
