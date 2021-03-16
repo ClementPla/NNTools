@@ -243,7 +243,6 @@ class Experiment(Manager):
             self.class_weights = weights
 
     def save_model(self, model, filename, **kwargs):
-        print(self.tracker.network_savepoint)
         save = model.save(savepoint=self.tracker.network_savepoint, filename=filename, **kwargs)
 
         if 'best_valid' in filename:
@@ -324,8 +323,10 @@ class Experiment(Manager):
     def register_trained_model(self):
         print('Anchor 7')
         if self.saved_models['best_valid']:
+            print('here')
             log_artifact(self.tracker, self.saved_models['best_valid'])
         if self.saved_models['last']:
+            print('there')
             log_artifact(self.tracker, self.saved_models['last'])
 
         print('Anchor 8')
