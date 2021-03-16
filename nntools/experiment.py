@@ -310,7 +310,7 @@ class Experiment(Manager):
 
         if self.multi_gpu:
             mp.spawn(self._start_process,
-                     nprocs=self.world_size, daemon=True,
+                     nprocs=self.world_size,
                      join=True)
 
         else:
