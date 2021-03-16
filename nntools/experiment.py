@@ -69,7 +69,7 @@ class Manager(ABC):
 
         if self.continue_training:
             self.tracker.go_to_exp_last_iteration()
-
+        print('Initializing path')
         self.tracker.init_default_path()
         self.tracker.set_status('RUNNING')
         Log.warn('Run started (status = RUNNING)')
