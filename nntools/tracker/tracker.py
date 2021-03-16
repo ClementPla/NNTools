@@ -34,7 +34,6 @@ class Tracker:
             tags = {}
         run = self.client.create_run(experiment_id=self.exp_id, tags=tags)
         self.run_id = run.info.run_id
-        create_folder(self.run_folder)
 
     def get_run(self, id=None):
         if id is not None:

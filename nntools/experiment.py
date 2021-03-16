@@ -242,6 +242,7 @@ class Experiment(Manager):
             self.class_weights = weights
 
     def save_model(self, model, filename, **kwargs):
+        print('Saving model')
         save = model.save(savepoint=self.tracker.network_savepoint, filename=filename, **kwargs)
 
         if 'best_valid' in filename:
