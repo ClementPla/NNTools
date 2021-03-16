@@ -326,7 +326,9 @@ class Experiment(Manager):
             print('here')
             log_artifact(self.tracker, self.saved_models['best_valid'])
         if self.saved_models['last']:
-            print('there')
+            print(self.saved_models['last'])
+            print(self.tracker.run_id)
+            print(self.tracker.client)
             log_artifact(self.tracker, self.saved_models['last'])
 
         print('Anchor 8')
