@@ -140,8 +140,7 @@ class Experiment(Manager):
         self.tracked_metric = None
         self.class_weights = None
 
-        self.saved_models = {'best_valid': None,
-                          'last': None}
+        self.saved_models = {'best_valid': None, 'last': None}
 
         self.save_last = True
 

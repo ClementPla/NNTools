@@ -1,5 +1,5 @@
 import time
-
+import os
 
 def log_params(tracker, **params):
     run_id = tracker.run_id
@@ -19,4 +19,7 @@ def log_artifact(tracker, *paths):
     run_id = tracker.run_id
     client = tracker.client
     for p in paths:
+        b = os.path.getsize(p)
+        if b > 10e6:
+            print("File %s won't be stored as an artifact (oversize limit)" % p)
         client.log_artifact(run_id, p)
