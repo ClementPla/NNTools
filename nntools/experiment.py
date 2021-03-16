@@ -6,6 +6,8 @@ from abc import ABC
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
+mp.set_sharing_strategy('file_system')
+
 import torch.nn as nn
 import tqdm
 from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
@@ -253,9 +255,7 @@ class Experiment(Manager):
                 os.remove(f)
 
     def _start_process(self, rank=0):
-        print('Here')
         if self.multi_gpu:
-            print('Hop')
             dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size,
                                     timeout=datetime.timedelta(0, 30))
         model = self.get_model_on_device(rank)
