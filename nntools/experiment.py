@@ -42,7 +42,7 @@ class Manager(ABC):
         self.register_params = True
         self.call_end_function = True
         self.keyboard_exception_raised = False
-
+        self.run_started = False
         if not isinstance(self.gpu, list):
             self.gpu = [self.gpu]
 
@@ -73,6 +73,7 @@ class Manager(ABC):
         self.tracker.init_default_path()
         self.tracker.set_status('RUNNING')
         Log.warn('Run started (status = RUNNING)')
+        self.run_started = True
 
     def clean_up(self):
         if self.multi_gpu:
@@ -289,6 +290,8 @@ class Experiment(Manager):
         self.clean_up()
 
     def start(self):
+        if not self.run_started:
+            self.start_run()
         assert self.partial_optimizer is not None, "Missing optimizer for training"
         assert self.train_dataset is not None, "Missing dataset"
 
@@ -302,7 +305,6 @@ class Experiment(Manager):
         if self.config['Loss']['weighted_loss'] and self.class_weights is None:
             class_weights = self.get_class_weights()
             self.setup_class_weights(weights=class_weights)
-        self.start_run()
 
         if self.register_params:
             self.initial_tracking()
