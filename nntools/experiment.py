@@ -256,8 +256,7 @@ class Experiment(Manager):
 
     def _start_process(self, rank=0):
         if self.multi_gpu:
-            dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size,
-                                    timeout=datetime.timedelta(0, 30))
+            dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size)
         model = self.get_model_on_device(rank)
         if self.run_training:
             try:
@@ -277,9 +276,9 @@ class Experiment(Manager):
             self.save_model(model, 'last')
             self.register_trained_model()
         if self.multi_gpu:
+
             dist.barrier()
 
-        print('Getting here')
 
         if self.call_end_function:
             with autocast(enabled=self.config['Manager']['amp']):
