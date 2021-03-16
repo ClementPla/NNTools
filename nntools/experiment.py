@@ -194,17 +194,17 @@ class Experiment(Manager):
         if batch_size is None:
             batch_size = self.batch_size
         if self.multi_gpu:
-            sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=shuffle, drop_last=drop_last)
+            sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=shuffle)
             dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
                                                      num_workers=self.config['Manager']['num_workers'],
                                                      pin_memory=True, sampler=sampler, worker_init_fn=set_non_torch_seed
-                                                     )
+                                                     , drop_last=drop_last)
         else:
             sampler = None
             dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
                                                      num_workers=self.config['Manager']['num_workers'],
                                                      pin_memory=True, shuffle=shuffle,
-                                                     worker_init_fn=set_non_torch_seed)
+                                                     worker_init_fn=set_non_torch_seed, drop_last=drop_last)
         return dataloader, sampler
 
     def get_loss(self, weights=None, rank=0):
@@ -368,7 +368,7 @@ class Experiment(Manager):
                     loss = self.forward_train(model, loss_function, rank, batch)
 
                 loss = loss / iters_to_accumulate
-                scaler.scale(loss).backward()
+                scaler.scale(loss).backward()p
                 if (i + 1) % iters_to_accumulate == 0:
                     if clip_grad:
                         clip_grad_norm_(model.parameters(), float(clip_grad))
