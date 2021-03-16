@@ -35,7 +35,6 @@ class Manager(ABC):
         self.tracker.set_run_folder(os.path.join(self.config['Manager']['save_point'],
                                                  self.config['Manager']['experiment'],
                                                  self.config['Manager']['run']))
-        self.tracker.init_default_path()
 
         self.model = None
         self.gpu = self.config['Manager']['gpu']
