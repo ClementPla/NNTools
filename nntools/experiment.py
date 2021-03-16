@@ -253,7 +253,6 @@ class Experiment(Manager):
                 os.remove(f)
 
     def _start_process(self, rank=0):
-        torch.cuda.set_device(rank)
         if self.multi_gpu:
             dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size,
                                     timeout=datetime.timedelta(0, 30))
@@ -305,14 +304,12 @@ class Experiment(Manager):
             self.initial_tracking()
 
         if self.multi_gpu:
-            print('Getting here')
             mp.spawn(self._start_process,
                      nprocs=self.world_size,
                      join=True)
-            print('Got here')
 
         else:
-            self._start_process(rank=0)
+            self._start_process()
 
         if not self.keyboard_exception_raised:
             self.tracker.set_status(status='FINISHED')
