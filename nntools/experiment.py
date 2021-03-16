@@ -59,6 +59,7 @@ class Manager(ABC):
         return model
 
     def start_run(self, run_id=None):
+        Log.warn('Initializing tracker')
 
         tags = {MLFLOW_RUN_NAME: self.config['Manager']['run']}
         if run_id is None and self.tracker.run_id is None:
@@ -69,7 +70,6 @@ class Manager(ABC):
 
         if self.continue_training:
             self.tracker.go_to_exp_last_iteration()
-        print('Initializing path')
         self.tracker.init_default_path()
         self.tracker.set_status('RUNNING')
         Log.warn('Run started (status = RUNNING)')
@@ -323,17 +323,10 @@ class Experiment(Manager):
         save_yaml(self.config, os.path.join(self.tracker.run_folder, 'config.yaml'))
 
     def register_trained_model(self):
-        print('Anchor 7')
         if self.saved_models['best_valid']:
-            print('here')
             log_artifact(self.tracker, self.saved_models['best_valid'])
         if self.saved_models['last']:
-            print(self.saved_models['last'])
-            print(self.tracker.run_id)
-            print(self.tracker.client)
             log_artifact(self.tracker, self.saved_models['last'])
-
-        print('Anchor 8')
 
     def end(self, model, rank):
         pass
