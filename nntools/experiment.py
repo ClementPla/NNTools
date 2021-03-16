@@ -189,7 +189,7 @@ class Experiment(Manager):
         self.ctx_train['scheduler_opt'] = scheduler
         self.partial_lr_scheduler = partial_fill_kwargs(scheduler.func, config['params_scheduler'])
 
-    def get_dataloader(self, dataset, shuffle=True, batch_size=None, drop_last=False):
+    def get_dataloader(self, dataset, shuffle=True, batch_size=None, drop_last=False, persistent_workers=False):
         if batch_size is None:
             batch_size = self.batch_size
         if self.multi_gpu:
@@ -197,13 +197,14 @@ class Experiment(Manager):
             dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
                                                      num_workers=self.config['Manager']['num_workers'],
                                                      pin_memory=True, sampler=sampler, worker_init_fn=set_non_torch_seed
-                                                     , drop_last=drop_last)
+                                                     , drop_last=drop_last, persistent_workers=persistent_workers)
         else:
             sampler = None
             dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
                                                      num_workers=self.config['Manager']['num_workers'],
                                                      pin_memory=True, shuffle=shuffle,
-                                                     worker_init_fn=set_non_torch_seed, drop_last=drop_last)
+                                                     worker_init_fn=set_non_torch_seed, drop_last=drop_last,
+                                                     persistent_workers=persistent_workers)
         return dataloader, sampler
 
     def get_loss(self, weights=None, rank=0):
