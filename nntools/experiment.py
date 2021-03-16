@@ -368,7 +368,7 @@ class Experiment(Manager):
                     loss = self.forward_train(model, loss_function, rank, batch)
 
                 loss = loss / iters_to_accumulate
-                scaler.scale(loss).backward()p
+                scaler.scale(loss).backward()
                 if (i + 1) % iters_to_accumulate == 0:
                     if clip_grad:
                         clip_grad_norm_(model.parameters(), float(clip_grad))
