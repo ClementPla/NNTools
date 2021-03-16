@@ -253,7 +253,9 @@ class Experiment(Manager):
                 os.remove(f)
 
     def _start_process(self, rank=0):
+        print('Here')
         if self.multi_gpu:
+            print('Hop')
             dist.init_process_group(self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size,
                                     timeout=datetime.timedelta(0, 30))
         model = self.get_model_on_device(rank)
