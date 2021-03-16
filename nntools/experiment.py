@@ -80,7 +80,7 @@ class Manager(ABC):
             dist.destroy_process_group()
 
     def is_main_process(self, rank):
-        return rank == 0 or not self.multi_gpu
+        return (rank == 0) or not self.multi_gpu
 
     def get_gpu_from_rank(self, rank):
         return self.gpu[rank]
@@ -276,9 +276,10 @@ class Experiment(Manager):
         if self.is_main_process(rank) and (self.run_training or self.save_last):
             self.save_model(model, 'last')
             self.register_trained_model()
-        print('Got here')
         if self.multi_gpu:
             dist.barrier()
+
+        print('Getting here')
 
         if self.call_end_function:
             with autocast(enabled=self.config['Manager']['amp']):
