@@ -277,8 +277,8 @@ class Experiment(Manager):
         if self.is_main_process(rank) and (self.run_training or self.save_last):
             self.save_model(model, 'last')
             self.register_trained_model()
-        if self.multi_gpu:
 
+        if self.multi_gpu:
             dist.barrier()
 
         if self.call_end_function:
