@@ -243,26 +243,19 @@ class Experiment(Manager):
             self.class_weights = weights
 
     def save_model(self, model, filename, **kwargs):
-        print('Anchor 1')
         save = model.save(savepoint=self.tracker.network_savepoint, filename=filename, **kwargs)
-        print('Anchor 2')
 
         if 'best_valid' in filename:
             self.saved_models['best_valid'] = save
         else:
             self.saved_models['last'] = save
-        print('Anchor 3')
 
         if self.config['Manager']['max_saved_model']:
             files = glob.glob(self.tracker.network_savepoint + "/best_valid_*.pth")
             files.sort(key=os.path.getmtime)
-            print('Anchor 4')
 
             for f in files[:-self.config['Manager']['max_saved_model']]:
                 os.remove(f)
-                print('Anchor 5')
-        print('Anchor 6')
-
 
     def _start_process(self, rank=0):
         if self.multi_gpu:
@@ -316,7 +309,7 @@ class Experiment(Manager):
 
         if self.multi_gpu:
             mp.spawn(self._start_process,
-                     nprocs=self.world_size,
+                     nprocs=self.world_size, daemon=True,
                      join=True)
 
         else:
@@ -329,11 +322,13 @@ class Experiment(Manager):
 
     def register_trained_model(self):
         print('Anchor 7')
-
-        if self.saved_models['best_valid']:
-            log_artifact(self.tracker, self.saved_models['best_valid'])
-        if self.saved_models['last']:
-            log_artifact(self.tracker, self.saved_models['last'])
+        try:
+            if self.saved_models['best_valid']:
+                log_artifact(self.tracker, self.saved_models['best_valid'])
+            if self.saved_models['last']:
+                log_artifact(self.tracker, self.saved_models['last'])
+        except AttributeError:
+            pass
         print('Anchor 8')
 
     def end(self, model, rank):
