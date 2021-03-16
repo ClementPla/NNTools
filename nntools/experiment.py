@@ -6,7 +6,6 @@ from abc import ABC
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-mp.set_sharing_strategy('file_system')
 
 import torch.nn as nn
 import tqdm
