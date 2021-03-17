@@ -349,7 +349,8 @@ class Experiment(Manager):
             lr_scheduler = None
         iteration = self.tracker.current_iteration - 1
         train_loader, train_sampler = self.get_dataloader(self.train_dataset)
-        valid_loader, valid_sampler = self.get_dataloader(self.validation_dataset, shuffle=False)
+        if self.validation_dataset is not None:
+            valid_loader, valid_sampler = self.get_dataloader(self.validation_dataset, shuffle=False)
 
         iters_to_accumulate = self.config['Training'].get('iters_to_accumulate', 1)
         scaler = GradScaler(enabled=self.config['Manager'].get('grad_scaling', True))
@@ -389,12 +390,12 @@ class Experiment(Manager):
                             with autocast(enabled=self.config['Manager']['amp']):
                                 valid_metric = self.validate(model, valid_loader, iteration, rank, loss_function)
 
-                    if self.ctx_train['scheduler_opt'].call_on == 'on_validation':
-                        self.lr_scheduler_step(lr_scheduler, e, i, len(train_loader), valid_metric)
+                    # if self.ctx_train['scheduler_opt'].call_on == 'on_validation':
+                    #     self.lr_scheduler_step(lr_scheduler, e, i, len(train_loader), valid_metric)
 
-                    if self.is_main_process(rank):
-                        log_metrics(self.tracker, iteration, trainining_loss=loss.item())
-                        self.save_model(model, filename='last')
+                    # if self.is_main_process(rank):
+                    #     log_metrics(self.tracker, iteration, trainining_loss=loss.detach().item())
+                    #     self.save_model(model, filename='last')
 
                     if self.multi_gpu:
                         dist.barrier()
@@ -407,7 +408,7 @@ class Experiment(Manager):
             """
             if self.validation_dataset is None:
                 if self.is_main_process(rank):
-                    self.save_model(model, filename='iteration_%i_loss_%f' % (iteration, loss.item()))
+                    self.save_model(model, filename='iteration_%i_loss_%f' % (iteration, loss.detach().item()))
 
             if self.ctx_train['scheduler_opt'].call_on == 'on_epoch':
                 self.lr_scheduler_step(lr_scheduler, e, iteration, len(train_loader))
@@ -423,5 +424,5 @@ class Experiment(Manager):
         else:
             lr_scheduler.step(self.ctx_train['scheduler_opt'].callback(epoch, iteration, size_epoch))
 
-    def validate(self, model, iteration, rank=0, loss_function=None):
+    def validate(self, model, valid_loader, iteration, rank=0, loss_function=None):
         pass
