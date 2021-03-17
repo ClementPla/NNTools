@@ -320,7 +320,6 @@ class Experiment(Manager):
         if not self.keyboard_exception_raised:
             self.tracker.set_status(status='FINISHED')
 
-
     def register_trained_model(self):
         if self.saved_models['best_valid']:
             log_artifact(self.tracker, self.saved_models['best_valid'])
@@ -350,6 +349,8 @@ class Experiment(Manager):
             lr_scheduler = None
         iteration = self.tracker.current_iteration - 1
         train_loader, train_sampler = self.get_dataloader(self.train_dataset)
+        valid_loader, valid_sampler = self.get_dataloader(self.validation_dataset, shuffle=False)
+
         iters_to_accumulate = self.config['Training'].get('iters_to_accumulate', 1)
         scaler = GradScaler(enabled=self.config['Manager'].get('grad_scaling', True))
         clip_grad = self.config['Training'].get('grad_clipping', False)
@@ -386,7 +387,7 @@ class Experiment(Manager):
                     if self.validation_dataset is not None:
                         with torch.no_grad():
                             with autocast(enabled=self.config['Manager']['amp']):
-                                valid_metric = self.validate(model, iteration, rank, loss_function)
+                                valid_metric = self.validate(model, valid_loader, iteration, rank, loss_function)
 
                     if self.ctx_train['scheduler_opt'].call_on == 'on_validation':
                         self.lr_scheduler_step(lr_scheduler, e, i, len(train_loader), valid_metric)
