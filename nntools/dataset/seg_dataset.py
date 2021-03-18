@@ -82,13 +82,11 @@ class SegmentationDataset(ImageDataset):
             mask = load_image(filepath, cv2.IMREAD_GRAYSCALE)
             mask = resize(image=mask, shape=self.shape, keep_size_ratio=self.keep_size_ratio, flag=cv2.INTER_NEAREST)
 
-        kwargs = {'image': img}
         if self.composer:
             if self.use_masks:
-                kwargs['mask'] = mask
-                img, mask = self.composer(**kwargs)
+                img, mask = self.composer(image=img, mask=mask)
             else:
-                img = self.composer(**kwargs)
+                img = self.composer(image=img)
 
         img = self.transpose_img(img)
 

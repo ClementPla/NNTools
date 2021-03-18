@@ -6,7 +6,6 @@ from abc import ABC
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-mp.set_sharing_strategy('file_system')
 import torch.nn as nn
 import tqdm
 from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
@@ -390,12 +389,12 @@ class Experiment(Manager):
                             with autocast(enabled=self.config['Manager']['amp']):
                                 valid_metric = self.validate(model, valid_loader, iteration, rank, loss_function)
 
-                    # if self.ctx_train['scheduler_opt'].call_on == 'on_validation':
-                    #     self.lr_scheduler_step(lr_scheduler, e, i, len(train_loader), valid_metric)
+                    if self.ctx_train['scheduler_opt'].call_on == 'on_validation':
+                        self.lr_scheduler_step(lr_scheduler, e, i, len(train_loader), valid_metric)
 
-                    # if self.is_main_process(rank):
-                    #     log_metrics(self.tracker, iteration, trainining_loss=loss.detach().item())
-                    #     self.save_model(model, filename='last')
+                    if self.is_main_process(rank):
+                        log_metrics(self.tracker, iteration, trainining_loss=loss.detach().item())
+                        self.save_model(model, filename='last')
 
                     if self.multi_gpu:
                         dist.barrier()
