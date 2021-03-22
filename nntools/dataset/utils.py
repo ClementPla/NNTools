@@ -17,8 +17,8 @@ def get_classification_class_count(dataset):
 
 def get_segmentation_class_count(dataset, save=True, load=True):
     shape = dataset.shape
-    path = dataset.path_masks
-    filepath = os.path.join(path, 'classe_count.npy')
+    path = dataset.path_masks[0]
+    filepath = os.path.join(path, 'classes_count.npy')
 
     if os.path.isfile(filepath) and load:
         return np.load(filepath)
