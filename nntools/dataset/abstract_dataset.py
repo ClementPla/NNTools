@@ -12,7 +12,8 @@ class ImageDataset(Dataset):
     def __init__(self, img_url,
                  shape=None,
                  keep_size_ratio=False,
-                 recursive_loading=True):
+                 recursive_loading=True,
+                 sort_function=None):
 
         self.path_img = to_iterable(img_url)
         self.composer = None
@@ -24,6 +25,7 @@ class ImageDataset(Dataset):
         self.auto_resize = True
         self.return_indices = False
         self.list_files(recursive_loading)
+        self.sort_function = sort_function
 
     def __len__(self):
         return len(self.img_filepath)

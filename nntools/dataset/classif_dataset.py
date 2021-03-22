@@ -19,7 +19,8 @@ class ClassificationDataset(ImageDataset):
                  label_per_folder=True,
                  csv_filepath=None,
                  file_column='image',
-                 gt_column='level'):
+                 gt_column='level',
+                 sort_function=None):
         self.map_class = map_class
         self.label_present = label_present
         self.label_per_folder = label_per_folder
@@ -27,7 +28,7 @@ class ClassificationDataset(ImageDataset):
         self.file_column = file_column
         self.gt_column = gt_column
 
-        super(ClassificationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading)
+        super(ClassificationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading, sort_function)
 
     def list_files(self, recursive):
         for extension in supportedExtensions:

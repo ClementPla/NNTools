@@ -20,7 +20,8 @@ class SegmentationDataset(ImageDataset):
                  shape=None,
                  keep_size_ratio=False,
                  recursive_loading=True,
-                 n_classes=None):
+                 n_classes=None,
+                 sort_function=None):
         self.path_masks = to_iterable(mask_url)
         if self.path_masks == '':
             self.path_masks = None
@@ -28,7 +29,7 @@ class SegmentationDataset(ImageDataset):
         self.cmap_name = 'jet_r'
         self.n_classes = n_classes
 
-        super(SegmentationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading)
+        super(SegmentationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading, sort_function)
 
     def get_class_count(self):
         from .utils import get_segmentation_class_count
@@ -50,18 +51,25 @@ class SegmentationDataset(ImageDataset):
         """
         Sorting files
         """
-        img_filenames = np.asarray([path_leaf(path).split('.')[0] for path in self.img_filepath])
-        mask_filenames = np.asarray([path_leaf(path).split('.')[0] for path in self.gts])
+        img_filenames = [path_leaf(path).split('.')[0] for path in self.img_filepath]
+        mask_filenames = [path_leaf(path).split('.')[0] for path in self.gts]
         if self.use_masks and len(img_filenames) != len(mask_filenames):
             Log.warn("Mismatch between the number of image (%i) and masks (%i) found!" % (
                 len(img_filenames), len(mask_filenames)))
 
-        img_argsort = np.argsort(self.img_filepath)
+        if self.sort_function is None:
+            img_argsort = np.argsort(self.img_filepath)
+            self.img_filepath = self.img_filepath[img_argsort]
+            if self.use_masks:
+                mask_argsort = np.argsort(self.gts)
+                self.gts = self.gts[mask_argsort]
+        else:
+            sort_key_img = np.argsort([self.sort_function(x) for x in img_filenames])
+            self.img_filepath = self.img_filepath[sort_key_img]
 
-        if self.use_masks:
-            self.img_filepath = self.img_filepath[img_argsort][:len(mask_filenames)]
-            mask_argsort = np.argsort(self.gts)
-            self.gts = self.gts[mask_argsort][:len(img_filenames)]
+            if self.use_masks:
+                sort_key_mask = np.argsort([self.sort_function(x) for x in mask_filenames])
+                self.gts = self.gts[sort_key_mask]
 
     def multiply(self, factor):
         """
