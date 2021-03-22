@@ -8,6 +8,7 @@ import torch
 from nntools.dataset.image_tools import resize
 from nntools.tracker import Log
 from nntools.utils.io import load_image, path_leaf
+from nntools.utils.misc import to_iterable
 
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
 from .abstract_dataset import ImageDataset
@@ -20,7 +21,7 @@ class SegmentationDataset(ImageDataset):
                  keep_size_ratio=False,
                  recursive_loading=True,
                  n_classes=None):
-        self.path_masks = mask_url
+        self.path_masks = to_iterable(mask_url)
         if self.path_masks == '':
             self.path_masks = None
         self.use_masks = self.path_masks is not None
@@ -36,12 +37,15 @@ class SegmentationDataset(ImageDataset):
     def list_files(self, recursive):
         for extension in supportedExtensions:
             prefix = "**/*." if recursive else "*."
-            self.img_filepath.extend(glob.glob(self.path_img + prefix + extension, recursive=recursive))
+            for path in self.path_img:
+                self.img_filepath.extend(glob.glob(path + prefix + extension, recursive=recursive))
             if self.use_masks:
-                self.gts.extend(glob.glob(self.path_masks + prefix + extension, recursive=recursive))
+                for path in self.path_masks:
+                    self.gts.extend(glob.glob(path + prefix + extension, recursive=recursive))
 
         self.img_filepath = np.asarray(self.img_filepath)
-        self.gts = np.asarray(self.gts)
+        if self.use_masks:
+            self.gts = np.asarray(self.gts)
 
         """
         Sorting files

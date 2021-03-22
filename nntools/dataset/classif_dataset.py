@@ -32,7 +32,8 @@ class ClassificationDataset(ImageDataset):
     def list_files(self, recursive):
         for extension in supportedExtensions:
             prefix = "**/*." if recursive else "*."
-            self.img_filepath.extend(glob.glob(self.path_img + prefix + extension, recursive=recursive))
+            for path in self.path_img:
+                self.img_filepath.extend(glob.glob(path + prefix + extension, recursive=recursive))
 
         self.img_filepath = np.asarray(self.img_filepath)
 

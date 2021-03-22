@@ -4,7 +4,7 @@ import numpy as np
 from torch.utils.data import Dataset
 from nntools.dataset.image_tools import resize
 from nntools.utils.io import load_image
-
+from nntools.utils.misc import to_iterable
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
 
 
@@ -14,7 +14,7 @@ class ImageDataset(Dataset):
                  keep_size_ratio=False,
                  recursive_loading=True):
 
-        self.path_img = img_url
+        self.path_img = to_iterable(img_url)
         self.composer = None
         self.keep_size_ratio = keep_size_ratio
         self.shape = tuple(shape)
