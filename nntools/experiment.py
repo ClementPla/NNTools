@@ -21,7 +21,7 @@ from nntools.utils.scheduler import SCHEDULERS
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP
 from nntools.utils.multiprocessing import _start_process
 
-mp.set_start_method('spawn')
+mp.set_start_method('forkserver')
 
 class Manager(ABC):
     def __init__(self, config, run_id=None):
