@@ -19,9 +19,7 @@ from nntools.utils.optims import OPTIMS
 from nntools.utils.random import set_seed, set_non_torch_seed
 from nntools.utils.scheduler import SCHEDULERS
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP
-from nntools.utils.multiprocessing import _start_process
-
-mp.set_start_method('forkserver')
+# from nntools.utils.multiprocessing import _start_process
 
 class Manager(ABC):
     def __init__(self, config, run_id=None):
@@ -91,7 +89,7 @@ class Manager(ABC):
         model = self.convert_batch_norm(model)
         model = model.cuda(self.get_gpu_from_rank(rank))
         if self.multi_gpu:
-            model = DDP(model, device_ids=[self.get_gpu_from_rank(rank)], find_unused_parameters=True)
+            model = DDP(model, device_ids=[self.get_gpu_from_rank(rank)])
         return model
 
     def get_model(self):
@@ -311,12 +309,12 @@ class Experiment(Manager):
             self.initial_tracking()
 
         if self.multi_gpu:
-            mp.spawn(_start_process, args=(self, ),
+            mp.spawn(self._start_process,
                      nprocs=self.world_size,
                      join=True)
 
         else:
-            _start_process(manager=self)
+            self._start_process()
 
         if not self.keyboard_exception_raised:
             self.tracker.set_status(status='FINISHED')
