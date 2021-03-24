@@ -109,6 +109,18 @@ class SegmentationDataset(ImageDataset):
             output = output + (item,)
         return output
 
+    def get_mask(self, item):
+        filepath = self.gts[item]
+        mask = load_image(filepath, cv2.IMREAD_GRAYSCALE)
+        mask = resize(image=mask, shape=self.shape, keep_size_ratio=self.keep_size_ratio, flag=cv2.INTER_NEAREST)
+        if self.composer:
+            mask = self.composer(mask=mask)
+        if self.return_indices:
+            return mask, item
+        else:
+            return mask
+
+
     def standardize(self, img):
         return (img - img.min()) / (img.max() - img.min())
 
