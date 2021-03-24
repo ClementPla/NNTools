@@ -19,7 +19,7 @@ from nntools.utils.optims import OPTIMS
 from nntools.utils.random import set_seed, set_non_torch_seed
 from nntools.utils.scheduler import SCHEDULERS
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP
-
+from nntools.utils.multiprocessing import _start_process
 
 class Manager(ABC):
     def __init__(self, config, run_id=None):
@@ -309,12 +309,12 @@ class Experiment(Manager):
             self.initial_tracking()
 
         if self.multi_gpu:
-            mp.spawn(self._start_process,
+            mp.spawn(_start_process, args=(self, ),
                      nprocs=self.world_size,
                      join=True)
 
         else:
-            self._start_process()
+            _start_process(manager=self)
 
         if not self.keyboard_exception_raised:
             self.tracker.set_status(status='FINISHED')
