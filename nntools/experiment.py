@@ -21,6 +21,8 @@ from nntools.utils.scheduler import SCHEDULERS
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP
 from nntools.utils.multiprocessing import _start_process
 
+mp.set_start_method('spawn')
+
 class Manager(ABC):
     def __init__(self, config, run_id=None):
         self.config = config
@@ -89,7 +91,7 @@ class Manager(ABC):
         model = self.convert_batch_norm(model)
         model = model.cuda(self.get_gpu_from_rank(rank))
         if self.multi_gpu:
-            model = DDP(model, device_ids=[self.get_gpu_from_rank(rank)])
+            model = DDP(model, device_ids=[self.get_gpu_from_rank(rank)], find_unused_parameters=True)
         return model
 
     def get_model(self):
