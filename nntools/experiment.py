@@ -259,7 +259,7 @@ class Experiment(Manager):
     def _start_process(self, rank=0):
         print('Initializing process %i'%rank)
         if self.multi_gpu:
-            dist.init_process_group(backend=self.config['Manager']['dist_backend'])
+            dist.init_process_group(backend=self.config['Manager']['dist_backend'], rank=rank)
         model = self.get_model_on_device(rank)
         if self.run_training:
             try:
@@ -311,6 +311,7 @@ class Experiment(Manager):
         if self.multi_gpu:
             mp.spawn(self._start_process,
                      nprocs=self.world_size,
+
                      join=True)
 
         else:
