@@ -61,10 +61,14 @@ class Composition:
 
     def __call__(self, **kwargs):
         is_mask = 'mask' in kwargs
+        is_image = 'image' in kwargs
+
         for op in self.ops:
             out = op(**kwargs)
             if isinstance(out, tuple):
-                if is_mask:
+                if is_mask and not is_image:
+                    kwargs['mask'] = out[0]
+                elif is_mask and is_image:
                     kwargs['image'] = out[0]
                     kwargs['mask'] = out[1]
                 else:
@@ -77,8 +81,10 @@ class Composition:
                 else:
                     kwargs['image'] = out
 
-        if is_mask:
+        if is_mask and is_image:
             return kwargs['image'], kwargs['mask']
+        elif is_mask and not is_image:
+            return kwargs['mask']
         else:
             return kwargs['image']
 
