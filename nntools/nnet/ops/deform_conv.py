@@ -49,7 +49,7 @@ class DeformConvPackWithBias(DeformConv2d):
 
     def forward(self, x):
         offset = self.conv_offset(x)
-        out = super(DeformConvPackWithBias, self).forward_train(x, offset)
+        out = super(DeformConvPackWithBias, self).forward(x, offset)
         if self.use_bias:
             return out + self.bias.unsqueeze(0).unsqueeze(2).unsqueeze(3)
         else:
