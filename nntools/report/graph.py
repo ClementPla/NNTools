@@ -73,8 +73,8 @@ def display_confMat(confMats, labels, text_angle=0, plot_size=800):
            text_baseline='middle')
 
     p.axis.major_label_text_font_size = "8pt"
-    p.xaxis.major_label_orientation = np.deg2rad(text_angle)
-    p.axis.major_label_standoff = 1
+    if text_angle:
+        p.xaxis.major_label_orientation = np.deg2rad(text_angle)
     p.xgrid.visible = False
     p.ygrid.visible = False
     p.xaxis.axis_label = 'Predicted'
