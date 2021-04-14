@@ -39,7 +39,7 @@ def get_segmentation_class_count(dataset, save=True, load=True):
     return classes_counts
 
 
-def class_weighting(class_count, mode='balanced', ignore_index=-100, eps=1, log_smoothing=1.01, center_mean=1.0):
+def class_weighting(class_count, mode='balanced', ignore_index=-100, eps=1, log_smoothing=1.01, center_mean=0):
     assert mode in ['balanced', 'log_prob']
     if mode == 'balanced':
         n_samples = sum([c for i, c in enumerate(class_count) if i != ignore_index])

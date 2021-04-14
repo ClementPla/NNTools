@@ -120,8 +120,6 @@ class SegmentationDataset(ImageDataset):
         else:
             return mask
 
-
-
     def standardize(self, img):
         return (img - img.min()) / (img.max() - img.min())
 

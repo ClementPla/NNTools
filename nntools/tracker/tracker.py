@@ -21,7 +21,7 @@ class Tracker:
         self.add_path('run_folder', path)
 
     def create_client(self, tracker_uri, artifact_uri=None):
-        self.client = MlflowClient(tracker_uri)
+            self.client = MlflowClient(tracker_uri)
 
         exp = self.client.get_experiment_by_name(self.exp_name)
         if exp is None:

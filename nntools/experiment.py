@@ -120,9 +120,10 @@ class Experiment(Manager):
     def __init__(self, config, run_id=None):
         super(Experiment, self).__init__(config, run_id)
 
-        self.ignore_index = self.config['Training']['ignore_index'] \
-            if 'ignore_index' in self.config['Training'] \
-            else -100
+        if 'ignore_index' in self.config['Training']:
+            self.ignore_index = self.config['Training']['ignore_index']
+        else:
+            self.ignore_index = -100
 
         self.batch_size = self.config['Training']['batch_size'] // self.world_size
         self.n_classes = config['Network']['n_classes']
