@@ -46,7 +46,7 @@ def display_confMat(confMats, labels, text_angle=0, plot_size=800):
     source_data = {}
     for i, (k, v) in enumerate(confMats.items()):
         predicted, actual, count, color, alpha, ratios = get_list(v)
-        source_data[str(i) + 'count'] = count
+        source_data[str(i) + 'count'] = ["{:.2e}".format(c) for c in count]
         source_data[str(i) + 'alphas'] = alpha
         source_data[str(i) + 'ratios'] = ratios
 
