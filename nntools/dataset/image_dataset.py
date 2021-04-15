@@ -61,7 +61,6 @@ class ImageDataset(Dataset):
             shared_array_base = mp.Array(ctypes.c_uint8, nb_samples * c * h * w)
             shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
             shared_array = np.squeeze(shared_array.reshape(nb_samples, h, w, c))
-            shared_array[0] = arr
             self.sharred_array.append(shared_array)
         print('Caching dataset...')
         for i in tqdm.tqdm(range(1, len(self))):
@@ -69,7 +68,7 @@ class ImageDataset(Dataset):
             if not isinstance(arrays, tuple):
                 arrays = (arrays,)
             for j, arr in enumerate(arrays):
-                self.sharred_array[j] = arr
+                self.sharred_array[j][i] = arr
         self.use_cache = True
 
 
