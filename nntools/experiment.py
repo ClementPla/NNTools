@@ -95,7 +95,7 @@ class Manager(ABC):
     def get_model(self):
         assert self.model is not None, "The model has not been configured, call set_model(model)"
         if self.continue_training:
-            self.model.load_array(self.tracker.network_savepoint, load_most_recent=True, map_location='cpu')
+            self.model.load(self.tracker.network_savepoint, load_most_recent=True, map_location='cpu')
 
         return self.model
 
