@@ -89,7 +89,7 @@ class SegmentationDataset(ImageDataset):
 
     def load_array(self, item):
         if self.use_cache:
-            self.sharred_array
+            return self.read_sharred_array(item)
         else:
             img = self.load_image(item)
             if self.use_masks:

@@ -65,7 +65,7 @@ class ClassificationDataset(ImageDataset):
 
     def load_array(self, item):
         if self.use_cache:
-            return self.sharred_array[0][item]
+            return self.read_sharred_array(item)
         else:
             return self.load_image(item)
 
