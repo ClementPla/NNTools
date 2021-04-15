@@ -188,7 +188,7 @@ class Experiment(Manager):
         self.ctx_train['scheduler_opt'] = scheduler
         self.partial_lr_scheduler = partial_fill_kwargs(scheduler.func, config['params_scheduler'])
 
-    def get_dataloader(self, dataset, shuffle=True, batch_size=None, drop_last=False, persistent_workers=False):
+    def get_dataloader(self, dataset, shuffle=True, batch_size=None, drop_last=False, persistent_workers=True):
         if batch_size is None:
             batch_size = self.batch_size
         if self.multi_gpu:
