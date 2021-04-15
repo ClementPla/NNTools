@@ -21,7 +21,7 @@ class SegmentationDataset(ImageDataset):
                  keep_size_ratio=False,
                  recursive_loading=True,
                  n_classes=None,
-                 sort_function=None):
+                 sort_function=None, use_cache=False):
         self.path_masks = to_iterable(mask_url)
         if self.path_masks == '':
             self.path_masks = None
@@ -29,7 +29,7 @@ class SegmentationDataset(ImageDataset):
         self.cmap_name = 'jet_r'
         self.n_classes = n_classes
 
-        super(SegmentationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading, sort_function)
+        super(SegmentationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading, sort_function, use_cache)
 
     def get_class_count(self):
         from .utils import get_segmentation_class_count
