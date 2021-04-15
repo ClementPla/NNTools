@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 
-from .abstract_dataset import ImageDataset
+from .image_dataset import ImageDataset
 
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
 import torch
@@ -62,6 +62,12 @@ class ClassificationDataset(ImageDataset):
             for k, v in self.map_class.items():
                 self.gts[self.gts == k] = v
         self.gts = self.gts.astype(int)
+
+    def load_array(self, item):
+        if self.use_cache:
+            return self.sharred_array[0][item]
+        else:
+            return self.load_image(item)
 
     def __getitem__(self, item):
         img = self.load_image(item)

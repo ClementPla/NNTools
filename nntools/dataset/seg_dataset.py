@@ -7,11 +7,11 @@ import torch
 
 from nntools.dataset.image_tools import resize
 from nntools.tracker import Log
-from nntools.utils.io import load_image, path_leaf
+from nntools.utils.io import read_image, path_leaf
 from nntools.utils.misc import to_iterable
 
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
-from .abstract_dataset import ImageDataset
+from .image_dataset import ImageDataset
 
 
 class SegmentationDataset(ImageDataset):
@@ -87,12 +87,25 @@ class SegmentationDataset(ImageDataset):
             self.img_filepath = np.concatenate((self.img_filepath, self.img_filepath[:rest]))
             self.gts = np.concatenate((self.gts, self.gts[:rest]))
 
+    def load_array(self, item):
+        if self.use_cache:
+            self.sharred_array
+        else:
+            img = self.load_image(item)
+            if self.use_masks:
+                filepath = self.gts[item]
+                mask = read_image(filepath, cv2.IMREAD_GRAYSCALE)
+                mask = resize(image=mask, shape=self.shape, keep_size_ratio=self.keep_size_ratio, flag=cv2.INTER_NEAREST)
+                return img, mask
+            return img
+
     def __getitem__(self, item):
-        img = self.load_image(item)
+
+        arrays = self.load_array(item)
         if self.use_masks:
-            filepath = self.gts[item]
-            mask = load_image(filepath, cv2.IMREAD_GRAYSCALE)
-            mask = resize(image=mask, shape=self.shape, keep_size_ratio=self.keep_size_ratio, flag=cv2.INTER_NEAREST)
+            img, mask = arrays
+        else:
+            img = arrays
 
         if self.composer:
             if self.use_masks:
@@ -111,7 +124,7 @@ class SegmentationDataset(ImageDataset):
 
     def get_mask(self, item):
         filepath = self.gts[item]
-        mask = load_image(filepath, cv2.IMREAD_GRAYSCALE)
+        mask = read_image(filepath, cv2.IMREAD_GRAYSCALE)
         mask = resize(image=mask, shape=self.shape, keep_size_ratio=self.keep_size_ratio, flag=cv2.INTER_NEAREST)
         if self.composer:
             mask = self.composer(mask=mask)
