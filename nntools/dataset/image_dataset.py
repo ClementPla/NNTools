@@ -28,7 +28,8 @@ class ImageDataset(Dataset):
         self.return_indices = False
         self.list_files(recursive_loading)
         self.use_cache = use_cache
-        self.sharred_array = []
+        manager =  mp.Manager()
+        self.sharred_array = manager.list()
 
         if self.use_cache:
             self.cache()
@@ -60,7 +61,10 @@ class ImageDataset(Dataset):
                 h, w, c = arr.shape
             shared_array_base = mp.Array(ctypes.c_uint8, nb_samples * c * h * w)
             shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
-            shared_array = np.squeeze(shared_array.reshape(nb_samples, h, w, c))
+            if c > 1:
+                shared_array = shared_array.reshape(nb_samples, h, w, c)
+            else:
+                shared_array = shared_array.reshape(nb_samples, h, w)
             shared_array[0] = arr
             self.sharred_array.append(shared_array)
         print('Caching dataset...')
@@ -71,7 +75,6 @@ class ImageDataset(Dataset):
             for j, arr in enumerate(arrays):
                 self.sharred_array[j][i] = arr
         self.use_cache = True
-
 
     def load_image(self, item):
         filepath = self.img_filepath[item]
