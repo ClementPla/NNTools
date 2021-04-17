@@ -46,7 +46,7 @@ class ImageDataset(Dataset):
         pass
 
     def read_sharred_array(self, item):
-        return tuple([sh_array[item] for sh_array in self.sharred_array])
+        pass
 
     def init_cache(self):
         self.use_cache = False

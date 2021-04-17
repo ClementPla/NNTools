@@ -100,6 +100,11 @@ class SegmentationDataset(ImageDataset):
                 return img, mask
             return img
 
+    def read_sharred_array(self, item):
+        if self.use_masks:
+            return self.sharred_imgs[item], self.sharred_masks[item]
+        else:
+            return self.sharred_imgs[item]
     def __getitem__(self, item):
 
         arrays = self.load_array(item)
