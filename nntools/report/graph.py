@@ -9,7 +9,7 @@ from bokeh.models import CustomJS, ColumnDataSource, Slider
 from bokeh.models.widgets import RadioButtonGroup
 
 
-def display_confMat(confMats, labels, text_angle=0, plot_size=800, text_size="5pt"):
+def display_confMat(confMats, labels, text_angle=0, plot_size=800, text_size="8pt"):
 
     if not isinstance(confMats, dict):
         confMats = {"Confusion Matrix": confMats}
