@@ -61,14 +61,15 @@ class ImageDataset(Dataset):
                 c = 1
             else:
                 h, w, c = arr.shape
-            shared_array_base = mp.Array(ctypes.c_uint8, nb_samples * c * h * w)
-            shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
-            if c > 1:
-                shared_array = shared_array.reshape(nb_samples, h, w, c)
-            else:
-                shared_array = shared_array.reshape(nb_samples, h, w)
-            shared_array[0] = arr
-            sharred_arrays.append(shared_array)
+            shared_array_base = mp.Array(ctypes.c_uint8, nb_samples * c * h * w, lock=True)
+            with shared_array_base.get_lock():
+                shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
+                if c > 1:
+                    shared_array = shared_array.reshape(nb_samples, h, w, c)
+                else:
+                    shared_array = shared_array.reshape(nb_samples, h, w)
+                shared_array[0] = arr
+                sharred_arrays.append(shared_array)
         return tuple(sharred_arrays)
 
     def cache(self):
