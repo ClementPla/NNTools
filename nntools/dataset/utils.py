@@ -41,13 +41,14 @@ def get_segmentation_class_count(dataset, save=True, load=True):
 
 def class_weighting(class_count, mode='balanced', ignore_index=-100, eps=1, log_smoothing=1.01, center_mean=0):
     assert mode in ['balanced', 'log_prob']
+    n_samples = sum([c for i, c in enumerate(class_count) if i != ignore_index])
+
     if mode == 'balanced':
-        n_samples = sum([c for i, c in enumerate(class_count) if i != ignore_index])
         n_classes = len(np.nonzero(class_count))
         class_weights = n_samples / (n_classes * class_count + eps)
 
     elif mode == 'log_prob':
-        p_class = class_count / class_count.sum()
+        p_class = class_count / n_samples
         class_weights = (1 / np.log(log_smoothing + p_class)).astype(np.float32)
 
     if center_mean:

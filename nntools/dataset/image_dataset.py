@@ -9,6 +9,8 @@ supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm",
 import multiprocessing as mp
 import ctypes
 import tqdm
+import torch
+
 class ImageDataset(Dataset):
     def __init__(self, img_url,
                  shape=None,
@@ -28,7 +30,7 @@ class ImageDataset(Dataset):
         self.return_indices = False
         self.list_files(recursive_loading)
         self.use_cache = use_cache
-        manager =  mp.Manager()
+        manager = mp.Manager()
         self.sharred_array = manager.list()
 
         if self.use_cache:
@@ -46,15 +48,15 @@ class ImageDataset(Dataset):
     def read_sharred_array(self, item):
         return tuple([sh_array[item] for sh_array in self.sharred_array])
 
-    def cache(self):
+    def init_cache(self):
         self.use_cache = False
-        arrays = self.load_array(0) # Taking the first element
+        arrays = self.load_array(0)  # Taking the first element
         if not isinstance(arrays, tuple):
-            arrays = (arrays, )
-
+            arrays = (arrays,)
+        sharred_arrays = []
         nb_samples = len(self)
         for arr in arrays:
-            if arr.ndim==2:
+            if arr.ndim == 2:
                 h, w = arr.shape
                 c = 1
             else:
@@ -66,15 +68,11 @@ class ImageDataset(Dataset):
             else:
                 shared_array = shared_array.reshape(nb_samples, h, w)
             shared_array[0] = arr
-            self.sharred_array.append(shared_array)
-        print('Caching dataset...')
-        for i in tqdm.tqdm(range(1, len(self))):
-            arrays = self.load_array(i)
-            if not isinstance(arrays, tuple):
-                arrays = (arrays,)
-            for j, arr in enumerate(arrays):
-                self.sharred_array[j][i] = arr
-        self.use_cache = True
+            sharred_arrays.append(shared_array)
+        return tuple(sharred_arrays)
+
+    def cache(self):
+        pass
 
     def load_image(self, item):
         filepath = self.img_filepath[item]

@@ -4,6 +4,7 @@ import os
 import cv2
 import numpy as np
 import torch
+import tqdm
 
 from nntools.dataset.image_tools import resize
 from nntools.tracker import Log
@@ -121,6 +122,25 @@ class SegmentationDataset(ImageDataset):
         if self.return_indices:
             output = output + (item,)
         return output
+
+    def cache(self):
+        self.use_cache = False
+        if self.use_masks:
+            self.sharred_imgs, self.sharred_masks = self.init_cache()
+        else:
+            self.sharred_imgs = self.init_cache()[0]
+
+        print('Caching dataset...')
+        for i in tqdm.tqdm(range(1, len(self))):
+            if self.use_masks:
+                img, mask = self.load_array(i)
+                self.sharred_imgs[i] = img
+                self.sharred_masks[i] = mask
+            else:
+                img = self.load_array(i)
+                self.sharred_imgs[i] = img
+
+        self.use_cache = True
 
     def get_mask(self, item):
         filepath = self.gts[item]

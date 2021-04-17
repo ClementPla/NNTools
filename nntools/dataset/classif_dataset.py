@@ -2,6 +2,7 @@ import glob
 import os
 
 import numpy as np
+import tqdm
 
 from .image_dataset import ImageDataset
 
@@ -69,6 +70,15 @@ class ClassificationDataset(ImageDataset):
             return self.read_sharred_array(item)
         else:
             return self.load_image(item)
+
+    def cache(self):
+        self.use_cache = False
+        self.sharred_imgs = self.init_cache()[0]
+        print('Caching dataset...')
+        for i in tqdm.tqdm(range(1, len(self))):
+            img = self.load_array(i)
+
+        self.use_cache = True
 
     def __getitem__(self, item):
         img = self.load_image(item)
