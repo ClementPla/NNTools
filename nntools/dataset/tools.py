@@ -50,7 +50,7 @@ class Composition:
     def __init__(self, **config):
         self.config = config
         self.ops = []
-
+        self.deactivated = []
     def add(self, *funcs):
         for f in funcs:
             if isinstance(f, DataAugment):
@@ -59,11 +59,17 @@ class Composition:
                 self.ops.append(partial_fill_kwargs(f, self.config))
         return self
 
+    def deactivate_op(self, index):
+        if not isinstance(index, list):
+            self.deactivated += [index]
+
     def __call__(self, **kwargs):
         is_mask = 'mask' in kwargs
         is_image = 'image' in kwargs
 
-        for op in self.ops:
+        for i, op in enumerate(self.ops):
+            if i in self.deactivated:
+                continue
             out = op(**kwargs)
             if isinstance(out, tuple):
                 if is_mask and not is_image:

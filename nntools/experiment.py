@@ -188,22 +188,19 @@ class Experiment(Manager):
         self.ctx_train['scheduler_opt'] = scheduler
         self.partial_lr_scheduler = partial_fill_kwargs(scheduler.func, config['params_scheduler'])
 
-    def get_dataloader(self, dataset, shuffle=True, batch_size=None, drop_last=False, persistent_workers=True):
+    def get_dataloader(self, dataset, shuffle=True, batch_size=None, drop_last=False, persistent_workers=True, rank=0):
         if batch_size is None:
             batch_size = self.batch_size
         if self.multi_gpu:
-            sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=shuffle)
-            dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
-                                                     num_workers=self.config['Manager']['num_workers'],
-                                                     pin_memory=True, sampler=sampler, worker_init_fn=set_non_torch_seed
-                                                     , drop_last=drop_last, persistent_workers=persistent_workers)
+            sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=shuffle,
+                                                                      num_replicas=self.world_size, rank=rank)
         else:
             sampler = None
-            dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
-                                                     num_workers=self.config['Manager']['num_workers'],
-                                                     pin_memory=True, shuffle=shuffle,
-                                                     worker_init_fn=set_non_torch_seed, drop_last=drop_last,
-                                                     persistent_workers=persistent_workers)
+        dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
+                                                 num_workers=self.config['Manager']['num_workers'],
+                                                 pin_memory=True, shuffle=shuffle, sampler=sampler,
+                                                 worker_init_fn=set_non_torch_seed, drop_last=drop_last,
+                                                 persistent_workers=persistent_workers)
         return dataloader, sampler
 
     def get_loss(self, weights=None, rank=0):
@@ -349,9 +346,9 @@ class Experiment(Manager):
         else:
             lr_scheduler = None
         iteration = self.tracker.current_iteration - 1
-        train_loader, train_sampler = self.get_dataloader(self.train_dataset)
+        train_loader, train_sampler = self.get_dataloader(self.train_dataset, rank=rank)
         if self.validation_dataset is not None:
-            valid_loader, valid_sampler = self.get_dataloader(self.validation_dataset, shuffle=False)
+            valid_loader, valid_sampler = self.get_dataloader(self.validation_dataset, shuffle=False, rank=rank)
 
         iters_to_accumulate = self.config['Training'].get('iters_to_accumulate', 1)
         scaler = GradScaler(enabled=self.config['Manager'].get('grad_scaling', True))
