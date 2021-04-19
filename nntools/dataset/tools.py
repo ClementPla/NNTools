@@ -61,7 +61,9 @@ class Composition:
 
     def deactivate_op(self, index):
         if not isinstance(index, list):
-            self.deactivated += [index]
+            index = p[index]
+
+        self.deactivated += [index]
 
     def __call__(self, **kwargs):
         is_mask = 'mask' in kwargs
