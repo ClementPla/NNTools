@@ -58,6 +58,12 @@ class SegmentationDataset(ImageDataset):
         if self.use_masks and len(img_filenames) != len(mask_filenames):
             Log.warn("Mismatch between the number of image (%i) and masks (%i) found!" % (
                 len(img_filenames), len(mask_filenames)))
+            intersection = list(set(img_filenames) & set(mask_filenames))
+            self.img_filepath = np.asarray([img for img, filename in zip(self.img_filepath, img_filenames) if 
+                                            filename  in intersection ])
+
+            self.gts = np.asarray([gt for gt, filename in zip(self.gts, mask_filenames) if filename in intersection])
+
 
         if self.sort_function is None:
             img_argsort = np.argsort(self.img_filepath)

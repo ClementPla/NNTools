@@ -31,8 +31,6 @@ class ImageDataset(Dataset):
         self.return_indices = False
         self.list_files(recursive_loading)
         self.use_cache = use_cache
-        manager = mp.Manager()
-        self.sharred_array = manager.list()
 
         if self.use_cache:
             self.cache()
