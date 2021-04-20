@@ -30,7 +30,8 @@ class SegmentationDataset(ImageDataset):
         self.cmap_name = 'jet_r'
         self.n_classes = n_classes
 
-        super(SegmentationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading, sort_function, use_cache)
+        super(SegmentationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading, sort_function,
+                                                  use_cache)
 
     def get_class_count(self):
         from .utils import get_segmentation_class_count
@@ -96,7 +97,8 @@ class SegmentationDataset(ImageDataset):
             if self.use_masks:
                 filepath = self.gts[item]
                 mask = read_image(filepath, cv2.IMREAD_GRAYSCALE)
-                mask = resize(image=mask, shape=self.shape, keep_size_ratio=self.keep_size_ratio, flag=cv2.INTER_NEAREST)
+                mask = resize(image=mask, shape=self.shape, keep_size_ratio=self.keep_size_ratio,
+                              flag=cv2.INTER_NEAREST)
                 return img, mask
             return img
 
@@ -105,6 +107,7 @@ class SegmentationDataset(ImageDataset):
             return self.sharred_imgs[item], self.sharred_masks[item]
         else:
             return self.sharred_imgs[item]
+
     def __getitem__(self, item):
 
         arrays = self.load_array(item)

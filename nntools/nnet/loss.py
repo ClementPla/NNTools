@@ -37,4 +37,3 @@ class FuseLoss:
     # TODO : Add weighting scheme for each loss
     def add(self, loss):
         self.losses.append(loss)
-

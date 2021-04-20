@@ -34,5 +34,3 @@ SCHEDULERS = {
     'CosineAnnealingWarmRestarts': Scheduler(
         torch.optim.lr_scheduler.CosineAnnealingWarmRestarts, 'on_iteration', identity)
 }
-
-

@@ -1,20 +1,18 @@
 from collections import OrderedDict
+
 import numpy as np
-
-
-from bokeh.models import HoverTool, ColumnDataSource
-from bokeh.plotting import figure, show, output_file
-from bokeh.layouts import layout, widgetbox, column
-from bokeh.models import CustomJS, ColumnDataSource, Slider
+from bokeh.layouts import column
+from bokeh.models import CustomJS, ColumnDataSource
+from bokeh.models import HoverTool
 from bokeh.models.widgets import RadioButtonGroup
+from bokeh.plotting import figure
 
 
 def display_confMat(confMats, labels, text_angle=0, plot_size=800, text_size="8pt"):
-
     if not isinstance(confMats, dict):
         confMats = {"Confusion Matrix": confMats}
 
-    COLOR =  '#00cc66'
+    COLOR = '#00cc66'
     TOOLS = "hover,save,pan"
 
     def get_list(cm):
@@ -110,8 +108,3 @@ def display_confMat(confMats, labels, text_angle=0, plot_size=800, text_size="8p
         radio_button_group.js_on_change('active', callback)
         p = column(radio_button_group, p)
     return p
-
-
-
-
-

@@ -10,6 +10,7 @@ import tqdm
 from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
 from torch.cuda.amp import autocast, GradScaler
 from torch.nn.utils import clip_grad_norm_
+
 from nntools.dataset import class_weighting
 from nntools.nnet import nnt_format, FuseLoss, SUPPORTED_LOSS, BINARY_MODE, MULTICLASS_MODE
 from nntools.tracker import Log, Tracker, log_params, log_metrics, log_artifact
@@ -19,6 +20,8 @@ from nntools.utils.optims import OPTIMS
 from nntools.utils.random import set_seed, set_non_torch_seed
 from nntools.utils.scheduler import SCHEDULERS
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP
+
+
 # from nntools.utils.multiprocessing import _start_process
 
 class Manager(ABC):
@@ -198,7 +201,8 @@ class Experiment(Manager):
             sampler = None
         dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
                                                  num_workers=self.config['Manager']['num_workers'],
-                                                 pin_memory=True, shuffle=shuffle, sampler=sampler,
+                                                 pin_memory=True, shuffle=shuffle if sampler is None else False,
+                                                 sampler=sampler,
                                                  worker_init_fn=set_non_torch_seed, drop_last=drop_last,
                                                  persistent_workers=persistent_workers)
         return dataloader, sampler
@@ -255,9 +259,10 @@ class Experiment(Manager):
                 os.remove(f)
 
     def _start_process(self, rank=0):
-        print('Initializing process %i'%rank)
+        print('Initializing process %i' % rank)
         if self.multi_gpu:
-            dist.init_process_group(backend=self.config['Manager']['dist_backend'], rank=rank, world_size=self.world_size)
+            dist.init_process_group(backend=self.config['Manager']['dist_backend'], rank=rank,
+                                    world_size=self.world_size)
         model = self.get_model_on_device(rank)
         if self.run_training:
             try:

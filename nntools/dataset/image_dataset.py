@@ -2,14 +2,15 @@ import os
 
 import numpy as np
 from torch.utils.data import Dataset
+
 from nntools.dataset.image_tools import resize
 from nntools.utils.io import read_image
 from nntools.utils.misc import to_iterable
+
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
 import multiprocessing as mp
 import ctypes
-import tqdm
-import torch
+
 
 class ImageDataset(Dataset):
     def __init__(self, img_url,

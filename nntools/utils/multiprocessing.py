@@ -1,6 +1,7 @@
 import torch.distributed as dist
-from nntools.tracker import Log
 from torch.cuda.amp import autocast
+
+from nntools.tracker import Log
 
 
 def _start_process(rank=0, manager=None):

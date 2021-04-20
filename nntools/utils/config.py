@@ -1,5 +1,7 @@
-from nntools.utils.io import load_yaml
 import os
+
+from nntools.utils.io import load_yaml
+
 
 class Config(dict):
     def __init__(self, path):
@@ -16,5 +18,3 @@ class Config(dict):
             return self[key]
         else:
             return default
-
-

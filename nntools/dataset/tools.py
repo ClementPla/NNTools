@@ -51,6 +51,7 @@ class Composition:
         self.config = config
         self.ops = []
         self.deactivated = []
+
     def add(self, *funcs):
         for f in funcs:
             if isinstance(f, DataAugment):

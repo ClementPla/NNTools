@@ -1,5 +1,6 @@
-import time
 import os
+import time
+
 
 def log_params(tracker, **params):
     run_id = tracker.run_id

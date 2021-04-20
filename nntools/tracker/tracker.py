@@ -53,4 +53,3 @@ class Tracker:
 
         self.add_path('network_savepoint', os.path.join(self.run_folder, 'trained_model', str(self.run_id)))
         self.add_path('prediction_savepoint', os.path.join(self.run_folder, 'predictions', str(self.run_id)))
-
