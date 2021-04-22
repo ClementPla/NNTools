@@ -102,7 +102,7 @@ class SegmentationDataset(ImageDataset):
             return self.load_image(item)
 
     def load_image(self, item):
-        img = self.load_image(item)
+        img = super(SegmentationDataset, self).load_image(item)
         if self.use_masks:
             filepath = self.gts[item]
             mask = read_image(filepath, cv2.IMREAD_GRAYSCALE)
