@@ -99,67 +99,24 @@ class SegmentationDataset(ImageDataset):
         if self.use_cache:
             return self.read_sharred_array(item)
         else:
-            img = self.load_image(item)
-            if self.use_masks:
-                filepath = self.gts[item]
-                mask = read_image(filepath, cv2.IMREAD_GRAYSCALE)
-                mask = resize(image=mask, shape=self.shape, keep_size_ratio=self.keep_size_ratio,
-                              flag=cv2.INTER_NEAREST)
-                return img, mask
-            return img
+            return self.load_image(item)
 
-    def read_sharred_array(self, item):
+    def load_image(self, item):
+        img = self.load_image(item)
         if self.use_masks:
-            return self.sharred_imgs[item], self.sharred_masks[item]
-        else:
-            return self.sharred_imgs[item]
+            filepath = self.gts[item]
+            mask = read_image(filepath, cv2.IMREAD_GRAYSCALE)
+            mask = resize(image=mask, shape=self.shape, keep_size_ratio=self.keep_size_ratio,
+                          flag=cv2.INTER_NEAREST)
+            return {'image': img, 'mask': mask}
+        return {'image': img}
 
-    def __getitem__(self, item):
-
-        arrays = self.load_array(item)
-        if self.use_masks:
-            img, mask = arrays
-        else:
-            img = arrays
-
-        if self.composer:
-            if self.use_masks:
-                img, mask = self.composer(image=img, mask=mask)
-            else:
-                img = self.composer(image=img)
-
-        img = self.transpose_img(img)
-
-        output = (torch.from_numpy(img),)
-        if self.use_masks:
-            output = output + (torch.from_numpy(mask).long(),)
-        if self.return_indices:
-            output = output + (item,)
-        return output
-
-    def cache(self):
-        self.use_cache = False
-        if self.use_masks:
-            self.sharred_imgs, self.sharred_masks = self.init_cache()
-        else:
-            self.sharred_imgs = self.init_cache()[0]
-
-        print('Caching dataset...')
-        for i in tqdm.tqdm(range(1, len(self))):
-            if self.use_masks:
-                img, mask = self.load_array(i)
-                self.sharred_imgs[i] = img
-                self.sharred_masks[i] = mask
-            else:
-                img = self.load_array(i)
-                self.sharred_imgs[i] = img
-
-        self.use_cache = True
 
     def get_mask(self, item):
         filepath = self.gts[item]
         mask = read_image(filepath, cv2.IMREAD_GRAYSCALE)
-        mask = resize(image=mask, shape=self.shape, keep_size_ratio=self.keep_size_ratio, flag=cv2.INTER_NEAREST)
+        if self.auto_resize:
+            mask = resize(image=mask, shape=self.shape, keep_size_ratio=self.keep_size_ratio, flag=cv2.INTER_NEAREST)
         if self.composer:
             mask = self.composer(mask=mask)
         if self.return_indices:

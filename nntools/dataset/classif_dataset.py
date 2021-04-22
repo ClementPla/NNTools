@@ -4,6 +4,8 @@ import os
 import numpy as np
 import tqdm
 
+from nntools.dataset.image_tools import resize
+from nntools.utils.io import read_image
 from .image_dataset import ImageDataset
 
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
@@ -65,11 +67,13 @@ class ClassificationDataset(ImageDataset):
                 self.gts[self.gts == k] = v
         self.gts = self.gts.astype(int)
 
-    def load_array(self, item):
-        if self.use_cache:
-            return self.read_sharred_array(item)
-        else:
-            return self.load_image(item)
+    def load_image(self, item):
+        filepath = self.img_filepath[item]
+        img = read_image(filepath)
+        if self.auto_resize:
+            img = resize(image=img, shape=self.shape,
+                         keep_size_ratio=self.keep_size_ratio)
+        return {'image':img}
 
     def cache(self):
         self.use_cache = False
@@ -81,19 +85,10 @@ class ClassificationDataset(ImageDataset):
         self.use_cache = True
 
     def __getitem__(self, item):
-        img = self.load_image(item)
-        kwargs = {'image': img}
-        if self.composer:
-            img = self.composer(**kwargs)
-
-        img = self.transpose_img(img)
-
-        output = (torch.from_numpy(img),)
+        outputs = super(ClassificationDataset, self).__getitem__(item)
         if self.label_present:
-            output += (torch.tensor(self.gts[item], dtype=torch.long),)
-        if self.return_indices:
-            output += (item,)
-        return output
+            outputs['gt'] = torch.tensor(self.gts[item], dtype=torch.long)
+        return outputs
 
     def get_class_count(self):
         from .utils import get_classification_class_count

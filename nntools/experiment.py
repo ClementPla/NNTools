@@ -114,6 +114,8 @@ class Manager(ABC):
         device = self.get_gpu_from_rank(rank)
         if isinstance(batch, tuple) or isinstance(batch, list):
             batch = [b.cuda(device) if isinstance(b, torch.Tensor) else b for b in batch]
+        elif isinstance(batch, dict):
+            batch = [b.cuda(device) for k, b in batch.items()]
         else:
             batch = batch.cuda(device)
         return batch
@@ -264,6 +266,7 @@ class Experiment(Manager):
         if self.multi_gpu:
             dist.init_process_group(backend=self.config['Manager']['dist_backend'], rank=rank,
                                     world_size=self.world_size)
+
         model = self.get_model_on_device(rank)
         if self.run_training:
             try:

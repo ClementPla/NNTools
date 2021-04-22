@@ -1,15 +1,15 @@
 import os
-
+import torch
 import numpy as np
 from torch.utils.data import Dataset
 
-from nntools.dataset.image_tools import resize
-from nntools.utils.io import read_image
+
 from nntools.utils.misc import to_iterable
 
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
 import multiprocessing as mp
 import ctypes
+import tqdm
 
 
 class ImageDataset(Dataset):
@@ -41,20 +41,18 @@ class ImageDataset(Dataset):
     def list_files(self, recursive):
         pass
 
-    def load_array(self, item):
-        pass
-
     def read_sharred_array(self, item):
+        return {k : self.shared_arrays[k][item] for k in self.shared_arrays}
+
+    def load_image(self, item):
         pass
 
     def init_cache(self):
         self.use_cache = False
         arrays = self.load_array(0)  # Taking the first element
-        if not isinstance(arrays, tuple):
-            arrays = (arrays,)
-        sharred_arrays = []
+        shared_arrays = {}
         nb_samples = len(self)
-        for arr in arrays:
+        for key, arr in arrays.items():
             if arr.ndim == 2:
                 h, w = arr.shape
                 c = 1
@@ -68,19 +66,24 @@ class ImageDataset(Dataset):
                 else:
                     shared_array = shared_array.reshape(nb_samples, h, w)
                 shared_array[0] = arr
-                sharred_arrays.append(shared_array)
-        return tuple(sharred_arrays)
+                shared_arrays[key] = shared_array
+        self.shared_arrays = shared_arrays
 
     def cache(self):
-        pass
+        self.use_cache = False
+        self.init_cache()
+        print('Caching dataset...')
+        for item in tqdm.tqdm(range(1, len(self))):
+            arrays = self.load_array(item)
+            for k, arr in arrays.items():
+                self.shared_arrays[k][item] = arr
+        self.use_cache = True
 
-    def load_image(self, item):
-        filepath = self.img_filepath[item]
-        img = read_image(filepath)
-        if self.auto_resize:
-            img = resize(image=img, shape=self.shape,
-                         keep_size_ratio=self.keep_size_ratio)
-        return img
+    def load_array(self, item):
+        if self.use_cache:
+            return self.read_sharred_array(item)
+        else:
+            return self.load_image(item)
 
     def filename(self, items):
         items = np.asarray(items)
@@ -108,3 +111,17 @@ class ImageDataset(Dataset):
     def subset(self, indices):
         self.img_filepath = self.img_filepath[indices]
         self.gts = self.gts[indices]
+
+    def __getitem__(self, item):
+        inputs = self.load_image(item)
+        if self.composer:
+            outputs = self.composer(**inputs)
+        else:
+            outputs = inputs
+
+        outputs['image'] = self.transpose_img(outputs['image'])
+        for k in outputs:
+            outputs[k] = torch.from_numpy(outputs[k])
+        if self.return_indices:
+            outputs['indice'] = item
+        return outputs

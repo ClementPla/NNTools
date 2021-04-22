@@ -67,35 +67,12 @@ class Composition:
         self.deactivated += index
 
     def __call__(self, **kwargs):
-        is_mask = 'mask' in kwargs
-        is_image = 'image' in kwargs
 
         for i, op in enumerate(self.ops):
             if i in self.deactivated:
                 continue
-            out = op(**kwargs)
-            if isinstance(out, tuple):
-                if is_mask and not is_image:
-                    kwargs['mask'] = out[0]
-                elif is_mask and is_image:
-                    kwargs['image'] = out[0]
-                    kwargs['mask'] = out[1]
-                else:
-                    kwargs['image'] = out[0]
-            elif isinstance(out, dict):
-                kwargs = out
-            else:
-                if is_mask:
-                    kwargs['mask'] = out
-                else:
-                    kwargs['image'] = out
-
-        if is_mask and is_image:
-            return kwargs['image'], kwargs['mask']
-        elif is_mask and not is_image:
-            return kwargs['mask']
-        else:
-            return kwargs['image']
+            kwargs = op(*kwargs)
+        return kwargs
 
     def __lshift__(self, other):
         return self.add(other)
