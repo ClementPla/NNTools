@@ -5,6 +5,8 @@ from torch.utils.data import Dataset
 
 
 from nntools.utils.misc import to_iterable
+from nntools.dataset.image_tools import resize
+from nntools.utils.io import read_image
 
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
 import multiprocessing as mp
@@ -45,7 +47,12 @@ class ImageDataset(Dataset):
         return {k : self.shared_arrays[k][item] for k in self.shared_arrays}
 
     def load_image(self, item):
-        pass
+        filepath = self.img_filepath[item]
+        img = read_image(filepath)
+        if self.auto_resize:
+            img = resize(image=img, shape=self.shape,
+                         keep_size_ratio=self.keep_size_ratio)
+        return {'image': img}
 
     def init_cache(self):
         self.use_cache = False
@@ -113,7 +120,7 @@ class ImageDataset(Dataset):
         self.gts = self.gts[indices]
 
     def __getitem__(self, item):
-        inputs = self.load_image(item)
+        inputs = self.load_array(item)
         if self.composer:
             outputs = self.composer(**inputs)
         else:

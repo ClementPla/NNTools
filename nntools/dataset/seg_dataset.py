@@ -11,8 +11,7 @@ from nntools.tracker import Log
 from nntools.utils.io import read_image, path_leaf
 from nntools.utils.misc import to_iterable
 
-supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
-from .image_dataset import ImageDataset
+from .image_dataset import ImageDataset, supportedExtensions
 
 
 class SegmentationDataset(ImageDataset):
@@ -94,12 +93,6 @@ class SegmentationDataset(ImageDataset):
         if rest:
             self.img_filepath = np.concatenate((self.img_filepath, self.img_filepath[:rest]))
             self.gts = np.concatenate((self.gts, self.gts[:rest]))
-
-    def load_array(self, item):
-        if self.use_cache:
-            return self.read_sharred_array(item)
-        else:
-            return self.load_image(item)
 
     def load_image(self, item):
         img = super(SegmentationDataset, self).load_image(item)

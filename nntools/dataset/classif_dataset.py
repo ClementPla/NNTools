@@ -4,11 +4,8 @@ import os
 import numpy as np
 import tqdm
 
-from nntools.dataset.image_tools import resize
-from nntools.utils.io import read_image
-from .image_dataset import ImageDataset
 
-supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
+from .image_dataset import ImageDataset, supportedExtensions
 import torch
 
 
@@ -67,13 +64,6 @@ class ClassificationDataset(ImageDataset):
                 self.gts[self.gts == k] = v
         self.gts = self.gts.astype(int)
 
-    def load_image(self, item):
-        filepath = self.img_filepath[item]
-        img = read_image(filepath)
-        if self.auto_resize:
-            img = resize(image=img, shape=self.shape,
-                         keep_size_ratio=self.keep_size_ratio)
-        return {'image':img}
 
     def cache(self):
         self.use_cache = False
