@@ -71,7 +71,7 @@ class Composition:
         for i, op in enumerate(self.ops):
             if i in self.deactivated:
                 continue
-            kwargs = op(*kwargs)
+            kwargs = op(**kwargs)
         return kwargs
 
     def __lshift__(self, other):
