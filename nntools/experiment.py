@@ -115,7 +115,7 @@ class Manager(ABC):
         if isinstance(batch, tuple) or isinstance(batch, list):
             batch = [b.cuda(device) if isinstance(b, torch.Tensor) else b for b in batch]
         elif isinstance(batch, dict):
-            batch = [b.cuda(device) for k, b in batch.items()]
+            batch = {k: b.cuda(device) for k, b in batch.items()}
         else:
             batch = batch.cuda(device)
         return batch
@@ -179,13 +179,16 @@ class Experiment(Manager):
     def set_test_dataset(self, dataset):
         self.test_dataset = dataset
 
+    def create_optimizer(self, **config):
+        solver = config['solver']
+        func = OPTIMS[solver]
+        return partial_fill_kwargs(func, config['params_solver'])
+
     def set_optimizer(self, **config):
         """
         :return: A partial function of an optimizers. Partial passed arguments are hyperparameters
         """
-        solver = config['solver']
-        func = OPTIMS[solver]
-        self.partial_optimizer = partial_fill_kwargs(func, config['params_solver'])
+        self.partial_optimizer = self.create_optimizer(**config)
 
     def set_scheduler(self, **config):
         scheduler_name = config['scheduler']
@@ -316,10 +319,7 @@ class Experiment(Manager):
             self.initial_tracking()
 
         if self.multi_gpu:
-            mp.spawn(self._start_process,
-                     nprocs=self.world_size,
-
-                     join=True)
+            mp.spawn(self._start_process, nprocs=self.world_size, join=True)
 
         else:
             self._start_process()

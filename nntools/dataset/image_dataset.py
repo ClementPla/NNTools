@@ -19,7 +19,6 @@ from matplotlib import cm
 plt.rcParams['image.cmap'] = 'gray'
 import math
 
-
 class ImageDataset(Dataset):
     def __init__(self, img_url=None,
                  shape=None,
