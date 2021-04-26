@@ -131,7 +131,7 @@ class Experiment(Manager):
             self.ignore_index = -100
 
         self.batch_size = self.config['Training']['batch_size'] // self.world_size
-        self.n_classes = config['Network'].pop(['n_classes'], -1)
+        self.n_classes = config['Network'].pop('n_classes', -1)
 
         self.train_dataset = None
         self.validation_dataset = None
