@@ -152,21 +152,25 @@ class Experiment(Manager):
 
     def initial_tracking(self):
         log_params(self.tracker, **self.config['Training'])
-        log_params(self.tracker, **self.config['Optimizer'])
-        log_params(self.tracker, **self.config['Learning_rate_scheduler'])
+        if 'Optimizer' in self.config:
+            log_params(self.tracker, **self.config['Optimizer'])
+        if 'Learning_rate_scheduler' in self.config:
+            log_params(self.tracker, **self.config['Learning_rate_scheduler'])
         log_params(self.tracker, **self.config['Network'])
-        log_params(self.tracker, Loss=self.config['Loss']['type'])
+
+        log_params(self.tracker, Loss=self.config['Loss'].pop('type', 'custom'))
         if 'fusion' in self.config['Loss']:
             log_params(self.tracker, Loss_fusion=self.config['Loss']['fusion'])
 
         if 'params_loss' in self.config['Loss']:
             log_params(self.tracker, **self.config['Loss']['params_loss'])
-
-        log_params(self.tracker, weighted_loss=self.config['Loss']['weighted_loss'])
+        if 'weighted_loss' in self.config['Loss']:
+            log_params(self.tracker, weighted_loss=self.config['Loss']['weighted_loss'])
         if 'params_weighting' in self.config['Loss'] and self.config['Loss'].get('weighted_loss', False):
             log_params(self.tracker, **self.config['Loss']['params_weighting'])
 
-        log_params(self.tracker, **self.config['Preprocessing'])
+        if 'Preprocessing' in self.config:
+            log_params(self.tracker, **self.config['Preprocessing'])
         save_yaml(self.config, os.path.join(self.tracker.run_folder, 'config.yaml'))
         log_artifact(self.tracker, self.config.get_path())
 
@@ -311,7 +315,7 @@ class Experiment(Manager):
         if self.partial_lr_scheduler is None:
             Log.warn("Missing learning rate scheduler, default behaviour is to keep the learning rate constant")
 
-        if self.config['Loss']['weighted_loss'] and self.class_weights is None:
+        if self.config['Loss'].pop('weighted_loss', 'False') and self.class_weights is None:
             class_weights = self.get_class_weights()
             self.setup_class_weights(weights=class_weights)
 
