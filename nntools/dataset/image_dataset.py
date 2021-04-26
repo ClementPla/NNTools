@@ -168,7 +168,7 @@ class ImageDataset(Dataset):
                     cmap = cm.get_cmap(self.cmap_name, n_classes)
                     ax[i][j].imshow(arr, cmap=cmap)
                     ax[i][j].set_title(name)
-                    if name is not 'image' and arr.ndim==2:
+                    if name != 'image' and arr.ndim == 2:
                         divider = make_axes_locatable(ax[i][j])
                         cax = divider.append_axes('right', size='5%', pad=0.05)
                         cax.imshow(np.expand_dims(np.arange(n_classes), 0).transpose((1, 0)), aspect='auto', cmap=cmap)
