@@ -315,7 +315,7 @@ class Experiment(Manager):
         if self.partial_lr_scheduler is None:
             Log.warn("Missing learning rate scheduler, default behaviour is to keep the learning rate constant")
 
-        if self.config['Loss'].pop('weighted_loss', 'False') and self.class_weights is None:
+        if self.config['Loss'].pop('weighted_loss', False) and self.class_weights is None:
             class_weights = self.get_class_weights()
             self.setup_class_weights(weights=class_weights)
 
