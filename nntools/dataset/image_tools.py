@@ -11,21 +11,18 @@ def nntools_wrapper(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         list_parameters = inspect.signature(func).parameters.values()
-        accepts_mask = any([p.name == 'mask' for p in list_parameters])
-        accepts_image = any([p.name == 'image' for p in list_parameters])
+        params_name = ([p.name for p in list_parameters])
 
-        is_mask_in_param = 'mask' in kwargs
-        is_image_in_param = 'image' in kwargs
-        if not accepts_mask and is_mask_in_param:
-            mask = kwargs.pop('mask')
-            return func(*args, **kwargs), mask
-        if not accepts_image and is_image_in_param:
-            image = kwargs.pop('image')
-            return image, func(*args, **kwargs)
-        else:
-            return func(*args, **kwargs)
+        arguments = {k: kwargs.pop(k) for k in params_name if k in kwargs}
+        output = func(**arguments)
+        output.update(kwargs)
+        return output
 
     return wrapper
+
+
+def standardize(img):
+    return (img - img.min()) / (img.max() - img.min())
 
 
 @nntools_wrapper
@@ -143,7 +140,6 @@ def random_scale(image, scale_factor=(0.75, 1.25), mask=None, cval=0, flag=cv2.I
         return image, mask
 
 
-@nntools_wrapper
 def resize(image, keep_size_ratio=True, shape=(512, 512), flag=cv2.INTER_LINEAR):
     if isinstance(shape, int):
         shape = (shape, shape)

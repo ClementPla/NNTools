@@ -2,11 +2,10 @@ import glob
 import os
 
 import numpy as np
+import torch
 import tqdm
 
-
 from .image_dataset import ImageDataset, supportedExtensions
-import torch
 
 
 class ClassificationDataset(ImageDataset):
@@ -35,20 +34,20 @@ class ClassificationDataset(ImageDataset):
         for extension in supportedExtensions:
             prefix = "**/*." if recursive else "*."
             for path in self.path_img:
-                self.img_filepath.extend(glob.glob(path + prefix + extension, recursive=recursive))
+                self.img_filepath['image'].extend(glob.glob(path + prefix + extension, recursive=recursive))
 
-        self.img_filepath = np.asarray(self.img_filepath)
+        self.img_filepath['image'] = np.asarray(self.img_filepath['image'])
 
         if self.label_present:
             if self.label_per_folder:
-                for f in self.img_filepath:
+                for f in self.img_filepath['image']:
                     self.gts.append(os.path.basename(os.path.dirname(f)))
             if self.csv_filepath:
                 import pandas
                 csv = pandas.read_csv(self.csv_filepath)
-                img_names = [os.path.basename(p) for p in self.img_filepath]
+                img_names = [os.path.basename(p) for p in self.img_filepath['image']]
                 argsort = np.argsort(img_names)
-                self.img_filepath = self.img_filepath[argsort]
+                self.img_filepath['image'] = self.img_filepath['image'][argsort]
                 csv_names = np.asarray(csv[self.file_column])
                 argsort = np.argsort(csv_names)
                 csv_gts = np.asarray(csv[self.gt_column])
@@ -64,7 +63,6 @@ class ClassificationDataset(ImageDataset):
                 self.gts[self.gts == k] = v
         self.gts = self.gts.astype(int)
 
-
     def cache(self):
         self.use_cache = False
         self.sharred_imgs = self.init_cache()[0]
@@ -74,8 +72,8 @@ class ClassificationDataset(ImageDataset):
 
         self.use_cache = True
 
-    def __getitem__(self, item):
-        outputs = super(ClassificationDataset, self).__getitem__(item)
+    def __getitem__(self, item, torch_cast=True, transpose_img=True, return_indices=True):
+        outputs = super(ClassificationDataset, self).__getitem__(item, torch_cast, transpose_img, return_indices)
         if self.label_present:
             outputs['gt'] = torch.tensor(self.gts[item], dtype=torch.long)
         return outputs
@@ -83,26 +81,3 @@ class ClassificationDataset(ImageDataset):
     def get_class_count(self):
         from .utils import get_classification_class_count
         return get_classification_class_count(self)
-
-    def plot(self, item, show=True, save=False, save_folder='tmp/'):
-        import matplotlib.pyplot as plt
-
-        plt.rcParams['image.cmap'] = 'gray'
-        img, l = self[item][:2]
-        img = img.numpy()
-        img = (img - img.min()) / (img.max() - img.min())
-        fig, ax = plt.subplots(1, 1)
-        fig.set_size_inches(8, 8)
-        ax.imshow(np.squeeze(img.transpose((1, 2, 0))))
-        ax.set_axis_off()
-        fig.tight_layout()
-        label = list(self.map_class.keys())[list(self.map_class.values()).index(int(l))]
-        ax.set_title("Class %s (%i)" % (label, l))
-        if show:
-            fig.show()
-        if save:
-            if not os.path.exists(save_folder):
-                os.mkdir(save_folder)
-            filename = os.path.basename(self.img_filepath[item])
-            fig.savefig(os.path.join(save_folder, filename))
-            plt.close(fig)
