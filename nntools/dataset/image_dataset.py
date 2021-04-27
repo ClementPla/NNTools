@@ -124,8 +124,10 @@ class ImageDataset(Dataset):
         return img
 
     def subset(self, indices):
-        self.img_filepath['image'] = self.img_filepath['image'][indices]
-        self.gts = self.gts[indices]
+        for k, files in self.img_filepath.items():
+            self.img_filepath[k] = files[indices]
+        for k, files in self.gts.items():
+            self.gts[k] = files[indices]
 
     def __getitem__(self, item, torch_cast=True, transpose_img=True, return_indices=True):
         inputs = self.load_array(item)

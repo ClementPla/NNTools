@@ -69,6 +69,7 @@ class ClassificationDataset(ImageDataset):
         print('Caching dataset...')
         for i in tqdm.tqdm(range(1, len(self))):
             img = self.load_array(i)
+            raise NotImplementedError
 
         self.use_cache = True
 
