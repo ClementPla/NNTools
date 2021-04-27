@@ -137,13 +137,15 @@ class ImageDataset(Dataset):
             outputs = inputs
 
         if transpose_img:
-            outputs['image'] = self.transpose_img(outputs['image'])
-        if torch_cast:
             for k, item in outputs.items():
-                item = torch.from_numpy(item)
-                if isinstance(item, torch.ByteTensor):
-                    item = item.long()
+                if item.ndim == 3 and transpose_img:
+                    item = self.transpose_img(item) # HWN to NHW
+                if torch_cast:
+                    item = torch.from_numpy(item)
+                    if isinstance(item, torch.ByteTensor):
+                        item = item.long()
                 outputs[k] = item
+
         if self.return_indices and return_indices:
             outputs['indice'] = item
         return outputs
