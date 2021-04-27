@@ -16,6 +16,7 @@ def get_classification_class_count(dataset):
 
 
 def get_segmentation_class_count(dataset, save=True, load=True):
+    raise NotImplementedError
     shape = dataset.shape
     path = dataset.path_masks[0]
     filepath = os.path.join(path, 'classes_count.npy')
