@@ -23,8 +23,8 @@ if __name__ == '__main__':
     print(len(dataset))
     dataset.plot(0)
 
-    inputs = {'image':'/home/clement/Images/', 'pair': '/home/clement/Images/'}
-    dataset = D.MultiImageDataset(inputs, (512,512))
+    inputs = {'image': '/home/clement/Images/', 'pair': '/home/clement/Images/'}
+    dataset = D.MultiImageDataset(inputs, (512, 512))
 
     print(len(dataset))
 

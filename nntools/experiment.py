@@ -8,21 +8,17 @@ import torch.multiprocessing as mp
 import torch.nn as nn
 import tqdm
 from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
-from torch.cuda.amp import autocast, GradScaler
-from torch.nn.utils import clip_grad_norm_
+from torch.cuda.amp import autocast
 
-from nntools.dataset import class_weighting
-from nntools.nnet import nnt_format, FuseLoss, SUPPORTED_LOSS, BINARY_MODE, MULTICLASS_MODE
-from nntools.tracker import Log, Tracker, log_params, log_metrics, log_artifact
+from nntools.nnet import nnt_format
+from nntools.tracker import Log, Tracker, log_params, log_artifact
 from nntools.utils.io import save_yaml
-from nntools.utils.misc import partial_fill_kwargs, call_with_filtered_kwargs
+from nntools.utils.misc import partial_fill_kwargs
 from nntools.utils.optims import OPTIMS
 from nntools.utils.random import set_seed, set_non_torch_seed
 from nntools.utils.scheduler import SCHEDULERS
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP
 
-
-# from nntools.utils.multiprocessing import _start_process
 
 class Manager(ABC):
     def __init__(self, config, run_id=None):
@@ -125,11 +121,6 @@ class Experiment(Manager):
     def __init__(self, config, run_id=None):
         super(Experiment, self).__init__(config, run_id)
 
-        if 'ignore_index' in self.config['Training']:
-            self.ignore_index = self.config['Training']['ignore_index']
-        else:
-            self.ignore_index = -100
-
         self.batch_size = self.config['Training']['batch_size'] // self.world_size
         self.n_classes = config['Network'].pop('n_classes', -1)
 
@@ -152,25 +143,6 @@ class Experiment(Manager):
 
     def initial_tracking(self):
         log_params(self.tracker, **self.config['Training'])
-        if 'Optimizer' in self.config:
-            log_params(self.tracker, **self.config['Optimizer'])
-        if 'Learning_rate_scheduler' in self.config:
-            log_params(self.tracker, **self.config['Learning_rate_scheduler'])
-        log_params(self.tracker, **self.config['Network'])
-
-        log_params(self.tracker, Loss=self.config['Loss'].pop('type', 'custom'))
-        if 'fusion' in self.config['Loss']:
-            log_params(self.tracker, Loss_fusion=self.config['Loss']['fusion'])
-
-        if 'params_loss' in self.config['Loss']:
-            log_params(self.tracker, **self.config['Loss']['params_loss'])
-        if 'weighted_loss' in self.config['Loss']:
-            log_params(self.tracker, weighted_loss=self.config['Loss']['weighted_loss'])
-        if 'params_weighting' in self.config['Loss'] and self.config['Loss'].get('weighted_loss', False):
-            log_params(self.tracker, **self.config['Loss']['params_weighting'])
-
-        if 'Preprocessing' in self.config:
-            log_params(self.tracker, **self.config['Preprocessing'])
         save_yaml(self.config, os.path.join(self.tracker.run_folder, 'config.yaml'))
         log_artifact(self.tracker, self.config.get_path())
 
@@ -188,11 +160,14 @@ class Experiment(Manager):
         func = OPTIMS[solver]
         return partial_fill_kwargs(func, config['params_solver'])
 
-    def set_optimizer(self, **config):
+    def set_optimizer(self, optimizers=None, **config):
         """
         :return: A partial function of an optimizers. Partial passed arguments are hyperparameters
         """
-        self.partial_optimizer = self.create_optimizer(**config)
+        if optimizers is not None:
+            self.partial_optimizer = optimizers
+        else:
+            self.partial_optimizer = self.create_optimizer(**config)
 
     def set_scheduler(self, **config):
         scheduler_name = config['scheduler']
@@ -217,41 +192,6 @@ class Experiment(Manager):
                                                  persistent_workers=persistent_workers if num_workers else False)
         return dataloader, sampler
 
-    def get_loss(self, weights=None, rank=0):
-        config = self.config['Loss']
-        fuse_loss = FuseLoss(fusion=config.get('fusion', 'mean'))
-        mode = MULTICLASS_MODE if self.n_classes > 2 else BINARY_MODE
-
-        list_losses = config['type'].split('|')
-
-        if weights is not None:
-            weights = weights.cuda(self.get_gpu_from_rank(rank))
-        kwargs = {'ignore_index': self.ignore_index, 'mode': mode}
-
-        for k in list_losses:
-            k = k.strip()
-            loss = SUPPORTED_LOSS[k]
-            loss_args = kwargs.copy()
-            loss_args['weight'] = weights
-
-            if k in config.get('params_loss', {}):
-                loss_args.update(config['params_loss'][k])
-
-            fuse_loss.add(call_with_filtered_kwargs(loss, loss_args))
-
-        return fuse_loss
-
-    def get_class_weights(self):
-        class_count = self.train_dataset.get_class_count()
-        kwargs = self.config['Loss'].get('params_weighting', {})
-        return torch.tensor(class_weighting(class_count, ignore_index=self.ignore_index, **kwargs))
-
-    def setup_class_weights(self, weights):
-        if self.config['Manager']['amp']:
-            self.class_weights = weights.half()
-        else:
-            self.class_weights = weights
-
     def save_model(self, model, filename, **kwargs):
         print('Saving model')
         save = model.save(savepoint=self.tracker.network_savepoint, filename=filename, **kwargs)
@@ -273,7 +213,6 @@ class Experiment(Manager):
         if self.multi_gpu:
             dist.init_process_group(backend=self.config['Manager']['dist_backend'], rank=rank,
                                     world_size=self.world_size)
-
         model = self.get_model_on_device(rank)
         if self.run_training:
             try:
@@ -315,10 +254,6 @@ class Experiment(Manager):
         if self.partial_lr_scheduler is None:
             Log.warn("Missing learning rate scheduler, default behaviour is to keep the learning rate constant")
 
-        if self.config['Loss'].pop('weighted_loss', False) and self.class_weights is None:
-            class_weights = self.get_class_weights()
-            self.setup_class_weights(weights=class_weights)
-
         if self.register_params:
             self.initial_tracking()
 
@@ -337,96 +272,6 @@ class Experiment(Manager):
         if self.saved_models['last']:
             log_artifact(self.tracker, self.saved_models['last'])
 
-    def end(self, model, rank):
-        pass
-
-    def forward_train(self, model, loss_function, rank, batch):
-        batch = self.batch_to_device(batch, rank)
-        pred = model(batch[0])
-        if isinstance(pred, tuple):
-            loss = loss_function(*pred, *batch[1:])
-        else:
-            loss = loss_function(pred, *batch[1:])
-        return loss
-
-    def train(self, model, rank=0):
-        loss_function = self.get_loss(self.class_weights, rank=rank)
-        optimizer = self.partial_optimizer(
-            model.get_trainable_parameters(self.config['Optimizer']['params_solver']['lr']))
-
-        if self.partial_lr_scheduler is not None:
-            lr_scheduler = self.partial_lr_scheduler(optimizer)
-        else:
-            lr_scheduler = None
-        iteration = self.tracker.current_iteration - 1
-        train_loader, train_sampler = self.get_dataloader(self.train_dataset, rank=rank)
-        if self.validation_dataset is not None:
-            valid_loader, valid_sampler = self.get_dataloader(self.validation_dataset, shuffle=False, rank=rank)
-
-        iters_to_accumulate = self.config['Training'].get('iters_to_accumulate', 1)
-        scaler = GradScaler(enabled=self.config['Manager'].get('grad_scaling', True))
-        clip_grad = self.config['Training'].get('grad_clipping', False)
-
-        for e in range(self.config['Training']['epochs']):
-            if train_sampler is not None:
-                train_sampler.set_epoch(e)
-
-            if self.is_main_process(rank):
-                print('** Epoch %i **' % e)
-                progressBar = tqdm.tqdm(total=len(train_loader))
-
-            for i, batch in (enumerate(train_loader)):
-                iteration += 1
-                with autocast(enabled=self.config['Manager']['amp']):
-                    loss = self.forward_train(model, loss_function, rank, batch)
-
-                loss = loss / iters_to_accumulate
-                scaler.scale(loss).backward()
-                if (i + 1) % iters_to_accumulate == 0:
-                    if clip_grad:
-                        clip_grad_norm_(model.parameters(), float(clip_grad))
-                    scaler.step(optimizer)
-                    scaler.update()
-                    model.zero_grad()
-
-                    if self.ctx_train['scheduler_opt'].call_on == 'on_iteration':
-                        self.lr_scheduler_step(lr_scheduler, e, i, len(train_loader))
-
-                """
-                Validation step
-                """
-                if iteration % self.config['Validation']['log_interval'] == 0:
-                    if self.validation_dataset is not None:
-                        with torch.no_grad():
-                            with autocast(enabled=self.config['Manager']['amp']):
-                                valid_metric = self.validate(model, valid_loader, iteration, rank, loss_function)
-
-                    if self.ctx_train['scheduler_opt'].call_on == 'on_validation':
-                        self.lr_scheduler_step(lr_scheduler, e, i, len(train_loader), valid_metric)
-
-                    if self.is_main_process(rank):
-                        log_metrics(self.tracker, iteration, trainining_loss=loss.detach().item())
-                        self.save_model(model, filename='last')
-
-                    if self.multi_gpu:
-                        dist.barrier()
-
-                if self.is_main_process(rank):
-                    progressBar.update(1)
-
-            """ 
-            If the validation set is not provided, we save the model once per epoch
-            """
-            if self.validation_dataset is None:
-                if self.is_main_process(rank):
-                    self.save_model(model, filename='iteration_%i_loss_%f' % (iteration, loss.detach().item()))
-
-            if self.ctx_train['scheduler_opt'].call_on == 'on_epoch':
-                self.lr_scheduler_step(lr_scheduler, e, iteration, len(train_loader))
-
-            if self.is_main_process(rank):
-                progressBar.close()
-
     def lr_scheduler_step(self, lr_scheduler, epoch, iteration, size_epoch, validation_metrics=None):
         if lr_scheduler is None:
             pass
@@ -435,5 +280,23 @@ class Experiment(Manager):
         else:
             lr_scheduler.step(self.ctx_train['scheduler_opt'].callback(epoch, iteration, size_epoch))
 
+    def train(self, model, rank):
+        pass
+
     def validate(self, model, valid_loader, iteration, rank=0, loss_function=None):
         pass
+
+    def end(self, model, rank):
+        pass
+
+    def in_epoch(self, *args, **kwargs):
+        pass
+
+    def epoch_loop(self, epoch_size, rank=0):
+        for e in range(self.config['Training']['epochs']):
+            if self.is_main_process(rank):
+                print('** Epoch %i **' % e)
+                progressBar = tqdm.tqdm(total=epoch_size)
+                self.in_epoch()
+                if self.is_main_process(rank):
+                    progressBar.update(1)

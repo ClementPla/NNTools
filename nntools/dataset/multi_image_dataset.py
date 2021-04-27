@@ -25,11 +25,12 @@ class MultiImageDataset(ImageDataset):
 
         self.root_path = {k: to_iterable(path) for k, path in img_url.items()}
         self.filling_strategy = filling_strategy
-        super(MultiImageDataset, self).__init__(shape=shape, keep_size_ratio=keep_size_ratio, recursive_loading=recursive_loading,
-                                                sort_function=sort_function,use_cache=use_cache)
+        super(MultiImageDataset, self).__init__(shape=shape, keep_size_ratio=keep_size_ratio,
+                                                recursive_loading=recursive_loading,
+                                                sort_function=sort_function, use_cache=use_cache)
 
     def list_files(self, recursive):
-        self.img_filepath  = {k:[] for k in self.root_path.keys()}
+        self.img_filepath = {k: [] for k in self.root_path.keys()}
 
         for extension in supportedExtensions:
             prefix = "**/*." if recursive else "*."
@@ -85,9 +86,9 @@ class MultiImageDataset(ImageDataset):
                     self.img_filepath[k] = np.asarray(root_k)
 
         if self.sort_function is None and self.filling_strategy == NN_FILL_DOWNSAMPLE:
-                for k in self.img_filepath.keys():
-                    img_argsort = np.argsort(self.img_filepath[k])
-                    self.img_filepath[k] = self.img_filepath[k][img_argsort]
+            for k in self.img_filepath.keys():
+                img_argsort = np.argsort(self.img_filepath[k])
+                self.img_filepath[k] = self.img_filepath[k][img_argsort]
 
         elif self.filling_strategy == NN_FILL_DOWNSAMPLE:
             for k in self.img_filepath.keys():
@@ -109,7 +110,7 @@ class MultiImageDataset(ImageDataset):
             else:
                 img = read_image(filepath)
                 img = resize(image=img, shape=self.shape, keep_size_ratio=self.keep_size_ratio,
-                              flag=cv2.INTER_NEAREST)
+                             flag=cv2.INTER_NEAREST)
             inputs[k] = img
 
         return inputs

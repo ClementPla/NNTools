@@ -84,8 +84,9 @@ class SegmentationDataset(ImageDataset):
 
                 if self.filling_strategy == NN_FILL_DOWNSAMPLE:
                     Log.warn("Downsampling the dataset to size %i" % min(list_lengths))
-                    self.img_filepath['image'] = np.asarray([img for img, filename in zip(self.img_filepath['image'], img_filenames) if
-                                                    filename in intersection])
+                    self.img_filepath['image'] = np.asarray(
+                        [img for img, filename in zip(self.img_filepath['image'], img_filenames) if
+                         filename in intersection])
 
                     for k in self.gts.keys():
                         self.gts[k] = np.asarray(

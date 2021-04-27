@@ -19,6 +19,7 @@ from matplotlib import cm
 plt.rcParams['image.cmap'] = 'gray'
 import math
 
+
 class ImageDataset(Dataset):
     def __init__(self, img_url=None,
                  shape=None,
@@ -34,7 +35,7 @@ class ImageDataset(Dataset):
         self.keep_size_ratio = keep_size_ratio
         self.shape = tuple(shape)
         self.recursive_loading = recursive_loading
-        self.img_filepath = {'image':[]}
+        self.img_filepath = {'image': []}
         self.gts = {}
         self.auto_resize = True
         self.return_indices = False
