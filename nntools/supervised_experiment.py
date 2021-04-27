@@ -9,6 +9,9 @@ from nntools.nnet import FuseLoss, SUPPORTED_LOSS, BINARY_MODE, MULTICLASS_MODE
 from nntools.tracker import log_params, log_metrics
 from nntools.utils.misc import call_with_filtered_kwargs
 
+from nntools.utils import reduce_tensor
+import nntools.tracker.metrics as NNmetrics
+
 
 class SupervisedExperiment(Experiment):
     def __init__(self, config, run_id=None):
@@ -63,7 +66,6 @@ class SupervisedExperiment(Experiment):
             loss = SUPPORTED_LOSS[k]
             loss_args = kwargs.copy()
             loss_args['weight'] = weights
-
             if k in config.get('params_loss', {}):
                 loss_args.update(config['params_loss'][k])
 
@@ -189,3 +191,41 @@ class SupervisedExperiment(Experiment):
         else:
             loss = loss_function(pred, *batch[1:])
         return loss
+
+    def validate(self, model, valid_loader, iteration, rank=0, loss_function=None):
+        gpu = self.get_gpu_from_rank(rank)
+        confMat = torch.zeros(self.n_classes, self.n_classes).cuda(gpu)
+        losses = 0
+        model.eval()
+        for n, batch in enumerate(valid_loader):
+            img = batch['image'].cuda(gpu)
+            gt = batch['mask'].cuda(gpu)
+            proba = model(img)
+            
+            losses += loss_function(proba, gt).detach()
+            pred = torch.argmax(proba, 1)
+            confMat += NNmetrics.confusion_matrix(pred, gt, num_classes=self.n_classes)
+
+        if self.multi_gpu:
+            confMat = reduce_tensor(confMat, self.world_size, mode='sum')
+            losses = reduce_tensor(losses, self.world_size, mode='sum')/self.world_size
+
+        losses = losses/n
+
+        confMat = NNmetrics.filter_index_cm(confMat, self.ignore_index)
+        mIoU = NNmetrics.mIoU_cm(confMat)
+        if self.is_main_process(rank):
+            stats = NNmetrics.report_cm(confMat)
+            stats['mIoU'] = mIoU
+            stats['validation_loss'] = losses.item()
+
+            log_metrics(self.tracker, step=iteration, **stats)
+            if self.tracked_metric is None:
+                self.tracked_metric = mIoU
+            else:
+                if mIoU > self.tracked_metric:
+                    self.tracked_metric = mIoU
+                    filename = ('best_valid_iteration_%i_mIoU_%.3f' % (iteration, mIoU)).replace('.', '')
+                    self.save_model(model, filename=filename)
+        model.train()
+        return mIoU
