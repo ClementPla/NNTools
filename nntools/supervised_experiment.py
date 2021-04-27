@@ -18,7 +18,7 @@ class SupervisedExperiment(Experiment):
         else:
             self.ignore_index = -100
 
-        self.n_classes = config['Network'].pop('n_classes', -1)
+        self.n_classes = config['Network'].get('n_classes', -1)
         self.class_weights = None
 
     def initial_tracking(self):
