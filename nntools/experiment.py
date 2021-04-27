@@ -122,8 +122,6 @@ class Experiment(Manager):
         super(Experiment, self).__init__(config, run_id)
 
         self.batch_size = self.config['Training']['batch_size'] // self.world_size
-        self.n_classes = config['Network'].pop('n_classes', -1)
-
         self.train_dataset = None
         self.validation_dataset = None
         self.test_dataset = None
