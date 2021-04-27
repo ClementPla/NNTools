@@ -139,8 +139,11 @@ class ImageDataset(Dataset):
         if transpose_img:
             outputs['image'] = self.transpose_img(outputs['image'])
         if torch_cast:
-            for k in outputs:
-                outputs[k] = torch.from_numpy(outputs[k])
+            for k, item in outputs.items():
+                item = torch.from_numpy(item)
+                if isinstance(item, torch.ByteTensor):
+                    item = item.long()
+                outputs[k] = item
         if self.return_indices and return_indices:
             outputs['indice'] = item
         return outputs
