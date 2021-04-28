@@ -201,7 +201,7 @@ class SupervisedExperiment(Experiment):
             img = batch['image'].cuda(gpu)
             gt = batch['mask'].cuda(gpu)
             proba = model(img)
-            
+
             losses += loss_function(proba, gt).detach()
             pred = torch.argmax(proba, 1)
             confMat += NNmetrics.confusion_matrix(pred, gt, num_classes=self.n_classes)

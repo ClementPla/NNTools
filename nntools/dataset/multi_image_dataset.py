@@ -52,8 +52,8 @@ class MultiImageDataset(ImageDataset):
 
         all_equal = all(elem == list_lengths[0] for elem in list_lengths)
         if not all_equal:
-            Log.warn("Mismatch between the size of the different input folders (smaller %i, longer %i)" % (max(
-                list_lengths), min(list_lengths)))
+            Log.warn("Mismatch between the size of the different input folders (smaller %i, longer %i)" % (min(
+                list_lengths), max(list_lengths)))
 
             list_common_file = []
             for k, img_filenames in imgs_filenames.items():
@@ -75,7 +75,6 @@ class MultiImageDataset(ImageDataset):
                     if len(list_file) > max_size:
                         max_size = len(list_file)
                         largest_list = list_file
-
                 for k in self.img_filepath.keys():
                     root_k = []
                     for img_name in largest_list:
