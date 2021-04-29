@@ -166,10 +166,10 @@ class ImageDataset(Dataset):
             for j in range(col):
                 ax[i][j].set_axis_off()
 
-                if j + i * row >= len(arrays):
+                if j + i * col >= len(arrays):
                     ax[i][j].imshow(np.zeros_like(arr))
                 else:
-                    name, arr = arrays[j + i * row]
+                    name, arr = arrays[j + i * col]
                     n_classes = np.max(arr)+1
                     if n_classes == 0:
                         n_classes = 2
