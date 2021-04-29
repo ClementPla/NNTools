@@ -166,18 +166,18 @@ class ImageDataset(Dataset):
             for j in range(col):
                 ax[i][j].set_axis_off()
 
-                if j + i * row >= len(arrays):
+                if j + i * row > len(arrays):
                     ax[i][j].imshow(np.zeros_like(arr))
                 else:
                     name, arr = arrays[j + i * row]
-                    n_classes = arr.max()
+                    n_classes = np.max(arr)+1
                     if n_classes == 0:
-                        n_classes = 1
+                        n_classes = 2
                     cmap = cm.get_cmap(self.cmap_name, n_classes)
                     ax[i][j].set_title(name)
 
                     if arr.ndim == 3:
-                        arr = (arr - arr.min())/(arr.max() - arr.min())
+                        arr = (arr - np.min(arr))/(np.max(arr) - np.min(arr))
                         ax[i][j].imshow(np.squeeze(arr), cmap='gray')
                     elif arr.ndim == 2:
                         ax[i][j].imshow(np.squeeze(arr), cmap=cmap)
