@@ -166,7 +166,7 @@ class ImageDataset(Dataset):
             for j in range(col):
                 ax[i][j].set_axis_off()
 
-                if j + i * row > len(arrays):
+                if j + i * row >= len(arrays):
                     ax[i][j].imshow(np.zeros_like(arr))
                 else:
                     name, arr = arrays[j + i * row]
