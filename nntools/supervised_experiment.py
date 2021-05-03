@@ -30,7 +30,7 @@ class SupervisedExperiment(Experiment):
         if 'Learning_rate_scheduler' in self.config:
             log_params(self.tracker, **self.config['Learning_rate_scheduler'])
         log_params(self.tracker, **self.config['Network'])
-        log_params(self.tracker, Loss=self.config['Loss'].pop('type', 'custom'))
+        log_params(self.tracker, Loss=self.config['Loss'].get('type', 'custom'))
         if 'fusion' in self.config['Loss']:
             log_params(self.tracker, Loss_fusion=self.config['Loss']['fusion'])
         if 'params_loss' in self.config['Loss']:
@@ -45,7 +45,7 @@ class SupervisedExperiment(Experiment):
         super(SupervisedExperiment, self).initial_tracking()
 
     def start(self, run_id=None):
-        if self.config['Loss'].pop('weighted_loss', False) and self.class_weights is None:
+        if self.config['Loss'].get('weighted_loss', False) and self.class_weights is None:
             class_weights = self.get_class_weights()
             self.setup_class_weights(weights=class_weights)
         super(SupervisedExperiment, self).start()
