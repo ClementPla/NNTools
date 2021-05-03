@@ -187,9 +187,9 @@ class SupervisedExperiment(Experiment):
         batch = self.batch_to_device(batch, rank)
         pred = model(batch['image'])
         if isinstance(pred, tuple):
-            loss = loss_function(*pred, *batch.values()[1:])
+            loss = loss_function(*pred, batch['mask'])
         else:
-            loss = loss_function(pred, *batch.values()[1:])
+            loss = loss_function(pred, batch['mask'])
         return loss
 
     def validate(self, model, valid_loader, iteration, rank=0, loss_function=None):
