@@ -185,11 +185,11 @@ class SupervisedExperiment(Experiment):
 
     def forward_train(self, model, loss_function, rank, batch):
         batch = self.batch_to_device(batch, rank)
-        pred = model(batch[0])
+        pred = model(batch['image'])
         if isinstance(pred, tuple):
-            loss = loss_function(*pred, *batch[1:])
+            loss = loss_function(*pred, *batch.values()[1:])
         else:
-            loss = loss_function(pred, *batch[1:])
+            loss = loss_function(pred, *batch.values()[1:])
         return loss
 
     def validate(self, model, valid_loader, iteration, rank=0, loss_function=None):
