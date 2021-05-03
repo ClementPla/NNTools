@@ -125,7 +125,7 @@ class SupervisedExperiment(Experiment):
         scaler = self.ctx_train['scaler']
         lr_scheduler = self.ctx_train['lr_scheduler']
         train_loader = self.ctx_train['train_loader']
-
+        iters_to_accumulate = self.config['Training'].get('iters_to_accumulate', 1)
         if self.validation_dataset is not None:
             valid_loader = self.ctx_train['valid_loader']
             valid_sampler = self.ctx_train['valid_sampler']
@@ -138,9 +138,9 @@ class SupervisedExperiment(Experiment):
             with autocast(enabled=self.config['Manager']['amp']):
                 loss = self.forward_train(self.ctx_train['model'], self.ctx_train['loss_function'], rank, batch)
 
-            loss = loss / self.ctx_train['iters_to_accumulate']
+            loss = loss / iters_to_accumulate
             self.ctx_train['scaler'].scale(loss).backward()
-            if (i + 1) % self.config['Training'].get('iters_to_accumulate', 1) == 0:
+            if (i + 1) % iters_to_accumulate == 0:
                 if clip_grad:
                     clip_grad_norm_(model.parameters(), float(clip_grad))
                 scaler.step(optimizer)
