@@ -295,6 +295,6 @@ class Experiment(Manager):
             if self.is_main_process(rank):
                 print('** Epoch %i **' % e)
                 progressBar = tqdm.tqdm(total=epoch_size)
-                self.in_epoch()
+                self.in_epoch(epoch=e, rank=rank)
                 if self.is_main_process(rank):
                     progressBar.update(1)
