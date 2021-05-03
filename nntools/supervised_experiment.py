@@ -198,8 +198,9 @@ class SupervisedExperiment(Experiment):
         losses = 0
         model.eval()
         for n, batch in enumerate(valid_loader):
-            img = batch['image'].cuda(gpu)
-            gt = batch['mask'].cuda(gpu)
+            batch = self.batch_to_device(batch, rank)
+            img = batch['image']
+            gt = batch['mask']
             proba = model(img)
 
             losses += loss_function(proba, gt).detach()
