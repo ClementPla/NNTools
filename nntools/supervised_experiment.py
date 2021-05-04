@@ -125,7 +125,9 @@ class SupervisedExperiment(Experiment):
         lr_scheduler = self.ctx_train['lr_scheduler']
         train_loader = self.ctx_train['train_loader']
         iters_to_accumulate = self.config['Training'].get('iters_to_accumulate', 1)
-        progressBar = tqdm.tqdm(total=len(train_loader))
+
+        if self.is_main_process(rank):
+            progressBar = tqdm.tqdm(total=len(train_loader))
 
         if self.validation_dataset is not None:
             valid_loader = self.ctx_train['valid_loader']
@@ -170,8 +172,8 @@ class SupervisedExperiment(Experiment):
                     log_metrics(self.tracker, self.ctx_train['iteration'], trainining_loss=loss.detach().item())
                     self.save_model(model, filename='last')
 
-                if self.multi_gpu:
-                    dist.barrier()
+            if self.multi_gpu:
+                dist.barrier()
 
             if self.is_main_process(rank):
                 progressBar.update(1)
