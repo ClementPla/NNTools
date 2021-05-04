@@ -290,11 +290,8 @@ class Experiment(Manager):
     def in_epoch(self, *args, **kwargs):
         pass
 
-    def epoch_loop(self, epoch_size, rank=0):
+    def epoch_loop(self, rank=0):
         for e in range(self.config['Training']['epochs']):
             if self.is_main_process(rank):
                 print('** Epoch %i **' % e)
-                progressBar = tqdm.tqdm(total=epoch_size)
-                self.in_epoch(epoch=e, rank=rank)
-                if self.is_main_process(rank):
-                    progressBar.update(1)
+            self.in_epoch(epoch=e, rank=rank)

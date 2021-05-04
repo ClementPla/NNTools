@@ -2,7 +2,7 @@ import torch
 import torch.distributed as dist
 from torch.cuda.amp import autocast, GradScaler
 from torch.nn.utils import clip_grad_norm_
-
+import tqdm
 from nntools.dataset import class_weighting
 from nntools.experiment import Experiment
 from nntools.nnet import FuseLoss, SUPPORTED_LOSS, BINARY_MODE, MULTICLASS_MODE
@@ -115,10 +115,9 @@ class SupervisedExperiment(Experiment):
         self.ctx_train['optimizer'] = optimizer
         self.ctx_train['model'] = model
 
-        self.epoch_loop(len(train_loader), rank=rank)
+        self.epoch_loop(rank=rank)
 
     def in_epoch(self, epoch, rank=0):
-
         model = self.ctx_train['model']
         optimizer = self.ctx_train['optimizer']
         clip_grad = self.config['Training'].get('grad_clipping', False)
@@ -126,6 +125,8 @@ class SupervisedExperiment(Experiment):
         lr_scheduler = self.ctx_train['lr_scheduler']
         train_loader = self.ctx_train['train_loader']
         iters_to_accumulate = self.config['Training'].get('iters_to_accumulate', 1)
+        progressBar = tqdm.tqdm(total=len(train_loader))
+
         if self.validation_dataset is not None:
             valid_loader = self.ctx_train['valid_loader']
             valid_sampler = self.ctx_train['valid_sampler']
@@ -172,6 +173,9 @@ class SupervisedExperiment(Experiment):
                 if self.multi_gpu:
                     dist.barrier()
 
+            if self.is_main_process(rank):
+                progressBar.update(1)
+
         """ 
         If the validation set is not provided, we save the model once per epoch
         """
@@ -182,6 +186,8 @@ class SupervisedExperiment(Experiment):
 
         if self.ctx_train['scheduler_opt'].call_on == 'on_epoch':
             self.lr_scheduler_step(lr_scheduler, epoch, self.ctx_train['iteration'], len(train_loader))
+
+
 
     def forward_train(self, model, loss_function, rank, batch):
         batch = self.batch_to_device(batch, rank)
