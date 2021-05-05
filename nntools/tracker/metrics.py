@@ -28,17 +28,18 @@ def confusion_matrix(pred, gt, num_classes=-1,
     return torch.matmul(pred_one_hot.t().float(), gt_one_hot.float()).long()
 
 
-def mIoU(pred, gt, num_classes=-1, epsilon=1e-5, *args):
-    confMat = confusion_matrix(pred, gt, num_classes)
-    intersection = torch.diag(confMat)
-    union = confMat.sum(0) + confMat.sum(1) - intersection
-    return torch.mean(intersection / (union + epsilon)).item()
+def mIoU(pred, gt, num_classes=-1, epsilon=1e-7, multilabel=False, *args):
+    confMat = confusion_matrix(pred, gt, num_classes, multilabel=multilabel)
+    return mIoU_cm(confMat, epsilon=epsilon)
 
 
-def mIoU_cm(confMat, epsilon=1e-5):
-    intersection = torch.diag(confMat)
-    union = confMat.sum(0) + confMat.sum(1) - intersection
-    return torch.mean(intersection / (union + epsilon)).item()
+def mIoU_cm(confMat, epsilon=1e-7):
+    if confMat.ndim == 3:
+        return sum([mIoU_cm(c, epsilon=epsilon) for c in confMat])/confMat.shape[0]
+    else:
+        intersection = torch.diag(confMat)
+        union = confMat.sum(0) + confMat.sum(1) - intersection
+        return torch.mean(intersection / (union + epsilon)).item()
 
 
 def filter_index_cm(confMat, index):
@@ -95,7 +96,8 @@ def extract_confMat_values(confMat):
         FN = P - TP
         TN = all - TP - FP - FN
     else:
-        ValueError("Confusion matrix can only 2 (multiclass) or 3 (multilabels) dimension. Got shape ", confMat.shape)
+        ValueError("Confusion matrix can only have 2 (multiclass) or 3 (multilabels) dimension. Got shape ",
+                   confMat.shape)
     return TP, TN, P, N, FP, FN
 
 
@@ -111,8 +113,8 @@ if __name__ == '__main__':
     pp = pprint.PrettyPrinter(indent=4)
 
     pred = torch.zeros((1,3,2,2))
-    pred[0,0,0,0] = 1
-    pred[0,1,0,0] = 1
+    pred[0, 0, 0, 0] = 1
+    pred[0, 1, 0, 0] = 1
 
     gt = torch.zeros((1,3,2,2))
     gt[0, 0, 0, 0] = 1
