@@ -46,7 +46,8 @@ def filter_index_cm(confMat, index):
     n_classes = confMat.shape[0]
     classes = np.arange(n_classes)
     confMat = confMat[classes != index]
-    confMat = confMat[:, classes != index]
+    if confMat.ndim == 2:
+        confMat = confMat[:, classes != index]
     return confMat
 
 
