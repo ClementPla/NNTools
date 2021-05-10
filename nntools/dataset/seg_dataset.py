@@ -74,7 +74,7 @@ class SegmentationDataset(ImageDataset):
             all_equal = all(elem == list_lengths[0] for elem in list_lengths)
 
             if not all_equal:
-                Log.warn("Mismatch between the size of the different input folders (smaller %i, longer %i)" % (max(
+                Log.warn("Mismatch between the size of the different input folders (longer %i, smaller %i)" % (max(
                     list_lengths), min(list_lengths)))
 
                 list_common_file = set(img_filenames)
