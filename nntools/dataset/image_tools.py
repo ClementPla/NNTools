@@ -146,7 +146,7 @@ def resize(image, keep_size_ratio=True, shape=(512, 512), flag=cv2.INTER_LINEAR)
     else:
         shape = tuple(shape)
     if keep_size_ratio:
-        h, w = image.shape[:2]
+        w, h = image.shape[:2]
         max_size = np.max(image.shape[:2])
         amax_size = np.argmax(image.shape[:2])
         scale = shape[amax_size] / max_size
