@@ -132,8 +132,8 @@ class ImageDataset(Dataset):
         for k, files in self.gts.items():
             self.gts[k] = files[indices]
 
-    def __getitem__(self, item, torch_cast=True, transpose_img=True, return_indices=True):
-        inputs = self.load_array(item)
+    def __getitem__(self, index, torch_cast=True, transpose_img=True, return_indices=True):
+        inputs = self.load_array(index)
         if self.composer:
             outputs = self.composer(**inputs)
         else:
@@ -150,7 +150,7 @@ class ImageDataset(Dataset):
                 outputs[k] = item
 
         if self.return_indices and return_indices:
-            outputs['indice'] = item
+            outputs['indice'] = index
         return outputs
 
     def plot(self, item, classes=None):
