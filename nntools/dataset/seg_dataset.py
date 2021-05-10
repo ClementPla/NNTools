@@ -121,7 +121,7 @@ class SegmentationDataset(ImageDataset):
             for k, file_list in self.gts.items():
                 filepath = file_list[item]
                 if filepath == MISSING_DATA_FLAG and self.filling_strategy == NN_FILL_UPSAMPLE:
-                    mask = np.zeros(self.shape, dtype=np.uint8)
+                    mask = np.zeros(self.shape[::-1], dtype=np.uint8)
                 else:
                     mask = read_image(filepath, cv2.IMREAD_GRAYSCALE)
                     mask = resize(image=mask, shape=self.shape, keep_size_ratio=self.keep_size_ratio,
