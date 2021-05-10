@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 
 from nntools.dataset.image_tools import resize
 from nntools.utils.io import read_image
-from nntools.utils.misc import to_iterable
+from nntools.utils.misc import to_iterable, identity
 
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
 import multiprocessing as mp
@@ -28,7 +28,10 @@ class ImageDataset(Dataset):
                  sort_function=None,
                  use_cache=False):
 
-        self.sort_function = sort_function
+        if sort_function is None:
+            self.sort_function = identity
+        else:
+            self.sort_function = sort_function
         if img_url is not None:
             self.path_img = to_iterable(img_url)
         self.composer = None

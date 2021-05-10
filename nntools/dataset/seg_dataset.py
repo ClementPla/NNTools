@@ -6,7 +6,7 @@ import numpy as np
 from nntools.dataset.image_tools import resize
 from nntools.tracker import Log
 from nntools.utils.io import read_image, path_leaf
-from nntools.utils.misc import to_iterable
+from nntools.utils.misc import to_iterable, identity
 from .image_dataset import ImageDataset, supportedExtensions
 
 NN_FILL_DOWNSAMPLE = '0'
@@ -23,7 +23,7 @@ class SegmentationDataset(ImageDataset):
                  n_classes=None,
                  sort_function=None,
                  use_cache=False,
-                 filling_strategy=NN_FILL_DOWNSAMPLE):
+                 filling_strategy=NN_FILL_UPSAMPLE):
 
         if mask_url is None or mask_url == '':
             self.path_masks = None
@@ -97,20 +97,16 @@ class SegmentationDataset(ImageDataset):
 
                     for k in self.gts.keys():
                         gt_k = []
+
+                        gt_sorted_filenames = [self.sort_function(_) for _ in masks_filenames[k]]
                         for img_name in img_filenames:
-                            if img_name in masks_filenames[k]:
-                                gt_k.append(self.gts[k][masks_filenames[k].index(img_name)])
+                            if img_name in gt_sorted_filenames:
+                                img_name = self.sort_function(img_name)
+                                gt_k.append(self.gts[k][gt_sorted_filenames.index(img_name)])
                             else:
                                 gt_k.append(MISSING_DATA_FLAG)
                         self.gts[k] = np.asarray(gt_k)
-        if self.sort_function is None and self.filling_strategy == NN_FILL_DOWNSAMPLE:
-            img_argsort = np.argsort(self.img_filepath['image'])
-            self.img_filepath['image'] = self.img_filepath['image'][img_argsort]
-            if self.use_masks:
-                for k in self.gts.keys():
-                    mask_argsort = np.argsort(self.gts[k])
-                    self.gts[k] = self.gts[k][mask_argsort]
-        elif self.filling_strategy == NN_FILL_DOWNSAMPLE:
+        if self.filling_strategy == NN_FILL_DOWNSAMPLE:
             sort_key_img = np.argsort([self.sort_function(x) for x in img_filenames])
             self.img_filepath['image'] = self.img_filepath['image'][sort_key_img]
 

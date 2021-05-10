@@ -22,3 +22,7 @@ def call_with_filtered_kwargs(func, dict_args):
         if p.name in dict_args:
             kwargs[p.name] = dict_args[p.name]
     return func(**kwargs)
+
+
+def identity(x):
+    return x
