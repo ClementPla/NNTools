@@ -100,8 +100,8 @@ class SegmentationDataset(ImageDataset):
 
                         gt_sorted_filenames = [self.sort_function(_) for _ in masks_filenames[k]]
                         for img_name in img_filenames:
+                            img_name = self.sort_function(img_name)
                             if img_name in gt_sorted_filenames:
-                                img_name = self.sort_function(img_name)
                                 gt_k.append(self.gts[k][gt_sorted_filenames.index(img_name)])
                             else:
                                 gt_k.append(MISSING_DATA_FLAG)
