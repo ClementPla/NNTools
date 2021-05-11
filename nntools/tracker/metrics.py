@@ -17,7 +17,7 @@ def confusion_matrix(pred, gt, num_classes=-1,
     """
     if multilabel:
         b, c = pred.shape[:2]
-        conf_matrix = torch.zeros((c, 2, 2)).to(pred)
+        conf_matrix = torch.zeros((c, 2, 2)).to(pred.device)
         for i in range(c):
             conf_matrix[i] = confusion_matrix(pred[:, i].long(), gt[:, i].long(), num_classes=2, multilabel=False)
         return conf_matrix
