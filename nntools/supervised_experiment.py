@@ -189,6 +189,9 @@ class SupervisedExperiment(Experiment):
         if self.ctx_train['scheduler_opt'].call_on == 'on_epoch':
             self.lr_scheduler_step(lr_scheduler, epoch, self.ctx_train['iteration'], len(train_loader))
 
+        if self.multi_gpu:
+            dist.barrier()
+
 
 
     def forward_train(self, model, loss_function, rank, batch):
