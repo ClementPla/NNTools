@@ -62,7 +62,7 @@ class AbstractNet(nn.Module):
         torch.save(save_dict, path)
         return path
 
-    def load(self, path, ignore_nan=False, load_most_recent=False, strict=False, map_location=None):
+    def load(self, path, ignore_nan=False, load_most_recent=False, strict=False, map_location=None, filtername=None):
         if map_location is None:
             map_location = torch.device('cpu')
         if load_most_recent:

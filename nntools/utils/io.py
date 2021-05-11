@@ -34,8 +34,10 @@ def create_folder(folder_path):
         os.makedirs(folder_path)
 
 
-def get_most_recent_file(dirpath):
+def get_most_recent_file(dirpath, filtername=None):
     files = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(dirpath)) for f in fn]
     files.sort(key=lambda x: os.path.getmtime(x))
+    if filtername is not None:
+        files = [f for f in files if filtername in os.path.basename(f)]
     if files:
         return files[-1]
