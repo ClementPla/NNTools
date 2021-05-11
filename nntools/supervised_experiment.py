@@ -177,6 +177,9 @@ class SupervisedExperiment(Experiment):
 
             if self.is_main_process(rank):
                 progressBar.update(1)
+                
+        if self.is_main_process(rank):
+            progressBar.close()
 
         """ 
         If the validation set is not provided, we save the model once per epoch
