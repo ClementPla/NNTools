@@ -28,3 +28,9 @@ class Composition:
 
     def __lshift__(self, other):
         return self.add(other)
+
+    def __str__(self):
+        output = ''
+        for i, o in enumerate(self.ops):
+            output += '%i_'%i+str(o) + ' STATUS: '+('Active' if i not in self.deactivated else 'Inactive') + ' \n'
+        return output

@@ -192,8 +192,6 @@ class SupervisedExperiment(Experiment):
         if self.multi_gpu:
             dist.barrier()
 
-
-
     def forward_train(self, model, loss_function, rank, batch):
         batch = self.batch_to_device(batch, rank)
         pred = model(batch['image'])
