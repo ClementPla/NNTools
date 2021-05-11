@@ -66,7 +66,7 @@ class AbstractNet(nn.Module):
         if map_location is None:
             map_location = torch.device('cpu')
         if load_most_recent:
-            path = get_most_recent_file(path)
+            path = get_most_recent_file(path, filtername)
         print("Loading model from ", path)
 
         state_dict = torch.load(path, map_location=map_location)['model_state_dict']
