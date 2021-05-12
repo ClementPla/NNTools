@@ -98,7 +98,7 @@ class SupervisedExperiment(Experiment):
 
         if self.validation_dataset is not None:
             valid_loader, valid_sampler = self.get_dataloader(self.validation_dataset,
-                                                              batch_size=self.world_size,
+                                                              batch_size=1,
                                                               shuffle=False, rank=rank)
             self.ctx_train['valid_loader'] = valid_loader
             self.ctx_train['valid_sampler'] = valid_sampler
@@ -143,17 +143,17 @@ class SupervisedExperiment(Experiment):
             with autocast(enabled=self.config['Manager']['amp']):
                 loss = self.forward_train(self.ctx_train['model'], self.ctx_train['loss_function'], rank, batch)
 
-            loss = loss / iters_to_accumulate
-            self.ctx_train['scaler'].scale(loss).backward()
-            if (i + 1) % iters_to_accumulate == 0:
-                if clip_grad:
-                    clip_grad_norm_(model.parameters(), float(clip_grad))
-                scaler.step(optimizer)
-                scaler.update()
-                model.zero_grad()
+                loss = loss / iters_to_accumulate
+                self.ctx_train['scaler'].scale(loss).backward()
+                if (i + 1) % iters_to_accumulate == 0:
+                    if clip_grad:
+                        clip_grad_norm_(model.parameters(), float(clip_grad))
+                    scaler.step(optimizer)
+                    scaler.update()
+                    model.zero_grad()
 
-                if self.ctx_train['scheduler_opt'].call_on == 'on_iteration':
-                    self.lr_scheduler_step(lr_scheduler, epoch, i, len(train_loader))
+                    if self.ctx_train['scheduler_opt'].call_on == 'on_iteration':
+                        self.lr_scheduler_step(lr_scheduler, epoch, i, len(train_loader))
 
             """
             Validation step
