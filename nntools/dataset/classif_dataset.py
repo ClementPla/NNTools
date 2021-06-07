@@ -70,7 +70,7 @@ class ClassificationDataset(ImageDataset):
             if len(self.gt_column) == 1:
                 for k, v in self.map_class.items():
                     self.gts['label'][self.gts['label'] == k] = v
-                    self.gts['label'] = self.gts['label'].astype(int)
+                self.gts['label'] = self.gts['label'].astype(int)
 
     def load_image(self, item):
         inputs = super(ClassificationDataset, self).load_image(item)
