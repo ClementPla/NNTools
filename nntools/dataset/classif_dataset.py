@@ -18,18 +18,18 @@ class ClassificationDataset(ImageDataset):
                  label_per_folder=True,
                  csv_filepath=None,
                  file_column='image',
-                 gt_column='level',
+                 gt_column='label',
                  sort_function=None, use_cache=False):
         self.map_class = map_class
         self.label_present = label_present
         self.label_per_folder = label_per_folder
         self.csv_filepath = csv_filepath
         self.file_column = file_column
+        if not isinstance(gt_column, list):
+            gt_column = [gt_column]
         self.gt_column = gt_column
         super(ClassificationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading,
                                                     sort_function, use_cache)
-        self.gts = {'label':[]}
-
 
     def list_files(self, recursive):
         for extension in supportedExtensions:
@@ -41,6 +41,7 @@ class ClassificationDataset(ImageDataset):
 
         if self.label_present:
             if self.label_per_folder:
+                self.gts['label'] = []
                 for f in self.img_filepath['image']:
                     self.gts['label'].append(os.path.basename(os.path.dirname(f)))
             if self.csv_filepath:
@@ -49,21 +50,27 @@ class ClassificationDataset(ImageDataset):
                 img_names = [os.path.basename(p) for p in self.img_filepath['image']]
                 argsort = np.argsort(img_names)
                 self.img_filepath['image'] = self.img_filepath['image'][argsort]
-                csv_names = np.asarray(csv[self.file_column])
-                argsort = np.argsort(csv_names)
-                csv_gts = np.asarray(csv[self.gt_column])
-                self.gts['label'] = csv_gts[argsort]
+                csv.sort_values(self.file_column)
+                for col in self.gt_column:
+                    csv_gts = np.asarray(csv[col])
+                    self.gts[col] = csv_gts
 
-            unique_labels = np.unique(self.gts)
-            self.n_classes = len(unique_labels)
+            if len(self.gt_column) == 1:
+                unique_labels = np.unique(self.gts['label'])
+                self.n_classes = len(unique_labels)
+            else:
+                unique_labels = self.gt_column
+                self.n_classes = len(self.gt_column)
             for k, value in self.gts.items():
                 self.gts[k] = np.asarray(value)
 
             if self.map_class is None:
                 self.map_class = {unique_labels[i]: i for i in np.arange(len(unique_labels))}
-            for k, v in self.map_class.items():
-                self.gts['label'][self.gts['label'] == k] = v
-                self.gts['label'] = self.gts['label'].astype(int)
+
+            if len(self.gt_column) == 1:
+                for k, v in self.map_class.items():
+                    self.gts['label'][self.gts['label'] == k] = v
+                    self.gts['label'] = self.gts['label'].astype(int)
 
     def load_image(self, item):
         inputs = super(ClassificationDataset, self).load_image(item)
