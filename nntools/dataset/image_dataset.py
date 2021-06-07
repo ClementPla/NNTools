@@ -175,7 +175,7 @@ class ImageDataset(Dataset):
                 ax[i][j].set_axis_off()
 
                 if j + i * col >= len(arrays):
-                    ax[i][j].imshow(np.zeros_like(arr))
+                    ax[i][j].imshow(np.zeros_like(np.squeeze(arr)))
                 else:
                     name, arr = arrays[j + i * col]
                     n_classes = np.max(arr)+1
