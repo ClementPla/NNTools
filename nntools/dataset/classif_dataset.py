@@ -74,5 +74,8 @@ class ClassificationDataset(ImageDataset):
 
     def load_image(self, item):
         inputs = super(ClassificationDataset, self).load_image(item)
+        for k, v in inputs.items():
+            if v.ndim==2:
+                inputs[k] = np.expand_dims(v, 0)
         inputs['label'] = self.gts['label'][item]
         return inputs
