@@ -72,6 +72,9 @@ class ImageDataset(Dataset):
         shared_arrays = {}
         nb_samples = len(self)
         for key, arr in arrays.items():
+            if not isinstance(arr, np.ndarray):
+                shared_arrays[key] = arr
+                continue
             if arr.ndim == 2:
                 h, w = arr.shape
                 c = 1
@@ -141,6 +144,8 @@ class ImageDataset(Dataset):
 
         if transpose_img:
             for k, item in outputs.items():
+                if not isinstance(item, np.ndarray):
+                    item = np.asarray(item)
                 if item.ndim == 3 and transpose_img:
                     item = self.transpose_img(item) # HWN to NHW
                 if torch_cast:

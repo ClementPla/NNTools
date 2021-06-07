@@ -26,9 +26,10 @@ class ClassificationDataset(ImageDataset):
         self.csv_filepath = csv_filepath
         self.file_column = file_column
         self.gt_column = gt_column
-
         super(ClassificationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading,
                                                     sort_function, use_cache)
+        self.gts = {'label':[]}
+
 
     def list_files(self, recursive):
         for extension in supportedExtensions:
@@ -41,7 +42,7 @@ class ClassificationDataset(ImageDataset):
         if self.label_present:
             if self.label_per_folder:
                 for f in self.img_filepath['image']:
-                    self.gts.append(os.path.basename(os.path.dirname(f)))
+                    self.gts['label'].append(os.path.basename(os.path.dirname(f)))
             if self.csv_filepath:
                 import pandas
                 csv = pandas.read_csv(self.csv_filepath)
@@ -51,34 +52,20 @@ class ClassificationDataset(ImageDataset):
                 csv_names = np.asarray(csv[self.file_column])
                 argsort = np.argsort(csv_names)
                 csv_gts = np.asarray(csv[self.gt_column])
-                self.gts = csv_gts[argsort]
+                self.gts['label'] = csv_gts[argsort]
 
             unique_labels = np.unique(self.gts)
             self.n_classes = len(unique_labels)
-            self.gts = np.asarray(self.gts)
+            for k, value in self.gts.items():
+                self.gts[k] = np.asarray(value)
 
             if self.map_class is None:
                 self.map_class = {unique_labels[i]: i for i in np.arange(len(unique_labels))}
             for k, v in self.map_class.items():
-                self.gts[self.gts == k] = v
-        self.gts = self.gts.astype(int)
+                self.gts['label'][self.gts['label'] == k] = v
+                self.gts['label'] = self.gts['label'].astype(int)
 
-    def cache(self):
-        self.use_cache = False
-        self.sharred_imgs = self.init_cache()[0]
-        print('Caching dataset...')
-        for i in tqdm.tqdm(range(1, len(self))):
-            img = self.load_array(i)
-            raise NotImplementedError
-
-        self.use_cache = True
-
-    def __getitem__(self, item, torch_cast=True, transpose_img=True, return_indices=True):
-        outputs = super(ClassificationDataset, self).__getitem__(item, torch_cast, transpose_img, return_indices)
-        if self.label_present:
-            outputs['gt'] = torch.tensor(self.gts[item], dtype=torch.long)
-        return outputs
-
-    def get_class_count(self):
-        from .utils import get_classification_class_count
-        return get_classification_class_count(self)
+    def load_image(self, item):
+        inputs = super(ClassificationDataset, self).load_image(item)
+        inputs['label'] = self.gts['label'][item]
+        return inputs
