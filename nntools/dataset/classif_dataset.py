@@ -79,5 +79,6 @@ class ClassificationDataset(ImageDataset):
         for k, v in inputs.items():
             if v.ndim==2:
                 inputs[k] = np.expand_dims(v, 2)
-        inputs['label'] = self.gts['label'][item]
+        for k in self.gts.keys():
+            inputs[k] = self.gts[k][item]
         return inputs
