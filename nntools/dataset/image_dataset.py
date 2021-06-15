@@ -25,13 +25,13 @@ class ImageDataset(Dataset):
                  shape=None,
                  keep_size_ratio=False,
                  recursive_loading=True,
-                 sort_function=None,
+                 extract_image_id_function=None,
                  use_cache=False):
 
-        if sort_function is None:
-            self.sort_function = identity
+        if extract_image_id_function is None:
+            self.extract_image_id_function = identity
         else:
-            self.sort_function = sort_function
+            self.extract_image_id_function = extract_image_id_function
         if img_url is not None:
             self.path_img = to_iterable(img_url)
         self.composer = None

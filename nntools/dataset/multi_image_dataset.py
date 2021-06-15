@@ -19,7 +19,7 @@ class MultiImageDataset(ImageDataset):
                  shape=None,
                  keep_size_ratio=False,
                  recursive_loading=True,
-                 sort_function=None,
+                 extract_image_id_function=None,
                  use_cache=False,
                  filling_strategy=NN_FILL_DOWNSAMPLE):
 
@@ -27,7 +27,7 @@ class MultiImageDataset(ImageDataset):
         self.filling_strategy = filling_strategy
         super(MultiImageDataset, self).__init__(shape=shape, keep_size_ratio=keep_size_ratio,
                                                 recursive_loading=recursive_loading,
-                                                sort_function=sort_function, use_cache=use_cache)
+                                                extract_image_id_function=extract_image_id_function, use_cache=use_cache)
 
     def list_files(self, recursive):
         self.img_filepath = {k: [] for k in self.root_path.keys()}
@@ -84,14 +84,14 @@ class MultiImageDataset(ImageDataset):
                             root_k.append(MISSING_DATA_FLAG)
                     self.img_filepath[k] = np.asarray(root_k)
 
-        if self.sort_function is None and self.filling_strategy == NN_FILL_DOWNSAMPLE:
+        if self.extract_image_id_function is None and self.filling_strategy == NN_FILL_DOWNSAMPLE:
             for k in self.img_filepath.keys():
                 img_argsort = np.argsort(self.img_filepath[k])
                 self.img_filepath[k] = self.img_filepath[k][img_argsort]
 
         elif self.filling_strategy == NN_FILL_DOWNSAMPLE:
             for k in self.img_filepath.keys():
-                img_argsort = np.argsort([self.sort_function(x) for x in imgs_filenames[k]])
+                img_argsort = np.argsort([self.extract_image_id_function(x) for x in imgs_filenames[k]])
                 self.img_filepath[k] = self.img_filepath[k][img_argsort]
 
     def __len__(self):

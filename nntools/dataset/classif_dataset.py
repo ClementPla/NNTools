@@ -19,7 +19,8 @@ class ClassificationDataset(ImageDataset):
                  csv_filepath=None,
                  file_column='image',
                  gt_column='label',
-                 sort_function=None, use_cache=False):
+                 extract_image_id_function=None,
+                 use_cache=False):
         self.map_class = map_class
         self.label_present = label_present
         self.label_per_folder = label_per_folder if csv_filepath is None else False
@@ -29,7 +30,7 @@ class ClassificationDataset(ImageDataset):
             gt_column = [gt_column]
         self.gt_column = gt_column
         super(ClassificationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading,
-                                                    sort_function, use_cache)
+                                                    extract_image_id_function, use_cache)
 
     def list_files(self, recursive):
         for extension in supportedExtensions:
@@ -48,7 +49,9 @@ class ClassificationDataset(ImageDataset):
                 import pandas
                 csv = pandas.read_csv(self.csv_filepath)
                 img_names = [os.path.basename(p) for p in self.img_filepath['image']]
+                img_names = [self.extract_image_id_function(_) for _ in img_names]
                 argsort = np.argsort(img_names)
+
                 self.img_filepath['image'] = self.img_filepath['image'][argsort]
                 csv.sort_values(self.file_column, inplace=True)
                 for col in self.gt_column:

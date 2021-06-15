@@ -21,7 +21,7 @@ class SegmentationDataset(ImageDataset):
                  keep_size_ratio=False,
                  recursive_loading=True,
                  n_classes=None,
-                 sort_function=None,
+                 extract_image_id_function=None,
                  use_cache=False,
                  filling_strategy=NN_FILL_UPSAMPLE):
 
@@ -36,7 +36,7 @@ class SegmentationDataset(ImageDataset):
         self.n_classes = n_classes
         self.filling_strategy = filling_strategy
 
-        super(SegmentationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading, sort_function,
+        super(SegmentationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading, extract_image_id_function,
                                                   use_cache)
 
     def get_class_count(self):
@@ -98,21 +98,21 @@ class SegmentationDataset(ImageDataset):
                     for k in self.gts.keys():
                         gt_k = []
 
-                        gt_sorted_filenames = [self.sort_function(_) for _ in masks_filenames[k]]
+                        gt_sorted_filenames = [self.extract_image_id_function(_) for _ in masks_filenames[k]]
                         for img_name in img_filenames:
-                            img_name = self.sort_function(img_name)
+                            img_name = self.extract_image_id_function(img_name)
                             if img_name in gt_sorted_filenames:
                                 gt_k.append(self.gts[k][gt_sorted_filenames.index(img_name)])
                             else:
                                 gt_k.append(MISSING_DATA_FLAG)
                         self.gts[k] = np.asarray(gt_k)
         if self.filling_strategy == NN_FILL_DOWNSAMPLE:
-            sort_key_img = np.argsort([self.sort_function(x) for x in img_filenames])
+            sort_key_img = np.argsort([self.extract_image_id_function(x) for x in img_filenames])
             self.img_filepath['image'] = self.img_filepath['image'][sort_key_img]
 
             if self.use_masks:
                 for k in self.gts.keys():
-                    sort_key_mask = np.argsort([self.sort_function(x) for x in masks_filenames[k]])
+                    sort_key_mask = np.argsort([self.extract_image_id_function(x) for x in masks_filenames[k]])
                     self.gts[k] = self.gts[k][sort_key_mask]
 
     def load_image(self, item):
