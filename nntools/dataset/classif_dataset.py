@@ -50,7 +50,7 @@ class ClassificationDataset(ImageDataset):
                 img_names = [os.path.basename(p) for p in self.img_filepath['image']]
                 argsort = np.argsort(img_names)
                 self.img_filepath['image'] = self.img_filepath['image'][argsort]
-                csv.sort_values(self.file_column)
+                csv.sort_values(self.file_column, inplace=True)
                 for col in self.gt_column:
                     csv_gts = np.asarray(csv[col])
                     self.gts[col] = csv_gts

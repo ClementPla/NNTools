@@ -6,7 +6,6 @@ import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch.nn as nn
-import tqdm
 from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
 from torch.cuda.amp import autocast
 
@@ -239,9 +238,9 @@ class Experiment(Manager):
 
         self.clean_up()
 
-    def start(self):
+    def start(self, run_id=None):
         if not self.run_started:
-            self.start_run()
+            self.start_run(run_id)
         assert self.partial_optimizer is not None, "Missing optimizer for training"
         assert self.train_dataset is not None, "Missing dataset"
 

@@ -48,7 +48,7 @@ class SupervisedExperiment(Experiment):
         if self.config['Loss'].get('weighted_loss', False) and self.class_weights is None:
             class_weights = self.get_class_weights()
             self.setup_class_weights(weights=class_weights)
-        super(SupervisedExperiment, self).start()
+        super(SupervisedExperiment, self).start(run_id)
 
     def get_loss(self, weights=None, rank=0):
         config = self.config['Loss']
