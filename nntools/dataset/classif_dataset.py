@@ -56,7 +56,7 @@ class ClassificationDataset(ImageDataset):
                     self.gts[col] = csv_gts
 
             if len(self.gt_column) == 1:
-                unique_labels = np.unique(self.gts['label'])
+                unique_labels = np.unique(self.gt_column[0])
                 self.n_classes = len(unique_labels)
             else:
                 unique_labels = self.gt_column
@@ -69,8 +69,8 @@ class ClassificationDataset(ImageDataset):
 
             if len(self.gt_column) == 1:
                 for k, v in self.map_class.items():
-                    self.gts['label'][self.gts['label'] == k] = v
-                self.gts['label'] = self.gts['label'].astype(int)
+                    self.gts[self.gt_column[0]][self.gts[self.gt_column[0]] == k] = v
+                self.gts[self.gt_column[0]] = self.gts[self.gt_column[0]].astype(int)
 
     def load_image(self, item):
         inputs = super(ClassificationDataset, self).load_image(item)
