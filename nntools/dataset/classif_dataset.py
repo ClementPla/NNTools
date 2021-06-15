@@ -22,7 +22,7 @@ class ClassificationDataset(ImageDataset):
                  sort_function=None, use_cache=False):
         self.map_class = map_class
         self.label_present = label_present
-        self.label_per_folder = label_per_folder
+        self.label_per_folder = label_per_folder if csv_filepath is None else False
         self.csv_filepath = csv_filepath
         self.file_column = file_column
         if not isinstance(gt_column, list):
