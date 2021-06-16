@@ -38,11 +38,15 @@ class ImageDataset(Dataset):
         self.keep_size_ratio = keep_size_ratio
         self.shape = tuple(shape)
         self.recursive_loading = recursive_loading
+
         self.img_filepath = {'image': []}
         self.gts = {}
+        self.shared_arrays = {}
+
         self.auto_resize = True
         self.return_indices = False
         self.list_files(recursive_loading)
+
         self.use_cache = use_cache
         self.cmap_name = 'jet_r'
 
@@ -107,9 +111,18 @@ class ImageDataset(Dataset):
         else:
             return self.load_image(item)
 
-    def filename(self, items):
+    def columns(self):
+        return (self.img_filepath.keys(), self.gts.keys())
+
+    def remap(self, old_key, new_key):
+        dicts = [self.img_filepath, self.gts, self.shared_arrays]
+        for d in dicts:
+            if old_key in d.keys():
+                d[new_key] = d.pop(old_key)
+
+    def filename(self, items, col='image'):
         items = np.asarray(items)
-        filepaths = self.img_filepath['image'][items]
+        filepaths = self.img_filepath[col][items]
         if isinstance(filepaths, list) or isinstance(filepaths, np.ndarray):
             return [os.path.basename(f) for f in filepaths]
         else:
@@ -126,7 +139,6 @@ class ImageDataset(Dataset):
             img = img.transpose(2, 0, 1)
         elif img.ndim == 2:
             img = np.expand_dims(img, 0)
-
         return img
 
     def subset(self, indices):

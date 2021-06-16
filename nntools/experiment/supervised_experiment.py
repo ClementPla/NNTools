@@ -4,7 +4,7 @@ from torch.cuda.amp import autocast, GradScaler
 from torch.nn.utils import clip_grad_norm_
 import tqdm
 from nntools.dataset import class_weighting
-from experiment.experiment import Experiment
+from .experiment import Experiment
 from nntools.nnet import FuseLoss, SUPPORTED_LOSS, BINARY_MODE, MULTICLASS_MODE
 from nntools.tracker import log_params, log_metrics
 from nntools.utils.misc import call_with_filtered_kwargs
