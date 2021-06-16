@@ -23,6 +23,8 @@ class SupervisedExperiment(Experiment):
 
         self.n_classes = config['Network'].get('n_classes', -1)
         self.class_weights = None
+        self.gt_name = 'mask'
+
 
     def initial_tracking(self):
         if 'Optimizer' in self.config:
@@ -201,9 +203,9 @@ class SupervisedExperiment(Experiment):
         batch = self.batch_to_device(batch, rank)
         pred = model(batch['image'])
         if isinstance(pred, tuple):
-            loss = loss_function(*pred, batch['mask'])
+            loss = loss_function(*pred, batch[self.gt_name])
         else:
-            loss = loss_function(pred, batch['mask'])
+            loss = loss_function(pred, batch[self.gt_name])
         return loss
 
     def validate(self, model, valid_loader, iteration, rank=0, loss_function=None):
@@ -214,7 +216,7 @@ class SupervisedExperiment(Experiment):
         for n, batch in enumerate(valid_loader):
             batch = self.batch_to_device(batch, rank)
             img = batch['image']
-            gt = batch['mask']
+            gt = batch[self.gt_name]
             proba = model(img)
 
             losses += loss_function(proba, gt).detach()
