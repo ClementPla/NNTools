@@ -195,7 +195,8 @@ class ImageDataset(Dataset):
                         n_classes = 2
                     cmap = cm.get_cmap(self.cmap_name, n_classes)
                     ax[i][j].set_title(name)
-
+                    if arr.ndim == 3 and arr.shape[-1] > 3:
+                        arr = np.argmax(arr, axis=-1)
                     if arr.ndim == 3:
                         arr = (arr - np.min(arr))/(np.max(arr) - np.min(arr))
                         ax[i][j].imshow(np.squeeze(arr), cmap='gray')
