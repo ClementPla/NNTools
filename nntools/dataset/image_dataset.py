@@ -193,7 +193,9 @@ class ImageDataset(Dataset):
 
                     ax[i][j].set_title(name)
                     if arr.ndim == 3 and arr.shape[-1] > 3:
-                        arr = np.argmax(arr, axis=-1)
+                        arr_tmp = np.argmax(arr, axis=-1)+1
+                        arr_tmp[np.invert(arr[-1].astype(bool))] = 0
+                        arr = arr_tmp
                     if arr.ndim == 3:
                         arr = (arr - np.min(arr))/(np.max(arr) - np.min(arr))
                         ax[i][j].imshow(np.squeeze(arr), cmap='gray')
