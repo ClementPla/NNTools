@@ -222,7 +222,7 @@ class Experiment(Manager):
 
             if self.keyboard_exception_raised:
                 if self.is_main_process(rank):
-                    Log.warn("Killed Process. The model will be registered at %s" % self.saved_models)
+                    Log.warn("Killed Process. The last model will be registered at %s" % self.saved_models)
                     self.tracker.set_status('KILLED')
 
         if self.is_main_process(rank) and (self.run_training or self.save_last):
@@ -241,15 +241,17 @@ class Experiment(Manager):
     def start(self, run_id=None):
         if not self.run_started:
             self.start_run(run_id)
-        assert self.partial_optimizer is not None, "Missing optimizer for training"
-        assert self.train_dataset is not None, "Missing dataset"
+
+        if self.run_training:
+            assert self.partial_optimizer is not None, "Missing optimizer for training"
+            assert self.train_dataset is not None, "Missing dataset"
+            if self.validation_dataset is None:
+                Log.warn("Missing validation set, default behaviour is to save the model once per epoch")
+
+            if self.partial_lr_scheduler is None:
+                Log.warn("Missing learning rate scheduler, default behaviour is to keep the learning rate constant")
 
         self.keyboard_exception_raised = False
-        if self.validation_dataset is None:
-            Log.warn("Missing validation set, default behaviour is to save the model once per epoch")
-
-        if self.partial_lr_scheduler is None:
-            Log.warn("Missing learning rate scheduler, default behaviour is to keep the learning rate constant")
 
         if self.register_params:
             self.initial_tracking()
@@ -276,6 +278,11 @@ class Experiment(Manager):
             lr_scheduler.step(validation_metrics)
         else:
             lr_scheduler.step(self.ctx_train['scheduler_opt'].callback(epoch, iteration, size_epoch))
+
+    def eval(self, register_params=False, run_id=None):
+        self.register_params = register_params
+        self.run_training = False
+        self.start(run_id=run_id)
 
     def train(self, model, rank):
         pass
