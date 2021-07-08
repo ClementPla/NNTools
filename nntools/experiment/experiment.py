@@ -8,7 +8,7 @@ import torch.multiprocessing as mp
 import torch.nn as nn
 from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
 from torch.cuda.amp import autocast
-
+from tqdm import tqdm
 from nntools.nnet import nnt_format
 from nntools.tracker import Log, Tracker, log_params, log_artifact
 from nntools.utils.io import save_yaml
@@ -81,7 +81,7 @@ class Manager(ABC):
         return self.gpu[rank]
 
     def get_model_on_device(self, rank):
-        print('Rank %i, gpu %i' % (rank, self.get_gpu_from_rank(rank)))
+        tqdm.write('Rank %i, gpu %i' % (rank, self.get_gpu_from_rank(rank)))
         torch.cuda.set_device(self.get_gpu_from_rank(rank))
         model = self.get_model()
         model = self.convert_batch_norm(model)
@@ -190,7 +190,7 @@ class Experiment(Manager):
         return dataloader, sampler
 
     def save_model(self, model, filename, **kwargs):
-        print('Saving model')
+        tqdm.write('Saving model')
         save = model.save(savepoint=self.tracker.network_savepoint, filename=filename, **kwargs)
 
         if 'best_valid' in filename:
@@ -206,7 +206,7 @@ class Experiment(Manager):
                 os.remove(f)
 
     def _start_process(self, rank=0):
-        print('Initializing process %i' % rank)
+        tqdm.write('Initializing process %i' % rank)
         if self.multi_gpu:
             dist.init_process_group(backend=self.config['Manager']['dist_backend'], rank=rank,
                                     world_size=self.world_size)
@@ -299,5 +299,5 @@ class Experiment(Manager):
     def epoch_loop(self, rank=0):
         for e in range(self.config['Training']['epochs']):
             if self.is_main_process(rank):
-                print('** Epoch %i **' % e)
+                tqdm.write('** Epoch %i **' % e)
             self.in_epoch(epoch=e, rank=rank)
