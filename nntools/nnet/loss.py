@@ -35,6 +35,5 @@ class FuseLoss:
         if self.fusion == 'mean':
             return sum(list_losses) / len(list_losses)
 
-    # TODO : Add weighting scheme for each loss
     def add(self, loss):
         self.losses.append(loss)

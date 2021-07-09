@@ -10,7 +10,7 @@ from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
 from torch.cuda.amp import autocast
 from tqdm import tqdm
 from nntools.nnet import nnt_format
-from nntools.tracker import Log, Tracker, log_params, log_artifact
+from nntools.tracker import Log, Tracker, log_params, log_artifact, log_metrics
 from nntools.utils.io import save_yaml
 from nntools.utils.misc import partial_fill_kwargs
 from nntools.utils.optims import OPTIMS
@@ -297,7 +297,9 @@ class Experiment(Manager):
         pass
 
     def epoch_loop(self, rank=0):
-        for e in range(self.config['Training']['epochs']):
+        total_epoch = self.config['Training']['epochs']
+        for e in range(total_epoch):
             if self.is_main_process(rank):
                 tqdm.write('** Epoch %i **' % e)
+                log_metrics(self.tracker, e, progress=100*e/total_epoch)
             self.in_epoch(epoch=e, rank=rank)
