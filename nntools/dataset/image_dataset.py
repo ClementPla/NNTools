@@ -170,7 +170,7 @@ class ImageDataset(Dataset):
             outputs['indice'] = index
         return outputs
 
-    def plot(self, item, classes=None):
+    def plot(self, item, classes=None, fig_size=1):
         arrays = self.__getitem__(item, torch_cast=False, transpose_img=False, return_indices=False)
 
         arrays = [(k, v) for k, v in arrays.items() if isinstance(v, np.ndarray)]
@@ -180,7 +180,7 @@ class ImageDataset(Dataset):
         fig, ax = plt.subplots(row, col)
         if row == 1:
             ax = [ax]
-        fig.set_size_inches(10, 5 * row)
+        fig.set_size_inches(fig_size * 10, 5 * row * fig_size)
 
         for i in range(row):
             for j in range(col):
