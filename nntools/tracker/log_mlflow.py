@@ -16,6 +16,13 @@ def log_metrics(tracker, step, **metrics):
         client.log_metric(run_id, k, v, int(time.time() * 1000), step=step)
 
 
+def set_tags(tracker, **tags):
+    run_id = tracker.run_id
+    client = tracker.client
+    for k, v in tags.items():
+        client.set_tag(run_id, k, v)
+
+
 def log_artifact(tracker, *paths):
     run_id = tracker.run_id
     client = tracker.client

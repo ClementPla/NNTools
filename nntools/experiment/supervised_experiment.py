@@ -25,7 +25,6 @@ class SupervisedExperiment(Experiment):
         self.class_weights = None
         self.gt_name = 'mask'
 
-
     def initial_tracking(self):
         if 'Optimizer' in self.config:
             log_params(self.tracker, **self.config['Optimizer'])
@@ -54,8 +53,8 @@ class SupervisedExperiment(Experiment):
 
     def get_loss(self, weights=None, rank=0):
         config = self.config['Loss']
-        fuse_loss = FuseLoss(fusion=config.get('fusion', 'mean'))
         mode = MULTICLASS_MODE if self.n_classes > 2 else BINARY_MODE
+        fuse_loss = FuseLoss(fusion=config.get('fusion', 'mean'), mode=mode)
 
         list_losses = config['type'].split('|')
 

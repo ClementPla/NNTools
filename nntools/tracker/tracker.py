@@ -4,6 +4,7 @@ from mlflow.tracking.client import MlflowClient
 
 from nntools.utils.io import create_folder
 
+from .log_mlflow import log_metrics, log_params, log_artifact, set_tags
 
 class Tracker:
     def __init__(self, exp_name, run_id=None):
@@ -11,6 +12,11 @@ class Tracker:
         self.run_id = run_id
         self.save_paths = {}
         self.current_iteration = 0
+        self._metrics = set()
+        self._params = set()
+        self._tags = set()
+        self._artifacts = set()
+        self.run_started = False
 
     def add_path(self, key, path):
         self.save_paths[key] = path
@@ -28,11 +34,50 @@ class Tracker:
         else:
             self.exp_id = exp.experiment_id
 
+    def log_metrics(self, step, **metrics):
+        if self.run_started:
+            log_metrics(self, step, **metrics)
+        else:
+            self._metrics.add((step, metrics))
+
+    def log_params(self, **params):
+        if self.run_started:
+            log_params(self, **params)
+        else:
+            self._params.add(params)
+
+    def log_artifacts(self, *paths):
+        if self.run_started:
+            log_artifact(self, *paths)
+        else:
+            self._artifacts.add(paths)
+
+    def set_tags(self, **tags):
+        if self.run_started:
+            set_tags(self, **tags)
+        else:
+            self._tags.add(tags)
+
     def create_run(self, tags=None):
         if tags is None:
             tags = {}
         run = self.client.create_run(experiment_id=self.exp_id, tags=tags)
         self.run_id = run.info.run_id
+        self.run_started = True
+        self.initialize_run()
+
+    def initialize_run(self):
+        if not self.run_started:
+            return False
+        for step, metrics in self._metrics:
+            self.log_metrics(step, **metrics)
+        for params in self._params:
+            self.log_params(**params)
+        for tags in self._tags:
+            self.set_tags(**tags)
+        for p in self._artifacts:
+            self.log_artifacts(*p)
+        return True
 
     def get_run(self, id=None):
         if id is not None:
@@ -50,6 +95,5 @@ class Tracker:
 
     def init_default_path(self):
         assert 'run_folder' in self.save_paths
-
         self.add_path('network_savepoint', os.path.join(self.run_folder, 'trained_model', str(self.run_id)))
         self.add_path('prediction_savepoint', os.path.join(self.run_folder, 'predictions', str(self.run_id)))

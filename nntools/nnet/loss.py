@@ -20,16 +20,22 @@ def register_loss(key, value):
 
 
 class FuseLoss:
-    def __init__(self, losses=None, fusion='mean'):
+    def __init__(self, losses=None, fusion='mean', mode=MULTICLASS_MODE):
+
+        self.mode = mode
         self.fusion = fusion
+
         if losses is None:
             losses = []
+
         if not isinstance(losses, list):
             losses = [losses]
         self.losses = losses
 
-    def __call__(self, *args):
-        list_losses = [l(*args) for l in self.losses]
+    def __call__(self, y_pred, y_true):
+        list_losses = []
+        for l in self.losses:
+            list_losses.append(l(y_pred, y_true))
         if self.fusion == 'sum':
             return sum(list_losses)
         if self.fusion == 'mean':

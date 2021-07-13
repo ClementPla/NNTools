@@ -115,6 +115,18 @@ class Manager(ABC):
             batch = batch.cuda(device)
         return batch
 
+    def log_metrics(self, step, **metrics):
+        self.tracker.log_metrics(step, **metrics)
+
+    def log_params(self, **params):
+        self.tracker.log_params(**params)
+
+    def log_artifacts(self, *paths):
+        self.tracker.log_artifacts(*paths)
+
+    def set_tags(self, **tags):
+        self.tracker.set_tags(**tags)
+
 
 class Experiment(Manager):
     def __init__(self, config, run_id=None):
