@@ -63,6 +63,7 @@ class Manager(ABC):
         else:
             self.tracker.get_run(run_id)
 
+
         if self.continue_training:
             self.tracker.go_to_exp_last_iteration()
         self.tracker.init_default_path()
@@ -130,6 +131,10 @@ class Manager(ABC):
     @property
     def c(self):
         return self.config
+
+    @property
+    def id(self):
+        return self.tracker.run_id
 
 
 class Experiment(Manager):

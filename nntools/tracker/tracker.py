@@ -82,6 +82,8 @@ class Tracker:
     def get_run(self, id=None):
         if id is not None:
             self.run_id = id
+        self.run_started = True
+        self.initialize_run()
         return self.client.get_run(self.run_id)
 
     def set_status(self, status):
