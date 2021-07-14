@@ -15,8 +15,8 @@ from .experiment import Experiment
 class SupervisedExperiment(Experiment):
     def __init__(self, config, run_id=None):
         super(SupervisedExperiment, self).__init__(config, run_id=run_id)
-        if 'ignore_index' in self.config['Training']:
-            self.ignore_index = self.config['Training']['ignore_index']
+        if 'ignore_index' in self.c['Training']:
+            self.ignore_index = self.c['Training']['ignore_index']
         else:
             self.ignore_index = -100
 
@@ -25,34 +25,34 @@ class SupervisedExperiment(Experiment):
         self.gt_name = 'mask'
 
     def initial_tracking(self):
-        if 'Optimizer' in self.config:
-            self.log_params(**self.config['Optimizer'])
-        if 'Learning_rate_scheduler' in self.config:
-            self.log_params(**self.config['Learning_rate_scheduler'])
+        if 'Optimizer' in self.c:
+            self.log_params(**self.c['Optimizer'])
+        if 'Learning_rate_scheduler' in self.c:
+            self.log_params(**self.c['Learning_rate_scheduler'])
 
-        self.log_params(**self.config['Network'])
-        self.log_params(Loss=self.config['Loss'].get('type', 'custom'))
-        if 'fusion' in self.config['Loss']:
-            self.log_params(Loss_fusion=self.config['Loss']['fusion'])
-        if 'params_loss' in self.config['Loss']:
-            self.log_params(**self.config['Loss']['params_loss'])
-        if 'weighted_loss' in self.config['Loss']:
-            self.log_params(weighted_loss=self.config['Loss']['weighted_loss'])
-        if 'params_weighting' in self.config['Loss'] and self.config['Loss'].get('weighted_loss', False):
-            self.log_params(**self.config['Loss']['params_weighting'])
-        if 'Preprocessing' in self.config:
-            self.log_params(**self.config['Preprocessing'])
+        self.log_params(**self.c['Network'])
+        self.log_params(Loss=self.c['Loss'].get('type', 'custom'))
+        if 'fusion' in self.c['Loss']:
+            self.log_params(Loss_fusion=self.c['Loss']['fusion'])
+        if 'params_loss' in self.c['Loss']:
+            self.log_params(**self.c['Loss']['params_loss'])
+        if 'weighted_loss' in self.c['Loss']:
+            self.log_params(weighted_loss=self.c['Loss']['weighted_loss'])
+        if 'params_weighting' in self.c['Loss'] and self.c['Loss'].get('weighted_loss', False):
+            self.log_params(**self.c['Loss']['params_weighting'])
+        if 'Preprocessing' in self.c:
+            self.log_params(**self.c['Preprocessing'])
 
         super(SupervisedExperiment, self).initial_tracking()
 
     def start(self, run_id=None):
-        if self.config['Loss'].get('weighted_loss', False) and self.class_weights is None:
+        if self.c['Loss'].get('weighted_loss', False) and self.class_weights is None:
             class_weights = self.get_class_weights()
             self.setup_class_weights(weights=class_weights)
         super(SupervisedExperiment, self).start(run_id)
 
     def get_loss(self, weights=None, rank=0):
-        config = self.config['Loss']
+        config = self.c['Loss']
         mode = MULTICLASS_MODE if self.n_classes > 2 else BINARY_MODE
         fuse_loss = FuseLoss(fusion=config.get('fusion', 'mean'), mode=mode)
 
@@ -76,11 +76,11 @@ class SupervisedExperiment(Experiment):
 
     def get_class_weights(self):
         class_count = self.train_dataset.get_class_count()
-        kwargs = self.config['Loss'].get('params_weighting', {})
+        kwargs = self.c['Loss'].get('params_weighting', {})
         return torch.tensor(class_weighting(class_count, ignore_index=self.ignore_index, **kwargs))
 
     def setup_class_weights(self, weights):
-        if self.config['Manager']['amp']:
+        if self.c['Manager']['amp']:
             self.class_weights = weights.half()
         else:
             self.class_weights = weights
@@ -88,7 +88,7 @@ class SupervisedExperiment(Experiment):
     def train(self, model, rank=0):
         loss_function = self.get_loss(self.class_weights, rank=rank)
         optimizer = self.partial_optimizer(
-            model.get_trainable_parameters(self.config['Optimizer']['params_solver']['lr']))
+            model.get_trainable_parameters(self.c['Optimizer']['params_solver']['lr']))
 
         if self.partial_lr_scheduler is not None:
             lr_scheduler = self.partial_lr_scheduler(optimizer)
@@ -104,7 +104,7 @@ class SupervisedExperiment(Experiment):
             self.ctx_train['valid_loader'] = valid_loader
             self.ctx_train['valid_sampler'] = valid_sampler
 
-        scaler = GradScaler(enabled=self.config['Manager'].get('grad_scaling', True))
+        scaler = GradScaler(enabled=self.c['Manager'].get('grad_scaling', True))
 
         self.ctx_train['loss_function'] = loss_function
         self.ctx_train['lr_scheduler'] = lr_scheduler
@@ -123,11 +123,11 @@ class SupervisedExperiment(Experiment):
     def in_epoch(self, epoch, rank=0):
         model = self.ctx_train['model']
         optimizer = self.ctx_train['optimizer']
-        clip_grad = self.config['Training'].get('grad_clipping', False)
+        clip_grad = self.c['Training'].get('grad_clipping', False)
         scaler = self.ctx_train['scaler']
         lr_scheduler = self.ctx_train['lr_scheduler']
         train_loader = self.ctx_train['train_loader']
-        iters_to_accumulate = self.config['Training'].get('iters_to_accumulate', 1)
+        iters_to_accumulate = self.c['Training'].get('iters_to_accumulate', 1)
 
         if self.is_main_process(rank):
             progressBar = tqdm.tqdm(total=len(train_loader))
@@ -141,7 +141,7 @@ class SupervisedExperiment(Experiment):
 
         for i, batch in (enumerate(train_loader)):
             self.ctx_train['iteration'] += 1
-            with autocast(enabled=self.config['Manager']['amp']):
+            with autocast(enabled=self.c['Manager']['amp']):
                 loss = self.forward_train(self.ctx_train['model'], self.ctx_train['loss_function'], rank, batch)
 
                 loss = loss / iters_to_accumulate
@@ -159,10 +159,10 @@ class SupervisedExperiment(Experiment):
             """
             Validation step
             """
-            if self.ctx_train['iteration'] % self.config['Validation']['log_interval'] == 0:
+            if self.ctx_train['iteration'] % self.c['Validation']['log_interval'] == 0:
                 if self.validation_dataset is not None:
                     with torch.no_grad():
-                        with autocast(enabled=self.config['Manager']['amp']):
+                        with autocast(enabled=self.c['Manager']['amp']):
                             valid_metric = self.validate(model, valid_loader,
                                                          self.ctx_train['iteration'],
                                                          rank,
