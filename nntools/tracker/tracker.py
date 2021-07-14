@@ -1,10 +1,10 @@
 import os
 
 from mlflow.tracking.client import MlflowClient
-
 from nntools.utils.io import create_folder
 
 from .log_mlflow import log_metrics, log_params, log_artifact, set_tags
+
 
 class Tracker:
     def __init__(self, exp_name, run_id=None):

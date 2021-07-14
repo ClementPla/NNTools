@@ -7,16 +7,16 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch.nn as nn
 from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
-from torch.cuda.amp import autocast
-from tqdm import tqdm
 from nntools.nnet import nnt_format
-from nntools.tracker import Log, Tracker, log_params, log_artifact, log_metrics
+from nntools.tracker import Log, Tracker
 from nntools.utils.io import save_yaml
 from nntools.utils.misc import partial_fill_kwargs
 from nntools.utils.optims import OPTIMS
 from nntools.utils.random import set_seed, set_non_torch_seed
 from nntools.utils.scheduler import SCHEDULERS
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP
+from torch.cuda.amp import autocast
+from tqdm import tqdm
 
 
 class Manager(ABC):
@@ -127,6 +127,10 @@ class Manager(ABC):
     def set_tags(self, **tags):
         self.tracker.set_tags(**tags)
 
+    @property
+    def c(self):
+        return self.config
+
 
 class Experiment(Manager):
     def __init__(self, config, run_id=None):
@@ -151,9 +155,9 @@ class Experiment(Manager):
         self.ctx_train = {}
 
     def initial_tracking(self):
-        log_params(self.tracker, **self.config['Training'])
+        self.log_params(**self.config['Training'])
         save_yaml(self.config, os.path.join(self.tracker.run_folder, 'config.yaml'))
-        log_artifact(self.tracker, self.config.get_path())
+        self.log_artifact(self.config.get_path())
 
     def set_train_dataset(self, dataset):
         self.train_dataset = dataset
@@ -279,9 +283,9 @@ class Experiment(Manager):
 
     def register_trained_model(self):
         if self.saved_models['best_valid']:
-            log_artifact(self.tracker, self.saved_models['best_valid'])
+            self.log_artifact(self.saved_models['best_valid'])
         if self.saved_models['last']:
-            log_artifact(self.tracker, self.saved_models['last'])
+            self.log_artifact(self.saved_models['last'])
 
     def lr_scheduler_step(self, lr_scheduler, epoch, iteration, size_epoch, validation_metrics=None):
         if lr_scheduler is None:
@@ -313,5 +317,5 @@ class Experiment(Manager):
         for e in range(total_epoch):
             if self.is_main_process(rank):
                 tqdm.write('** Epoch %i **' % e)
-                log_metrics(self.tracker, e, progress=100*e/total_epoch)
+                self.log_metrics(e, progress=100 * e / total_epoch)
             self.in_epoch(epoch=e, rank=rank)

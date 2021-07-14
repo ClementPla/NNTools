@@ -35,7 +35,7 @@ def mIoU(pred, gt, num_classes=-1, epsilon=1e-7, multilabel=False, *args):
 
 def mIoU_cm(confMat, epsilon=1e-7):
     if confMat.ndim == 3:
-        return sum([mIoU_cm(c, epsilon=epsilon) for c in confMat])/confMat.shape[0]
+        return sum([mIoU_cm(c, epsilon=epsilon) for c in confMat]) / confMat.shape[0]
     else:
         intersection = torch.diag(confMat)
         union = confMat.sum(0) + confMat.sum(1) - intersection
@@ -113,13 +113,12 @@ if __name__ == '__main__':
 
     pp = pprint.PrettyPrinter(indent=4)
 
-    pred = torch.zeros((1,3,2,2))
+    pred = torch.zeros((1, 3, 2, 2))
     pred[0, 0, 0, 0] = 1
     pred[0, 1, 0, 0] = 1
 
-    gt = torch.zeros((1,3,2,2))
+    gt = torch.zeros((1, 3, 2, 2))
     gt[0, 0, 0, 0] = 1
     gt[0, 1, 0, 0] = 1
 
     pp.pprint(report_cm(confusion_matrix(pred, gt, multilabel=True)))
-

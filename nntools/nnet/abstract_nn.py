@@ -2,9 +2,8 @@ import datetime
 from os.path import join, splitext
 
 import torch
-from torch import nn
-
 from nntools.utils.io import create_folder, get_most_recent_file
+from torch import nn
 
 
 def check_nan(state_dict):

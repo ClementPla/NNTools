@@ -2,8 +2,6 @@ import glob
 import os
 
 import numpy as np
-import torch
-import tqdm
 
 from .image_dataset import ImageDataset, supportedExtensions
 
@@ -80,7 +78,7 @@ class ClassificationDataset(ImageDataset):
     def load_image(self, item):
         inputs = super(ClassificationDataset, self).load_image(item)
         for k, v in inputs.items():
-            if v.ndim==2:
+            if v.ndim == 2:
                 inputs[k] = np.expand_dims(v, 2)
         for k in self.gts.keys():
             inputs[k] = self.gts[k][item]

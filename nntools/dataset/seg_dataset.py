@@ -2,11 +2,11 @@ import glob
 
 import cv2
 import numpy as np
-
 from nntools.dataset.image_tools import resize
 from nntools.tracker import Log
 from nntools.utils.io import read_image, path_leaf
-from nntools.utils.misc import to_iterable, identity
+from nntools.utils.misc import to_iterable
+
 from .image_dataset import ImageDataset, supportedExtensions
 
 NN_FILL_DOWNSAMPLE = '0'
@@ -36,7 +36,8 @@ class SegmentationDataset(ImageDataset):
         self.n_classes = n_classes
         self.filling_strategy = filling_strategy
 
-        super(SegmentationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading, extract_image_id_function,
+        super(SegmentationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading,
+                                                  extract_image_id_function,
                                                   use_cache)
 
     def get_class_count(self):

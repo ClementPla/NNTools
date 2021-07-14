@@ -2,11 +2,11 @@ import glob
 
 import cv2
 import numpy as np
-
 from nntools.dataset.image_tools import resize
 from nntools.tracker import Log
 from nntools.utils.io import read_image, path_leaf
 from nntools.utils.misc import to_iterable
+
 from .image_dataset import ImageDataset, supportedExtensions
 
 NN_FILL_DOWNSAMPLE = '0'
@@ -27,7 +27,8 @@ class MultiImageDataset(ImageDataset):
         self.filling_strategy = filling_strategy
         super(MultiImageDataset, self).__init__(shape=shape, keep_size_ratio=keep_size_ratio,
                                                 recursive_loading=recursive_loading,
-                                                extract_image_id_function=extract_image_id_function, use_cache=use_cache)
+                                                extract_image_id_function=extract_image_id_function,
+                                                use_cache=use_cache)
 
     def list_files(self, recursive):
         self.img_filepath = {k: [] for k in self.root_path.keys()}

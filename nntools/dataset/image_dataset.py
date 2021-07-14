@@ -2,11 +2,10 @@ import os
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset
-
 from nntools.dataset.image_tools import resize
 from nntools.utils.io import read_image
 from nntools.utils.misc import to_iterable, identity
+from torch.utils.data import Dataset
 
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
 import multiprocessing as mp
@@ -159,7 +158,7 @@ class ImageDataset(Dataset):
                 if not isinstance(item, np.ndarray):
                     item = np.asarray(item)
                 if item.ndim == 3 and transpose_img:
-                    item = self.transpose_img(item) # HWN to NHW
+                    item = self.transpose_img(item)  # HWN to NHW
                 if torch_cast:
                     item = torch.from_numpy(item)
                     if isinstance(item, torch.ByteTensor):
@@ -193,11 +192,11 @@ class ImageDataset(Dataset):
 
                     ax[i][j].set_title(name)
                     if arr.ndim == 3 and arr.shape[-1] > 3:
-                        arr_tmp = np.argmax(arr, axis=-1)+1
-                        arr_tmp[arr.max(axis=-1)==0] = 0
+                        arr_tmp = np.argmax(arr, axis=-1) + 1
+                        arr_tmp[arr.max(axis=-1) == 0] = 0
                         arr = arr_tmp
                     if arr.ndim == 3:
-                        arr = (arr - np.min(arr))/(np.max(arr) - np.min(arr))
+                        arr = (arr - np.min(arr)) / (np.max(arr) - np.min(arr))
                         ax[i][j].imshow(np.squeeze(arr), cmap='gray')
                     elif arr.ndim == 2:
                         n_classes = np.max(arr) + 1

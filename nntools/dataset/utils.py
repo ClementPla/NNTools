@@ -3,10 +3,9 @@ import os
 
 import cv2
 import numpy as np
+from nntools.tracker import Log
 from torch import randperm, default_generator
 from torch._utils import _accumulate
-
-from nntools.tracker import Log
 
 
 def get_classification_class_count(dataset):

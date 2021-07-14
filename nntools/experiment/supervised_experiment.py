@@ -1,16 +1,15 @@
+import nntools.tracker.metrics as NNmetrics
 import torch
 import torch.distributed as dist
-from torch.cuda.amp import autocast, GradScaler
-from torch.nn.utils import clip_grad_norm_
 import tqdm
 from nntools.dataset import class_weighting
-from .experiment import Experiment
 from nntools.nnet import FuseLoss, SUPPORTED_LOSS, BINARY_MODE, MULTICLASS_MODE
-from nntools.tracker import log_params, log_metrics
-from nntools.utils.misc import call_with_filtered_kwargs
-
 from nntools.utils import reduce_tensor
-import nntools.tracker.metrics as NNmetrics
+from nntools.utils.misc import call_with_filtered_kwargs
+from torch.cuda.amp import autocast, GradScaler
+from torch.nn.utils import clip_grad_norm_
+
+from .experiment import Experiment
 
 
 class SupervisedExperiment(Experiment):
@@ -27,21 +26,22 @@ class SupervisedExperiment(Experiment):
 
     def initial_tracking(self):
         if 'Optimizer' in self.config:
-            log_params(self.tracker, **self.config['Optimizer'])
+            self.log_params(**self.config['Optimizer'])
         if 'Learning_rate_scheduler' in self.config:
-            log_params(self.tracker, **self.config['Learning_rate_scheduler'])
-        log_params(self.tracker, **self.config['Network'])
-        log_params(self.tracker, Loss=self.config['Loss'].get('type', 'custom'))
+            self.log_params(**self.config['Learning_rate_scheduler'])
+
+        self.log_params(**self.config['Network'])
+        self.log_params(Loss=self.config['Loss'].get('type', 'custom'))
         if 'fusion' in self.config['Loss']:
-            log_params(self.tracker, Loss_fusion=self.config['Loss']['fusion'])
+            self.log_params(Loss_fusion=self.config['Loss']['fusion'])
         if 'params_loss' in self.config['Loss']:
-            log_params(self.tracker, **self.config['Loss']['params_loss'])
+            self.log_params(**self.config['Loss']['params_loss'])
         if 'weighted_loss' in self.config['Loss']:
-            log_params(self.tracker, weighted_loss=self.config['Loss']['weighted_loss'])
+            self.log_params(weighted_loss=self.config['Loss']['weighted_loss'])
         if 'params_weighting' in self.config['Loss'] and self.config['Loss'].get('weighted_loss', False):
-            log_params(self.tracker, **self.config['Loss']['params_weighting'])
+            self.log_params(**self.config['Loss']['params_weighting'])
         if 'Preprocessing' in self.config:
-            log_params(self.tracker, **self.config['Preprocessing'])
+            self.log_params(**self.config['Preprocessing'])
 
         super(SupervisedExperiment, self).initial_tracking()
 
@@ -172,7 +172,7 @@ class SupervisedExperiment(Experiment):
                     self.lr_scheduler_step(lr_scheduler, epoch, i, len(train_loader), valid_metric)
 
                 if self.is_main_process(rank):
-                    log_metrics(self.tracker, self.ctx_train['iteration'], trainining_loss=loss.detach().item())
+                    self.log_metrics(self.ctx_train['iteration'], trainining_loss=loss.detach().item())
                     self.save_model(model, filename='last')
 
             if self.multi_gpu:
@@ -224,9 +224,9 @@ class SupervisedExperiment(Experiment):
 
         if self.multi_gpu:
             confMat = reduce_tensor(confMat, self.world_size, mode='sum')
-            losses = reduce_tensor(losses, self.world_size, mode='sum')/self.world_size
+            losses = reduce_tensor(losses, self.world_size, mode='sum') / self.world_size
 
-        losses = losses/n
+        losses = losses / n
 
         confMat = NNmetrics.filter_index_cm(confMat, self.ignore_index)
         mIoU = NNmetrics.mIoU_cm(confMat)
@@ -235,7 +235,7 @@ class SupervisedExperiment(Experiment):
             stats['mIoU'] = mIoU
             stats['validation_loss'] = losses.item()
 
-            log_metrics(self.tracker, step=iteration, **stats)
+            self.log_metrics(step=iteration, **stats)
             if self.tracked_metric is None:
                 self.tracked_metric = mIoU
             else:

@@ -32,5 +32,5 @@ class Composition:
     def __str__(self):
         output = ''
         for i, o in enumerate(self.ops):
-            output += '%i_'%i+str(o) + ' STATUS: '+('Active' if i not in self.deactivated else 'Inactive') + ' \n'
+            output += '%i_' % i + str(o) + ' STATUS: ' + ('Active' if i not in self.deactivated else 'Inactive') + ' \n'
         return output

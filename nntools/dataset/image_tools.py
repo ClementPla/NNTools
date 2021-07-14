@@ -3,7 +3,6 @@ import inspect
 
 import cv2
 import numpy as np
-
 from nntools.utils.random import sample
 
 
