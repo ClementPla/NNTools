@@ -283,9 +283,9 @@ class Experiment(Manager):
 
     def register_trained_model(self):
         if self.saved_models['best_valid']:
-            self.log_artifact(self.saved_models['best_valid'])
+            self.log_artifacts(self.saved_models['best_valid'])
         if self.saved_models['last']:
-            self.log_artifact(self.saved_models['last'])
+            self.log_artifacts(self.saved_models['last'])
 
     def lr_scheduler_step(self, lr_scheduler, epoch, iteration, size_epoch, validation_metrics=None):
         if lr_scheduler is None:
