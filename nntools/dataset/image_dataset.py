@@ -166,7 +166,7 @@ class ImageDataset(Dataset):
                 outputs[k] = item
 
         if self.return_indices and return_indices:
-            outputs['indice'] = index
+            outputs['index'] = index
         return outputs
 
     def plot(self, item, classes=None, fig_size=1):

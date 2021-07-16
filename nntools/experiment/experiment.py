@@ -37,7 +37,6 @@ class Manager(ABC):
         self.register_params = True
         self.call_end_function = True
         self.keyboard_exception_raised = False
-        self.run_started = False
         if not isinstance(self.gpu, list):
             self.gpu = [self.gpu]
 
@@ -63,13 +62,12 @@ class Manager(ABC):
         else:
             self.tracker.get_run(run_id)
 
-
         if self.continue_training:
             self.tracker.go_to_exp_last_iteration()
         self.tracker.init_default_path()
         self.tracker.set_status('RUNNING')
         Log.warn('Run started (status = RUNNING)')
-        self.run_started = True
+        self.tracker.run_started = True
 
     def clean_up(self):
         if self.multi_gpu:
@@ -135,6 +133,10 @@ class Manager(ABC):
     @property
     def id(self):
         return self.tracker.run_id
+
+    @property
+    def run_started(self):
+        return self.tracker.run_started
 
 
 class Experiment(Manager):
