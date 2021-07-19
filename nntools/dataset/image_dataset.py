@@ -186,7 +186,7 @@ class ImageDataset(Dataset):
                 ax[i][j].set_axis_off()
 
                 if j + i * col >= len(arrays):
-                    ax[i][j].imshow(np.zeros_like(np.squeeze(arr)))
+                    ax[i][j].imshow(np.zeros_like(np.squeeze(arr)), interpolation='none')
                 else:
                     name, arr = arrays[j + i * col]
 
@@ -197,13 +197,13 @@ class ImageDataset(Dataset):
                         arr = arr_tmp
                     if arr.ndim == 3:
                         arr = (arr - np.min(arr)) / (np.max(arr) - np.min(arr))
-                        ax[i][j].imshow(np.squeeze(arr), cmap='gray')
+                        ax[i][j].imshow(np.squeeze(arr), cmap='gray', interpolation='none')
                     elif arr.ndim == 2:
                         n_classes = np.max(arr) + 1
                         if n_classes == 0:
                             n_classes = 2
                         cmap = cm.get_cmap(self.cmap_name, n_classes)
-                        ax[i][j].imshow(np.squeeze(arr), cmap=cmap, interpolation=None)
+                        ax[i][j].imshow(np.squeeze(arr), cmap=cmap, interpolation='none')
                         divider = make_axes_locatable(ax[i][j])
                         cax = divider.append_axes('right', size='5%', pad=0.05)
                         cax.imshow(np.expand_dims(np.arange(n_classes), 0).transpose((1, 0)), aspect='auto', cmap=cmap)
