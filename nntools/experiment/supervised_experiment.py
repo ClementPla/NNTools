@@ -3,7 +3,8 @@ import torch
 import torch.distributed as dist
 import tqdm
 from nntools.dataset import class_weighting
-from nntools.nnet import FuseLoss, SUPPORTED_LOSS, BINARY_MODE, MULTICLASS_MODE
+from nntools.nnet import FuseLoss, SUPPORTED_LOSS
+from nntools import BINARY_MODE, MULTICLASS_MODE, MULTILABEL_MODE
 from nntools.utils import reduce_tensor
 from nntools.utils.misc import call_with_filtered_kwargs
 from torch.cuda.amp import autocast, GradScaler
@@ -24,34 +25,13 @@ class SupervisedExperiment(Experiment):
         self.class_weights = None
         self.gt_name = 'mask'
 
-    def initial_tracking(self):
-        if 'Optimizer' in self.c:
-            self.log_params(**self.c['Optimizer'])
-        if 'Learning_rate_scheduler' in self.c:
-            self.log_params(**self.c['Learning_rate_scheduler'])
-
-        self.log_params(**self.c['Network'])
-        self.log_params(Loss=self.c['Loss'].get('type', 'custom'))
-        if 'fusion' in self.c['Loss']:
-            self.log_params(Loss_fusion=self.c['Loss']['fusion'])
-        if 'params_loss' in self.c['Loss']:
-            self.log_params(**self.c['Loss']['params_loss'])
-        if 'weighted_loss' in self.c['Loss']:
-            self.log_params(weighted_loss=self.c['Loss']['weighted_loss'])
-        if 'params_weighting' in self.c['Loss'] and self.c['Loss'].get('weighted_loss', False):
-            self.log_params(**self.c['Loss']['params_weighting'])
-        if 'Preprocessing' in self.c:
-            self.log_params(**self.c['Preprocessing'])
-
-        super(SupervisedExperiment, self).initial_tracking()
-
     def start(self, run_id=None):
         if self.c['Loss'].get('weighted_loss', False) and self.class_weights is None:
             class_weights = self.get_class_weights()
             self.setup_class_weights(weights=class_weights)
         super(SupervisedExperiment, self).start(run_id)
 
-    def get_loss(self, weights=None, rank=0):
+    def get_loss(self, weights: torch.Tensor = None, rank=0) -> FuseLoss:
         config = self.c['Loss']
         mode = MULTICLASS_MODE if self.n_classes > 2 else BINARY_MODE
         fuse_loss = FuseLoss(fusion=config.get('fusion', 'mean'), mode=mode)
@@ -74,12 +54,12 @@ class SupervisedExperiment(Experiment):
 
         return fuse_loss
 
-    def get_class_weights(self):
+    def get_class_weights(self) -> torch.Tensor:
         class_count = self.train_dataset.get_class_count()
         kwargs = self.c['Loss'].get('params_weighting', {})
         return torch.tensor(class_weighting(class_count, ignore_index=self.ignore_index, **kwargs))
 
-    def setup_class_weights(self, weights):
+    def setup_class_weights(self, weights: torch.Tensor):
         if self.c['Manager']['amp']:
             self.class_weights = weights.half()
         else:
@@ -134,7 +114,6 @@ class SupervisedExperiment(Experiment):
 
         if self.validation_dataset is not None:
             valid_loader = self.ctx_train['valid_loader']
-            valid_sampler = self.ctx_train['valid_sampler']
 
         if self.ctx_train['train_sampler'] is not None:
             self.ctx_train['train_sampler'].set_epoch(epoch)
@@ -143,7 +122,6 @@ class SupervisedExperiment(Experiment):
             self.ctx_train['iteration'] += 1
             with autocast(enabled=self.c['Manager']['amp']):
                 loss = self.forward_train(self.ctx_train['model'], self.ctx_train['loss_function'], rank, batch)
-
                 loss = loss / iters_to_accumulate
                 self.ctx_train['scaler'].scale(loss).backward()
                 if (i + 1) % iters_to_accumulate == 0:
@@ -217,17 +195,13 @@ class SupervisedExperiment(Experiment):
             img = batch['image']
             gt = batch[self.gt_name]
             proba = model(img)
-
             losses += loss_function(proba, gt).detach()
             pred = torch.argmax(proba, 1)
             confMat += NNmetrics.confusion_matrix(pred, gt, num_classes=self.n_classes)
-
         if self.multi_gpu:
             confMat = reduce_tensor(confMat, self.world_size, mode='sum')
             losses = reduce_tensor(losses, self.world_size, mode='sum') / self.world_size
-
         losses = losses / n
-
         confMat = NNmetrics.filter_index_cm(confMat, self.ignore_index)
         mIoU = NNmetrics.mIoU_cm(confMat)
         if self.is_main_process(rank):

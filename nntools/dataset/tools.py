@@ -15,11 +15,9 @@ class Composition:
     def deactivate_op(self, index):
         if not isinstance(index, list):
             index = [index]
-
         self.deactivated += index
 
     def __call__(self, **kwargs):
-
         for i, op in enumerate(self.ops):
             if i in self.deactivated:
                 continue

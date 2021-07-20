@@ -8,10 +8,7 @@ from nntools.utils.io import read_image, path_leaf
 from nntools.utils.misc import to_iterable
 
 from .image_dataset import ImageDataset, supportedExtensions
-
-NN_FILL_DOWNSAMPLE = '0'
-NN_FILL_UPSAMPLE = '1'
-MISSING_DATA_FLAG = '2'
+from nntools import NN_FILL_DOWNSAMPLE, NN_FILL_UPSAMPLE, MISSING_DATA_FLAG
 
 
 class SegmentationDataset(ImageDataset):
@@ -126,9 +123,9 @@ class SegmentationDataset(ImageDataset):
                     mask = np.zeros(actual_shape[:-1], dtype=np.uint8)
                 else:
                     mask = read_image(filepath, cv2.IMREAD_GRAYSCALE)
-
-                mask = resize(image=mask, shape=self.shape, keep_size_ratio=self.keep_size_ratio,
-                              flag=cv2.INTER_NEAREST)
+                if self.auto_resize:
+                    mask = resize(image=mask, shape=self.shape, keep_size_ratio=self.keep_size_ratio,
+                                  flag=cv2.INTER_NEAREST)
                 inputs[k] = mask
 
         return inputs

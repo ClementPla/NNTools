@@ -6,12 +6,8 @@ from nntools.dataset.image_tools import resize
 from nntools.tracker import Log
 from nntools.utils.io import read_image, path_leaf
 from nntools.utils.misc import to_iterable
-
+from nntools import NN_FILL_UPSAMPLE, NN_FILL_DOWNSAMPLE, MISSING_DATA_FLAG
 from .image_dataset import ImageDataset, supportedExtensions
-
-NN_FILL_DOWNSAMPLE = '0'
-NN_FILL_UPSAMPLE = '1'
-MISSING_DATA_FLAG = '2'
 
 
 class MultiImageDataset(ImageDataset):
@@ -109,8 +105,9 @@ class MultiImageDataset(ImageDataset):
                 img = np.zeros(self.shape, dtype=np.uint8)
             else:
                 img = read_image(filepath)
-                img = resize(image=img, shape=self.shape, keep_size_ratio=self.keep_size_ratio,
-                             flag=cv2.INTER_NEAREST)
+                if self.auto_resize:
+                    img = resize(image=img, shape=self.shape, keep_size_ratio=self.keep_size_ratio,
+                                 flag=cv2.INTER_NEAREST)
             inputs[k] = img
 
         return inputs

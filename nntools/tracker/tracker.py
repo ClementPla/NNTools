@@ -18,12 +18,12 @@ class Tracker:
         self._artifacts = []
         self.run_started = False
 
-    def add_path(self, key, path):
+    def add_path(self, key:str, path:str):
         self.save_paths[key] = path
         create_folder(path)
         self.__dict__.update(self.save_paths)
 
-    def set_run_folder(self, path):
+    def set_run_folder(self, path: str):
         self.add_path('run_folder', path)
 
     def create_client(self, tracker_uri, artifact_uri=None):
@@ -79,14 +79,14 @@ class Tracker:
             self.log_artifacts(*p)
         return True
 
-    def get_run(self, id=None):
-        if id is not None:
-            self.run_id = id
+    def get_run(self, run_id: str = None):
+        if run_id is not None:
+            self.run_id = run_id
         self.run_started = True
         self.initialize_run()
         return self.client.get_run(self.run_id)
 
-    def set_status(self, status):
+    def set_status(self, status: str):
         self.client.set_terminated(self.run_id, status)
 
     def go_to_exp_last_iteration(self):

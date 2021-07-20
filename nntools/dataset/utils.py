@@ -6,7 +6,7 @@ import numpy as np
 from nntools.tracker import Log
 from torch import randperm, default_generator
 from torch._utils import _accumulate
-
+import torch
 
 def get_classification_class_count(dataset):
     gts = dataset.gts
@@ -71,3 +71,13 @@ def random_split(dataset, lengths, generator=default_generator):
         d.subset(indx)
         datasets.append(d)
     return tuple(datasets)
+
+
+def concat_datasets_if_needed(datasets):
+    if isinstance(datasets, list):
+        if len(datasets) > 1:
+            dataset = torch.utils.data.ConcatDataset(datasets)
+        else:
+            dataset = datasets[0]
+    else:
+        return datasets

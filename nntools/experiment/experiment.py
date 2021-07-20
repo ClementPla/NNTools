@@ -15,12 +15,14 @@ from nntools.utils.optims import OPTIMS
 from nntools.utils.random import set_seed, set_non_torch_seed
 from nntools.utils.scheduler import SCHEDULERS
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP
+from nntools.dataset.utils import concat_datasets_if_needed
 from torch.cuda.amp import autocast
 from tqdm import tqdm
+from nntools.utils import Config
 
 
 class Manager(ABC):
-    def __init__(self, config, run_id=None):
+    def __init__(self, config: Config, run_id: str = None):
         self.config = config
         self.seed = self.config['Manager']['seed']
         set_seed(self.seed)
@@ -47,14 +49,13 @@ class Manager(ABC):
             os.environ['MASTER_ADDR'] = 'localhost'
             os.environ['MASTER_PORT'] = '12355'
 
-    def convert_batch_norm(self, model):
-        if self.config['Network']['synchronized_batch_norm'] and self.multi_gpu:
+    def convert_batch_norm(self, model: nn.Module) -> nn.Module:
+        if self.c['Network']['synchronized_batch_norm'] and self.multi_gpu:
             model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
         return model
 
-    def start_run(self, run_id=None):
+    def start_run(self, run_id: str = None):
         Log.warn('Initializing tracker')
-
         tags = {MLFLOW_RUN_NAME: self.config['Manager']['run']}
         if run_id is None and self.tracker.run_id is None:
             self.continue_training = False
@@ -73,13 +74,13 @@ class Manager(ABC):
         if self.multi_gpu:
             dist.destroy_process_group()
 
-    def is_main_process(self, rank):
+    def is_main_process(self, rank: int):
         return (rank == 0) or not self.multi_gpu
 
-    def get_gpu_from_rank(self, rank):
+    def get_gpu_from_rank(self, rank: int):
         return self.gpu[rank]
 
-    def get_model_on_device(self, rank):
+    def get_model_on_device(self, rank: int) -> nn.Module:
         tqdm.write('Rank %i, gpu %i' % (rank, self.get_gpu_from_rank(rank)))
         torch.cuda.set_device(self.get_gpu_from_rank(rank))
         model = self.get_model()
@@ -89,22 +90,22 @@ class Manager(ABC):
             model = DDP(model, device_ids=[self.get_gpu_from_rank(rank)])
         return model
 
-    def get_model(self):
+    def get_model(self) -> nn.Module:
         assert self.model is not None, "The model has not been configured, call set_model(model)"
         if self.continue_training:
             self.model.load(self.tracker.network_savepoint, load_most_recent=True, map_location='cpu')
 
         return self.model
 
-    def set_model(self, model):
+    def set_model(self, model: nn.Module) -> nn.Module:
         model = nnt_format(model)
         self.model = model
         return model
 
-    def set_params_group(self, params_group):
+    def set_params_group(self, params_group: dict):
         self.model.set_params_group(params_group)
 
-    def batch_to_device(self, batch, rank):
+    def batch_to_device(self, batch: (dict, tuple, list), rank: int ) -> (dict, tuple, list):
         device = self.get_gpu_from_rank(rank)
         if isinstance(batch, tuple) or isinstance(batch, list):
             batch = [b.cuda(device) if isinstance(b, torch.Tensor) else b for b in batch]
@@ -162,17 +163,20 @@ class Experiment(Manager):
         self.ctx_train = {}
 
     def initial_tracking(self):
-        self.log_params(**self.config['Training'])
+        self.log_params(self.config.tracked_params)
         save_yaml(self.config, os.path.join(self.tracker.run_folder, 'config.yaml'))
         self.log_artifacts(self.config.get_path())
 
     def set_train_dataset(self, dataset):
+        dataset = concat_datasets_if_needed(dataset)
         self.train_dataset = dataset
 
     def set_valid_dataset(self, dataset):
+        dataset = concat_datasets_if_needed(dataset)
         self.validation_dataset = dataset
 
     def set_test_dataset(self, dataset):
+        dataset = concat_datasets_if_needed(dataset)
         self.test_dataset = dataset
 
     def create_optimizer(self, **config):
@@ -228,7 +232,7 @@ class Experiment(Manager):
             for f in files[:-self.config['Manager']['max_saved_model']]:
                 os.remove(f)
 
-    def _start_process(self, rank=0):
+    def _start_process(self, rank: int = 0):
         tqdm.write('Initializing process %i' % rank)
         if self.multi_gpu:
             dist.init_process_group(backend=self.config['Manager']['dist_backend'], rank=rank,
