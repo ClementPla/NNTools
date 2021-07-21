@@ -81,7 +81,8 @@ class SegmentationDataset(ImageDataset):
             intersection = list(list_common_file)
 
             if self.filling_strategy == NN_FILL_DOWNSAMPLE:
-                Log.warn("Downsampling the dataset to size %i" % min(list_lengths))
+                if not all_equal:
+                    Log.warn("Downsampling the dataset to size %i" % min(list_lengths))
                 self.img_filepath['image'] = np.asarray(
                     [img for img, filename in zip(self.img_filepath['image'], img_filenames) if
                      filename in intersection])
@@ -91,7 +92,8 @@ class SegmentationDataset(ImageDataset):
                         [gt for gt, filename in zip(self.gts[k], masks_filenames[k]) if filename \
                          in intersection])
             elif self.filling_strategy == NN_FILL_UPSAMPLE:
-                Log.warn("Upsampling missing labels to fit the dataset's size (%i)" % max(list_lengths))
+                if not all_equal:
+                    Log.warn("Upsampling missing labels to fit the dataset's size (%i)" % max(list_lengths))
 
                 for k in self.gts.keys():
                     gt_k = []
@@ -99,9 +101,9 @@ class SegmentationDataset(ImageDataset):
                     gt_sorted_filenames = [self.extract_image_id_function(_) for _ in masks_filenames[k]]
                     for img_name in img_filenames:
                         img_name = self.extract_image_id_function(img_name)
-                        if img_name in gt_sorted_filenames:
+                        try:
                             gt_k.append(self.gts[k][gt_sorted_filenames.index(img_name)])
-                        else:
+                        except ValueError:
                             gt_k.append(MISSING_DATA_FLAG)
                     self.gts[k] = np.asarray(gt_k)
         if self.filling_strategy == NN_FILL_DOWNSAMPLE:
