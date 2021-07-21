@@ -169,7 +169,7 @@ class Experiment(Manager):
         self.ctx_train = {}
 
     def initial_tracking(self):
-        self.log_params(self.config.tracked_params)
+        self.log_params(**self.config.tracked_params)
         save_yaml(self.config, os.path.join(self.tracker.run_folder, 'config.yaml'))
         self.log_artifacts(self.config.get_path())
 
