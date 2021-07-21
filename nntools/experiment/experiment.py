@@ -36,7 +36,6 @@ class Manager(ABC):
         self.model = None
         self.gpu = self.config['Manager']['gpu']
         self.continue_training = True
-        self.register_params = True
         self.call_end_function = True
         self.keyboard_exception_raised = False
         if not isinstance(self.gpu, list):
@@ -139,6 +138,13 @@ class Manager(ABC):
     def run_started(self):
         return self.tracker.run_started
 
+    @property
+    def register_params(self):
+        return self.tracker.register_params
+
+    @register_params.setter
+    def register_params(self, value):
+        self.tracker.register_params = value
 
 class Experiment(Manager):
     def __init__(self, config, run_id=None):

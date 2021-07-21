@@ -17,6 +17,7 @@ class Tracker:
         self._tags = []
         self._artifacts = []
         self.run_started = False
+        self.register_params = True
 
     def add_path(self, key:str, path:str):
         self.save_paths[key] = path
@@ -35,28 +36,32 @@ class Tracker:
             self.exp_id = exp.experiment_id
 
     def log_metrics(self, step, **metrics):
-        if self.run_started:
-            log_metrics(self, step, **metrics)
-        else:
-            self._metrics.append((step, metrics))
+        if self.register_params:
+            if self.run_started:
+                log_metrics(self, step, **metrics)
+            else:
+                self._metrics.append((step, metrics))
 
     def log_params(self, **params):
-        if self.run_started:
-            log_params(self, **params)
-        else:
-            self._params.append(params)
+        if self.register_params:
+            if self.run_started:
+                log_params(self, **params)
+            else:
+                self._params.append(params)
 
     def log_artifacts(self, *paths):
-        if self.run_started:
-            log_artifact(self, *paths)
-        else:
-            self._artifacts.append(paths)
+        if self.register_params:
+            if self.run_started:
+                log_artifact(self, *paths)
+            else:
+                self._artifacts.append(paths)
 
     def set_tags(self, **tags):
-        if self.run_started:
-            set_tags(self, **tags)
-        else:
-            self._tags.append(tags)
+        if self.register_params:
+            if self.run_started:
+                set_tags(self, **tags)
+            else:
+                self._tags.append(tags)
 
     def create_run(self, tags=None):
         if tags is None:
