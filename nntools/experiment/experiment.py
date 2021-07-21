@@ -176,7 +176,6 @@ class Experiment(Manager):
         self.validation_dataset = dataset
 
     def set_test_dataset(self, dataset):
-        dataset = concat_datasets_if_needed(dataset)
         self.test_dataset = dataset
 
     def create_optimizer(self, **config):
