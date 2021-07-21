@@ -186,7 +186,7 @@ class Experiment(Manager):
 
     def set_optimizer(self, optimizers=None, **config):
         """
-        :return: A partial function of an optimizers. Partial passed arguments are hyperparameters
+        :return: A partial function of an optimizers. Partial passed arguments are hyper parameters
         """
         if optimizers is not None:
             self.partial_optimizer = optimizers
@@ -228,7 +228,6 @@ class Experiment(Manager):
         if self.config['Manager']['max_saved_model']:
             files = glob.glob(self.tracker.network_savepoint + "/best_valid_*.pth")
             files.sort(key=os.path.getmtime)
-
             for f in files[:-self.config['Manager']['max_saved_model']]:
                 os.remove(f)
 
@@ -241,7 +240,6 @@ class Experiment(Manager):
         if self.run_training:
             try:
                 self.train(model, rank)
-
             except KeyboardInterrupt:
                 self.keyboard_exception_raised = True
             finally:
