@@ -27,7 +27,7 @@ SCHEDULERS = {
     'StepLR': Scheduler(torch.optim.lr_scheduler.StepLR, 'on_epoch', empty),
     'MultiStepLR': Scheduler(torch.optim.lr_scheduler.MultiStepLR, 'on_epoch', empty),
     'ExponentialLR': Scheduler(torch.optim.lr_scheduler.ExponentialLR, 'on_epoch', empty),
-    'CosineAnnealingLR': Scheduler(torch.optim.lr_scheduler.CosineAnnealingLR, 'on_epoch', continuous_epoch),
+    'CosineAnnealingLR': Scheduler(torch.optim.lr_scheduler.CosineAnnealingLR, 'on_epoch', empty),
     'ReduceLROnPlateau': Scheduler(torch.optim.lr_scheduler.ReduceLROnPlateau, 'on_validation', identity),
     'CyclicLR': Scheduler(torch.optim.lr_scheduler.CyclicLR, 'on_iteration', identity),
     'OneCycleLR': Scheduler(torch.optim.lr_scheduler.OneCycleLR, 'on_iteration', identity),
