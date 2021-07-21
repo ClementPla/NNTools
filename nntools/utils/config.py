@@ -3,6 +3,8 @@ from collections import OrderedDict
 from nntools.utils.io import load_yaml
 import pprint
 
+TAG_EXPAND = '*'
+TAG_IGNORE = '^'
 class Config:
     def __init__(self, path=None):
         super(Config, self).__init__()
@@ -34,7 +36,7 @@ class Config:
 
     def __setitem__(self, key, value):
         self._dict[key] = value
-        self._parsed_dict[key.strip('!*')] = value
+        self._parsed_dict[key.strip(TAG_EXPAND+TAG_IGNORE)] = value
 
     @property
     def tracked_params(self):
@@ -49,22 +51,22 @@ class Config:
 def tag_cleaning(original_dict, new_dict):
     for k, v in original_dict.items():
         if isinstance(v, dict):
-            new_dict[k.strip('^!')] = dict()
-            tag_cleaning(v, new_dict[k.strip('^!')])
+            new_dict[k.strip(TAG_EXPAND+TAG_IGNORE)] = dict()
+            tag_cleaning(v, new_dict[k.strip(TAG_EXPAND+TAG_IGNORE)])
         else:
-            new_dict[k.strip('^!')] = v
+            new_dict[k.strip(TAG_EXPAND+TAG_IGNORE)] = v
 
 
 def tag_parsing(original_dict, new_dict, parent_key='', level=0):
     for k, v in original_dict.items():
-        if k.startswith('^'):
+        if k.startswith(TAG_IGNORE):
             continue
         else:
-            if isinstance(v, dict) and (k.endswith('*') or level==0):
-                k = k.strip('*^')
+            if isinstance(v, dict) and (k.endswith(TAG_EXPAND) or level==0):
+                k = k.strip(TAG_EXPAND+TAG_IGNORE)
                 tag_parsing(v, new_dict, '%s: %s' % (parent_key, k) if parent_key else k, level+1)
             else:
-                k = k.strip('*^')
+                k = k.strip(TAG_EXPAND+TAG_IGNORE)
                 key = '%s: %s'%(parent_key, k) if parent_key else k
                 new_dict[key] = v
 
