@@ -36,11 +36,10 @@ class Tracker:
             self.exp_id = exp.experiment_id
 
     def log_metrics(self, step, **metrics):
-        if self.register_params:
-            if self.run_started:
-                log_metrics(self, step, **metrics)
-            else:
-                self._metrics.append((step, metrics))
+        if self.run_started:
+            log_metrics(self, step, **metrics)
+        else:
+            self._metrics.append((step, metrics))
 
     def log_params(self, **params):
         if self.register_params:
