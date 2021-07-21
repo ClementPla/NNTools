@@ -79,5 +79,6 @@ def concat_datasets_if_needed(datasets):
             dataset = torch.utils.data.ConcatDataset(datasets)
         else:
             dataset = datasets[0]
+        return dataset
     else:
         return datasets
