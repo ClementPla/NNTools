@@ -64,7 +64,7 @@ def tag_parsing(original_dict, new_dict, parent_key='', level=0):
         else:
             if isinstance(v, dict) and (k.endswith(TAG_EXPAND) or level==0):
                 k = k.strip(TAG_EXPAND+TAG_IGNORE)
-                tag_parsing(v, new_dict, '%s: %s' % (parent_key, k) if parent_key else k, level+1)
+                tag_parsing(v, new_dict, '%s/%s' % (parent_key, k) if parent_key else k, level+1)
             else:
                 k = k.strip(TAG_EXPAND+TAG_IGNORE)
                 key = '%s/%s'%(parent_key, k) if parent_key else k
