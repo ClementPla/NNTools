@@ -80,24 +80,19 @@ class SegmentationDataset(ImageDataset):
                 list_common_file = list_common_file & set(mask_filenames)
             intersection = list(list_common_file)
 
-            if self.filling_strategy == NN_FILL_DOWNSAMPLE:
-                if not all_equal:
-                    Log.warn("Downsampling the dataset to size %i" % min(list_lengths))
+            if self.filling_strategy == NN_FILL_DOWNSAMPLE and not all_equal:
+                Log.warn("Downsampling the dataset to size %i" % min(list_lengths))
                 self.img_filepath['image'] = np.asarray(
                     [img for img, filename in zip(self.img_filepath['image'], img_filenames) if
                      filename in intersection])
-
                 for k in self.gts.keys():
                     self.gts[k] = np.asarray(
                         [gt for gt, filename in zip(self.gts[k], masks_filenames[k]) if filename \
                          in intersection])
-            elif self.filling_strategy == NN_FILL_UPSAMPLE:
-                if not all_equal:
-                    Log.warn("Upsampling missing labels to fit the dataset's size (%i)" % max(list_lengths))
-
+            elif self.filling_strategy == NN_FILL_UPSAMPLE and not all_equal:
+                Log.warn("Upsampling missing labels to fit the dataset's size (%i)" % max(list_lengths))
                 for k in self.gts.keys():
                     gt_k = []
-
                     gt_sorted_filenames = [self.extract_image_id_function(_) for _ in masks_filenames[k]]
                     for img_name in img_filenames:
                         img_name = self.extract_image_id_function(img_name)
@@ -106,14 +101,15 @@ class SegmentationDataset(ImageDataset):
                         except ValueError:
                             gt_k.append(MISSING_DATA_FLAG)
                     self.gts[k] = np.asarray(gt_k)
-        if self.filling_strategy == NN_FILL_DOWNSAMPLE:
-            sort_key_img = np.argsort([self.extract_image_id_function(x) for x in img_filenames])
-            self.img_filepath['image'] = self.img_filepath['image'][sort_key_img]
 
-            if self.use_masks:
-                for k in self.gts.keys():
-                    sort_key_mask = np.argsort([self.extract_image_id_function(x) for x in masks_filenames[k]])
-                    self.gts[k] = self.gts[k][sort_key_mask]
+            if self.filling_strategy == NN_FILL_DOWNSAMPLE or all_equal:
+                sort_key_img = np.argsort([self.extract_image_id_function(x) for x in img_filenames])
+                self.img_filepath['image'] = self.img_filepath['image'][sort_key_img]
+
+                if self.use_masks:
+                    for k in self.gts.keys():
+                        sort_key_mask = np.argsort([self.extract_image_id_function(x) for x in masks_filenames[k]])
+                        self.gts[k] = self.gts[k][sort_key_mask]
 
     def load_image(self, item):
         inputs = super(SegmentationDataset, self).load_image(item)
