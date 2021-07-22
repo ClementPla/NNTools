@@ -84,7 +84,7 @@ class SupervisedExperiment(Experiment):
             self.ctx_train['valid_loader'] = valid_loader
             self.ctx_train['valid_sampler'] = valid_sampler
 
-        scaler = GradScaler(enabled=self.c['Manager'].get('grad_scaling', True))
+        scaler = GradScaler(enabled=self.c['Manager'].get('grad_scaling', False))
 
         self.ctx_train['loss_function'] = loss_function
         self.ctx_train['lr_scheduler'] = lr_scheduler
@@ -98,7 +98,7 @@ class SupervisedExperiment(Experiment):
         self.ctx_train['optimizer'] = optimizer
         self.ctx_train['model'] = model
 
-        self.epoch_loop(rank=rank)
+        self.main_training_loop(rank=rank)
 
     def in_epoch(self, epoch, rank=0):
         model = self.ctx_train['model']
@@ -140,7 +140,7 @@ class SupervisedExperiment(Experiment):
             if self.ctx_train['iteration'] % self.c['Validation']['log_interval'] == 0:
                 if self.validation_dataset is not None:
                     with torch.no_grad():
-                        with autocast(enabled=self.c['Manager']['amp']):
+                        with autocast(enabled=self.c['Manager'].get('amp', False)):
                             valid_metric = self.validate(model, valid_loader,
                                                          self.ctx_train['iteration'],
                                                          rank,

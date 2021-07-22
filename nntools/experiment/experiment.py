@@ -19,6 +19,7 @@ from nntools.dataset.utils import concat_datasets_if_needed
 from torch.cuda.amp import autocast
 from tqdm import tqdm
 from nntools.utils import Config
+import math
 
 
 class Manager(ABC):
@@ -326,8 +327,14 @@ class Experiment(Manager):
     def in_epoch(self, *args, **kwargs):
         pass
 
-    def epoch_loop(self, rank=0):
-        total_epoch = self.config['Training']['epochs']
+    def main_training_loop(self, rank=0):
+        total_epoch = self.config['Training'].get('epochs', -1)
+        max_iterations = self.config['Training'].get('iterations', -1)
+        assert (total_epoch > 0) or (max_iterations > 0), "You must define a number of training iterations or a number " \
+                                                          "of epochs"
+        if max_iterations > 0:
+            total_epoch = math.ceil(max_iterations / math.ceil(len(self.train_dataset)/self.batch_size))
+
         for e in range(total_epoch):
             if self.is_main_process(rank):
                 tqdm.write('** Epoch %i **' % e)
