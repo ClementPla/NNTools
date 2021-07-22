@@ -208,6 +208,10 @@ class Experiment(Manager):
 
     def get_dataloader(self, dataset, shuffle=True, batch_size=None, drop_last=False, persistent_workers=True, rank=0):
         num_workers = self.config['Manager']['num_workers']
+        exp_dataloader = self.config['Manager'].get('experimental_dataloader', False)
+        c_shuffle = self.config['Dataset'].get('shuffle', True)
+        shuffle = shuffle & c_shuffle
+        exp_dataloader = exp_dataloader & ~shuffle
         if batch_size is None:
             batch_size = self.batch_size
         if self.multi_gpu:
@@ -223,10 +227,17 @@ class Experiment(Manager):
                                                      sampler=sampler,
                                                      worker_init_fn=set_non_torch_seed, drop_last=drop_last,
                                                      persistent_workers=persistent_workers if num_workers else False)
-        else:
+        elif exp_dataloader:
             dataloader = MultiEpochsDataLoader(dataset, batch_size=batch_size,
                                                      num_workers=num_workers,
                                                      pin_memory=True, shuffle=shuffle,
+                                                     worker_init_fn=set_non_torch_seed, drop_last=drop_last,
+                                                     persistent_workers=persistent_workers if num_workers else False)
+        else:
+            dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
+                                                     num_workers=num_workers,
+                                                     pin_memory=True, shuffle=shuffle,
+                                                     sampler=None,
                                                      worker_init_fn=set_non_torch_seed, drop_last=drop_last,
                                                      persistent_workers=persistent_workers if num_workers else False)
         return dataloader, sampler

@@ -21,7 +21,6 @@ class FuseLoss:
 
         self.mode = mode
         self.fusion = fusion
-
         if losses is None:
             losses = []
 
