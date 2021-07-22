@@ -25,8 +25,6 @@ def reduce_tensor(tensor, world_size, mode='avg'):
         raise NotImplementedError
 
 
-
-
 class MultiEpochsDataLoader(torch.utils.data.DataLoader):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

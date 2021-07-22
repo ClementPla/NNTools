@@ -211,7 +211,7 @@ class Experiment(Manager):
         exp_dataloader = self.config['Manager'].get('experimental_dataloader', False)
         c_shuffle = self.config['Dataset'].get('shuffle', True)
         shuffle = shuffle & c_shuffle
-        exp_dataloader = exp_dataloader & ~shuffle
+
         if batch_size is None:
             batch_size = self.batch_size
         if self.multi_gpu:
@@ -220,26 +220,21 @@ class Experiment(Manager):
         else:
             sampler = None
 
-        if sampler is not None:
+        if not exp_dataloader:
             dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
                                                      num_workers=num_workers,
-                                                     pin_memory=True, shuffle=shuffle if sampler is None else False,
+                                                     pin_memory=True, shuffle=shuffle if sampler is not None else False,
                                                      sampler=sampler,
                                                      worker_init_fn=set_non_torch_seed, drop_last=drop_last,
                                                      persistent_workers=persistent_workers if num_workers else False)
-        elif exp_dataloader:
+        else:
             dataloader = MultiEpochsDataLoader(dataset, batch_size=batch_size,
                                                      num_workers=num_workers,
-                                                     pin_memory=True, shuffle=shuffle,
+                                                     pin_memory=True, shuffle=shuffle if sampler is not None else False,
+                                                     sampler=sampler,
                                                      worker_init_fn=set_non_torch_seed, drop_last=drop_last,
                                                      persistent_workers=persistent_workers if num_workers else False)
-        else:
-            dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
-                                                     num_workers=num_workers,
-                                                     pin_memory=True, shuffle=shuffle,
-                                                     sampler=None,
-                                                     worker_init_fn=set_non_torch_seed, drop_last=drop_last,
-                                                     persistent_workers=persistent_workers if num_workers else False)
+
         return dataloader, sampler
 
     def save_model(self, model, filename, **kwargs):
