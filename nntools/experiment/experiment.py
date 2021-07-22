@@ -223,14 +223,14 @@ class Experiment(Manager):
         if not exp_dataloader:
             dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
                                                      num_workers=num_workers,
-                                                     pin_memory=True, shuffle=shuffle if sampler is not None else False,
+                                                     pin_memory=True, shuffle=shuffle if sampler is None else False,
                                                      sampler=sampler,
                                                      worker_init_fn=set_non_torch_seed, drop_last=drop_last,
                                                      persistent_workers=persistent_workers if num_workers else False)
         else:
             dataloader = MultiEpochsDataLoader(dataset, batch_size=batch_size,
                                                      num_workers=num_workers,
-                                                     pin_memory=True, shuffle=shuffle if sampler is not None else False,
+                                                     pin_memory=True, shuffle=shuffle if sampler is None else False,
                                                      sampler=sampler,
                                                      worker_init_fn=set_non_torch_seed, drop_last=drop_last,
                                                      persistent_workers=persistent_workers if num_workers else False)
