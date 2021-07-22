@@ -14,7 +14,7 @@ from nntools.utils.misc import partial_fill_kwargs
 from nntools.utils.optims import OPTIMS
 from nntools.utils.random import set_seed, set_non_torch_seed
 from nntools.utils.scheduler import SCHEDULERS
-from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP
+from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP, MultiEpochsDataLoader
 from nntools.dataset.utils import concat_datasets_if_needed
 from torch.cuda.amp import autocast
 from tqdm import tqdm
@@ -147,6 +147,7 @@ class Manager(ABC):
     def register_params(self, value):
         self.tracker.register_params = value
 
+
 class Experiment(Manager):
     def __init__(self, config, run_id=None):
         super(Experiment, self).__init__(config, run_id)
@@ -214,12 +215,20 @@ class Experiment(Manager):
                                                                       num_replicas=self.world_size, rank=rank)
         else:
             sampler = None
-        dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
-                                                 num_workers=num_workers,
-                                                 pin_memory=True, shuffle=shuffle if sampler is None else False,
-                                                 sampler=sampler,
-                                                 worker_init_fn=set_non_torch_seed, drop_last=drop_last,
-                                                 persistent_workers=persistent_workers if num_workers else False)
+
+        if sampler is not None:
+            dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
+                                                     num_workers=num_workers,
+                                                     pin_memory=True, shuffle=shuffle if sampler is None else False,
+                                                     sampler=sampler,
+                                                     worker_init_fn=set_non_torch_seed, drop_last=drop_last,
+                                                     persistent_workers=persistent_workers if num_workers else False)
+        else:
+            dataloader = MultiEpochsDataLoader(dataset, batch_size=batch_size,
+                                                     num_workers=num_workers,
+                                                     pin_memory=True, shuffle=shuffle,
+                                                     worker_init_fn=set_non_torch_seed, drop_last=drop_last,
+                                                     persistent_workers=persistent_workers if num_workers else False)
         return dataloader, sampler
 
     def save_model(self, model, filename, **kwargs):
