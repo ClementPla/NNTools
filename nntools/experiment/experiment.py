@@ -346,6 +346,6 @@ class Experiment(Manager):
 
         for e in range(total_epoch):
             if self.is_main_process(rank):
-                tqdm.write('** Epoch %i **' % e)
+                tqdm.write('** Epoch %i/%i **' % (e, total_epoch))
                 self.log_metrics(e, progress=100 * e / total_epoch)
             self.in_epoch(epoch=e, rank=rank)
