@@ -121,7 +121,8 @@ class SupervisedExperiment(Experiment):
         for i, batch in (enumerate(train_loader)):
             self.ctx_train['iteration'] += 1
             with autocast(enabled=self.c['Manager']['amp']):
-                loss = self.forward_train(self.ctx_train['model'], self.ctx_train['loss_function'], rank, batch)
+                batch = self.batch_to_device(batch, rank)
+                loss = self.forward_train(self.ctx_train['model'], self.ctx_train['loss_function'], batch, rank)
                 loss = loss / iters_to_accumulate
                 self.ctx_train['scaler'].scale(loss).backward()
                 if (i + 1) % iters_to_accumulate == 0:
@@ -176,8 +177,7 @@ class SupervisedExperiment(Experiment):
         if self.multi_gpu:
             dist.barrier()
 
-    def forward_train(self, model, loss_function, rank, batch):
-        batch = self.batch_to_device(batch, rank)
+    def forward_train(self, model, loss_function, batch, rank):
         pred = model(batch['image'])
         if isinstance(pred, tuple):
             loss = loss_function(*pred, batch[self.gt_name])
