@@ -153,17 +153,16 @@ class ImageDataset(Dataset):
         else:
             outputs = inputs
 
-        if transpose_img:
-            for k, item in outputs.items():
-                if not isinstance(item, np.ndarray):
-                    item = np.asarray(item)
-                if item.ndim == 3 and transpose_img:
-                    item = self.transpose_img(item)  # HWN to NHW
-                if torch_cast:
-                    item = torch.from_numpy(item)
-                    if isinstance(item, torch.ByteTensor):
-                        item = item.long()
-                outputs[k] = item
+        for k, item in outputs.items():
+            if not isinstance(item, np.ndarray):
+                item = np.asarray(item)
+            if item.ndim == 3 and transpose_img:
+                item = self.transpose_img(item)  # HWN to NHW
+            if torch_cast:
+                item = torch.from_numpy(item.copy())
+                if isinstance(item, torch.ByteTensor):
+                    item = item.long()
+            outputs[k] = item
 
         if self.return_indices and return_indices:
             outputs['index'] = index
