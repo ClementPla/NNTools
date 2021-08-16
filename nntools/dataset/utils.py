@@ -1,7 +1,7 @@
 import copy
 import os
+import bisect
 
-import cv2
 import numpy as np
 from nntools.tracker import Log
 from torch import randperm, default_generator
@@ -79,10 +79,34 @@ def random_split(dataset, lengths, generator=default_generator):
     return tuple(datasets)
 
 
+class ConcatDataset(torch.utils.data.ConcatDataset):
+    def plot(self, idx):
+        if idx < 0:
+            if -idx > len(self):
+                raise ValueError("absolute value of index should not exceed dataset length")
+            idx = len(self) + idx
+        dataset_idx = bisect.bisect_right(self.cumulative_sizes, idx)
+        if dataset_idx == 0:
+            sample_idx = idx
+        else:
+            sample_idx = idx - self.cumulative_sizes[dataset_idx - 1]
+
+        self.datasets[dataset_idx].plot(sample_idx)
+
+    def get_class_count(self, load=True, save=True):
+        class_count = None
+        for d in self.datasets:
+            if class_count is None:
+                class_count = d.get_class_count(load=load, save=save)
+            else:
+                class_count += d.get_class_count(load=load, save=save)
+        return class_count
+
+
 def concat_datasets_if_needed(datasets):
     if isinstance(datasets, list):
         if len(datasets) > 1:
-            dataset = torch.utils.data.ConcatDataset(datasets)
+            dataset = ConcatDataset(datasets)
         else:
             dataset = datasets[0]
         return dataset
