@@ -1,16 +1,34 @@
+Dataset:
+  shape: [1024, 1024] # wxh
+  keep_size_ratio: True
+  img_idrid_url: /home/tmp/clpla/data/idrid/A. Segmentation/1. Original Images/a. Training Set/
+  ^mask_idrid_url: /home/tmp/clpla/data/idrid/A. Segmentation/2. All Segmentation Groundtruths/a. Training Set/
+  img_messidor_url: /home/tmp/clpla/data/messidor/original/img/images/
+  ^mask_messidor_url: /home/tmp/clpla/data/messidor/biomarkers/
+  img_kaggle_url: /home/tmp/clpla/data/eyepacs/
+  ^mask_kaggle_url: /home/tmp/clpla/data/segmentation/teacher_learning_eyepacs/
+  ^recursive_loading: True
+
+Test:
+  img_idrid_url: /home/tmp/clpla/data/idrid/A. Segmentation/1. Original Images/b. Testing Set/
+  ^mask_idrid_url: /home/tmp/clpla/data/idrid/A. Segmentation/2. All Segmentation Groundtruths/b. Testing Set/
+  img_retles_url: /home/tmp/clpla/data/retinal-lesions-v20191227/images_896x896/
+  ^mask_retles_url: /home/tmp/clpla/data/retinal-lesions-v20191227/segmentation/
+  img_ddr_url: /home/tmp/clpla/data/segmentation/DDR/image/
+  ^mask_ddr_url: /home/tmp/clpla/data/segmentation/DDR/label/
 Manager:
-  experiment: FundusSegmentation_Messidor
+  experiment: FundusSegmentation_HyperoptTuning
   run: Unet
-  save_point: /usagers/clpla/Projects/runs
-  ^gpu: [0,1,2,3]
+  ^save_point: /usagers/clpla/Projects/runs
+  gpu: 0
   ^max_saved_model: 1
-  num_workers: 3 # Workers used for parallel data loading
+  ^num_workers: 8 # Workers used for parallel data loading
   ^dist_backend: nccl
   seed: 1234
-  tracking_uri: http://localhost:5010
-  artifact_uri: sftp://clement@m3202-10.demdgi.polymtl.ca/home/clement/Documents/Clement/runs/server/artifact
-  ^grad_scaling: False
-  ^amp: False
+  ^tracking_uri: http://localhost:5010
+  ^artifact_uri: sftp://clement@m3202-10.demdgi.polymtl.ca/home/clement/Documents/Clement/runs/server/artifact
+  grad_scaling: False
+  amp: False
 
 Preprocessing:
   mean: [0.485, 0.456, 0.406]
@@ -18,26 +36,42 @@ Preprocessing:
   random_crop: True
   crop_size: [512, 512]
 
+Validation:
+  size: 0.05
+  ^log_interval: 3000
+
+Training:
+  epochs: 50
+  batch_size: 24
+  ignore_index: -100
+  contrastive_pretraining: False
+  iterations: 10000
 
 Loss:
   type: Dice
   fusion: mean
-  params_loss:
-    Dice:
+  params_loss*:
+    Dice*:
       eps: 1
       mode: multilabel
       smooth: 0.5
 
 Optimizer:
   solver: Adam
-  params_solver:
-    lr: 0.005
+  params_solver*:
+    lr: 0.01
     weight_decay: 0.00001
 
 Learning_rate_scheduler:
-  update_type: on_epoch # or on_epoch
+  update_type: on_epoch
   scheduler: CosineAnnealingLR
   params_scheduler*:
     eta_min: 0.00001
-    T_max: 1000
+    T_max: 50
     verbose: False
+
+Network:
+  architecture: Unet
+  n_classes: 4
+  synchronized_batch_norm: True
+  pretrained: False

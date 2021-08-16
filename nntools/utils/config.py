@@ -20,7 +20,7 @@ class DictParsed(dict):
         super(DictParsed, self).update(__m, **kwargs)
 
     def parse_other_dict(self, other):
-        for k in other.keys():
+        for k in other.copy().keys():
             tags = (k.startswith(TAG_IGNORE), k.endswith(TAG_COMPRESS))
             new_key = k.strip(TAG_COMPRESS + TAG_IGNORE)
             if any(tags):
@@ -106,7 +106,7 @@ class Config:
 
 
 def recursive_dict_replacement(org_dict):
-    for k, v in org_dict.copy().items():
+    for k, v in org_dict.items():
         if isinstance(v, dict):
             recursive_dict_replacement(v)
             new_dict = DictParsed()
