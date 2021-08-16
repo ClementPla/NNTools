@@ -30,7 +30,7 @@ def get_segmentation_class_count(dataset, save=True, load=True):
     classes_counts = np.zeros(1024, dtype=int)  # Arbitrary large number (nb classes unknown at this point)
 
     for sample in tqdm.tqdm(dataset):
-        mask = sample['mask']
+        mask = sample['mask'].numpy()
         if mask.ndim == 3:  # Multilabel -> Multiclass
             arr_tmp = np.argmax(mask, axis=0) + 1
             arr_tmp[mask.max(axis=0) == 0] = 0
