@@ -19,7 +19,7 @@ def get_classification_class_count(dataset):
 def get_segmentation_class_count(dataset, save=True, load=True):
 
     sample = dataset[0]
-    if dataset.gt_name not in sample.keys():
+    if 'mask' not in sample.keys():
         raise NotImplementedError
 
     path = dataset.path_img[0]
@@ -30,7 +30,7 @@ def get_segmentation_class_count(dataset, save=True, load=True):
     classes_counts = np.zeros(1024, dtype=int)  # Arbitrary large number (nb classes unknown at this point)
 
     for sample in tqdm.tqdm(dataset):
-        mask = sample[dataset.gt_name].numpy()
+        mask = sample['mask'].numpy()
         if mask.ndim == 3:  # Multilabel -> Multiclass
             arr_tmp = np.argmax(mask, axis=0) + 1
             arr_tmp[mask.max(axis=0) == 0] = 0
