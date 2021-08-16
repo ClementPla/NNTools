@@ -3,58 +3,76 @@ from collections import OrderedDict
 from nntools.utils.io import load_yaml
 import pprint
 
-TAG_EXPAND = '*'
+TAG_COMPRESS = '*'
 TAG_IGNORE = '^'
 
 
-class DoubleDict:
-    def __init__(self, ordered=True):
-        if ordered:
-            self._dict = OrderedDict()  # This dict may contains keys with tags such as * and !
-            self._parsed_dict = OrderedDict()  # This  dict is a duplicata of _dict, but tag free
+class DictParsed(dict):
+    def __init__(self, other_dict=None):
+        self.keys_with_tags = dict()
+        if other_dict is None:
+            super(DictParsed, self).__init__()
         else:
-            self._dict = dict()  # This dict may contains keys with tags such as * and !
-            self._parsed_dict = dict()  # This  dict is a duplicata of _dict, but tag free
+            super(DictParsed, self).__init__(self.parse_other_dict(other_dict))
 
-    def get_item(self, key, default=None):
-        if key in self._parsed_dict:
-            return self._parsed_dict[key]
-        else:
-            return default
+    def update(self, __m, **kwargs) -> None:
+        __m = self.parse_other_dict(__m)
+        super(DictParsed, self).update(__m, **kwargs)
 
-    def __getitem__(self, key):
-        return self.get_item(key)
+    def parse_other_dict(self, other):
+        for k in other.keys():
+            tags = (k.startswith(TAG_IGNORE), k.endswith(TAG_COMPRESS))
+            new_key = k.strip(TAG_COMPRESS + TAG_IGNORE)
+            if any(tags):
+                self.keys_with_tags[new_key] = tags
+                other[new_key] = other.pop(k)
+        return other
+
+    def __getitem__(self, item):
+        return super(DictParsed, self).__getitem__(item.strip(TAG_COMPRESS + TAG_IGNORE))
 
     def __setitem__(self, key, value):
-        self._dict[key] = value
-        self._parsed_dict[key.strip(TAG_EXPAND+TAG_IGNORE)] = value
+        if isinstance(value, dict):
+            value = DictParsed(value)
+        tags = (key.startswith(TAG_IGNORE), key.endswith(TAG_COMPRESS))
+        new_key = key.strip(TAG_COMPRESS + TAG_IGNORE)
+        if any(tags):
+            self.keys_with_tags[new_key] = tags
+        super(DictParsed, self).__setitem__(new_key, value)
 
-    def update(self, other_dict: dict):
-        self._dict.update(other_dict)
-        tag_cleaning(self._dict, self._parsed_dict)
+    def tracked_params(self, parent='', level=0):
+        tracked_params = OrderedDict()
+        for k, v in self.items():
+            tags = self.keys_with_tags.get(k, (False, False))
+            if tags[0]:
+                continue
+            current_key = "%s%s" % (parent, k)
+            if isinstance(v, DictParsed):
+                if not tags[1] or (level == 0):
+                    tmp_t_params = v.tracked_params(current_key+'/', level+1)
+                    tracked_params.update(tmp_t_params)
+                else:
+                    tracked_params[current_key] = v.filtered_dict()
+            else:
+                tracked_params[current_key] = v
+        return tracked_params
 
-    def clean_dict(self):
-        filter_dict = dict()
-        tag_parsing(self._dict, filter_dict)
-        return filter_dict
-
-    def __repr__(self):
-        return str(self._parsed_dict)
-
-    def items(self):
-        return self._dict.items()
-
-    @property
-    def parsed_dict(self):
-        return self._parsed_dict
+    def filtered_dict(self):
+        filtered_dict = dict()
+        for k in self.keys():
+            tags = self.keys_with_tags.get(k, (False, False))
+            if tags[0]:
+                continue
+            else:
+                filtered_dict[k] = self.get(k)
+        return filtered_dict
 
 
 class Config:
     def __init__(self, path=None):
         super(Config, self).__init__()
 
-        self.keys_dict = DoubleDict(ordered=False)
-
+        self.keys_dict = DictParsed()
         if path is not None:
             self.load_yaml(path)
 
@@ -69,7 +87,7 @@ class Config:
 
     @property
     def tracked_params(self):
-        return self.keys_dict.clean_dict()
+        return self.keys_dict.tracked_params()
 
     def __getitem__(self, item):
         return self.keys_dict[item]
@@ -78,45 +96,33 @@ class Config:
         self.keys_dict[key] = value
 
     def __repr__(self):
-        return pprint.pformat(self.keys_dict.parsed_dict)
+        return pprint.pformat(self.keys_dict)
+
+    def get(self, key, default=None):
+        return self.keys_dict.get(key, default)
+
+    def pop(self, key, default=None):
+        return self.keys_dict.pop(key, default)
 
 
 def recursive_dict_replacement(org_dict):
     for k, v in org_dict.items():
-        if isinstance(v, dict):
+        if isinstance(v, OrderedDict) or isinstance(v, dict):
             recursive_dict_replacement(v)
-            new_dict = DoubleDict(ordered=False)
+            new_dict = DictParsed()
             new_dict.update(v)
             org_dict[k] = new_dict
 
-
-def tag_cleaning(original_dict, new_dict):
-    for k, v in original_dict.items():
-        if isinstance(v, dict) or isinstance(v, DoubleDict) or isinstance(v, OrderedDict):
-            new_dict[k.strip(TAG_EXPAND+TAG_IGNORE)] = dict()
-            tag_cleaning(v, new_dict[k.strip(TAG_EXPAND+TAG_IGNORE)])
-        else:
-            new_dict[k.strip(TAG_EXPAND+TAG_IGNORE)] = v
-
-
-def tag_parsing(original_dict, new_dict, parent_key='', level=0):
-    for k, v in original_dict.items():
-        if k.startswith(TAG_IGNORE):
-            continue
-        else:
-            if (isinstance(v, dict) or isinstance(v, DoubleDict) or isinstance(v, OrderedDict)) and (k.endswith(TAG_EXPAND) or level == 0):
-                k = k.strip(TAG_EXPAND+TAG_IGNORE)
-                tag_parsing(v, new_dict, '%s/%s' % (parent_key, k) if parent_key else k, level+1)
-            else:
-                k = k.strip(TAG_EXPAND+TAG_IGNORE)
-                key = '%s/%s'%(parent_key, k) if parent_key else k
-                new_dict[key] = v
-
-
 if __name__ == '__main__':
+    from icecream import ic
     path = '../../tests/c_file_test.yaml'
     c = Config(path)
     c['Loss']['type'] = 'A'
     # pprint.pprint(c, compact=False)
-    print(c)
+    # print(c)
+    # ic(c.)
+
+    pprint.pprint(c.tracked_params, compact=False)
+
+
 
