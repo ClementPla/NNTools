@@ -106,8 +106,8 @@ class Config:
 
 
 def recursive_dict_replacement(org_dict):
-    for k, v in org_dict.items():
-        if isinstance(v, OrderedDict) or isinstance(v, dict):
+    for k, v in org_dict.copy().items():
+        if isinstance(v, dict):
             recursive_dict_replacement(v)
             new_dict = DictParsed()
             new_dict.update(v)
@@ -123,6 +123,7 @@ if __name__ == '__main__':
     # ic(c.)
 
     pprint.pprint(c.tracked_params, compact=False)
+    ic(c)
 
 
 
