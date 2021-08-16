@@ -102,6 +102,10 @@ class ConcatDataset(torch.utils.data.ConcatDataset):
                 class_count += d.get_class_count(load=load, save=save)
         return class_count
 
+    @property
+    def composer(self):
+        return [d.composer for d in self.datasets]
+
 
 def concat_datasets_if_needed(datasets):
     if isinstance(datasets, list):
