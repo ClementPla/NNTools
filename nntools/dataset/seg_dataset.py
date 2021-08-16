@@ -37,9 +37,9 @@ class SegmentationDataset(ImageDataset):
                                                   extract_image_id_function,
                                                   use_cache)
 
-    def get_class_count(self):
+    def get_class_count(self, save=True, load=True):
         from .utils import get_segmentation_class_count
-        return get_segmentation_class_count(self)
+        return get_segmentation_class_count(self, save=save, load=load)
 
     def list_files(self, recursive):
         for extension in supportedExtensions:
