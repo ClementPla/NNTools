@@ -1,11 +1,13 @@
 import ntpath
 import os
 
-import cv2
 import yaml
 
 
-def read_image(filepath, flag=cv2.IMREAD_UNCHANGED):
+def read_image(filepath, flag=None):
+    import cv2
+    if flag is None:
+        flag = cv2.IMREAD_UNCHANGED
     image = cv2.imread(filepath, flag)
     if image.ndim == 3:
         return image[:, :, ::-1]  # Change from BGR to RGB
