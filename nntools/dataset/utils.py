@@ -7,6 +7,8 @@ from nntools.tracker import Log
 from torch import randperm, default_generator
 from torch._utils import _accumulate
 import torch
+import tqdm
+
 
 def get_classification_class_count(dataset):
     gts = dataset.gts
@@ -15,20 +17,22 @@ def get_classification_class_count(dataset):
 
 
 def get_segmentation_class_count(dataset, save=True, load=True):
-    raise NotImplementedError
-    shape = dataset.shape
-    path = dataset.path_masks[0]
+
+    sample = dataset[0]
+    if 'mask' not in sample.keys():
+        raise NotImplementedError
+
+    path = dataset.img_filepath['image']
     filepath = os.path.join(path, 'classes_count.npy')
 
     if os.path.isfile(filepath) and load:
         return np.load(filepath)
-    list_masks = dataset.gts
-
     classes_counts = np.zeros(1024, dtype=int)  # Arbitrary large number (nb classes unknown at this point)
 
-    for f in list_masks:
-        mask = cv2.imread(f, cv2.IMREAD_GRAYSCALE)
-        mask = cv2.resize(mask, dsize=shape, interpolation=cv2.INTER_NEAREST)
+    for sample in tqdm.tqdm(dataset):
+        mask = cv2.imread(sample, cv2.IMREAD_GRAYSCALE)
+        if mask.ndim == 3:
+            mask = np.argmax(mask, 0)
         u, counts = np.unique(mask, return_counts=True)
         classes_counts[u] += counts
 
