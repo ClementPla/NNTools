@@ -30,7 +30,7 @@ def get_segmentation_class_count(dataset, save=True, load=True):
     classes_counts = np.zeros(1024, dtype=int)  # Arbitrary large number (nb classes unknown at this point)
 
     for sample in tqdm.tqdm(dataset):
-        mask = cv2.imread(sample, cv2.IMREAD_GRAYSCALE)
+        mask = sample['mask']
         if mask.ndim == 3:
             mask = np.argmax(mask, 0)
         u, counts = np.unique(mask, return_counts=True)
