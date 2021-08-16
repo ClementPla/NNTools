@@ -22,7 +22,7 @@ def get_segmentation_class_count(dataset, save=True, load=True):
     if 'mask' not in sample.keys():
         raise NotImplementedError
 
-    path = dataset.img_filepath['image']
+    path = dataset.path_img[0]
     filepath = os.path.join(path, 'classes_count.npy')
 
     if os.path.isfile(filepath) and load:
