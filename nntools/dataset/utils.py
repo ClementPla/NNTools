@@ -106,6 +106,10 @@ class ConcatDataset(torch.utils.data.ConcatDataset):
     def composer(self):
         return [d.composer for d in self.datasets]
 
+    def multiply_size(self, factor):
+        for d in self.datasets:
+            d.multiply_size(factor)
+
 
 def concat_datasets_if_needed(datasets):
     if isinstance(datasets, list):
