@@ -49,10 +49,15 @@ class ImageDataset(Dataset):
         self.use_cache = use_cache
         self.cmap_name = 'jet_r'
 
+        self.multiplicative_size_factor = 1
         if self.use_cache:
             self.cache()
 
     def __len__(self):
+        return int(self.multiplicative_size_factor*self.real_length)
+
+    @property
+    def real_length(self):
         return len(self.img_filepath['image'])
 
     def list_files(self, recursive):
@@ -68,6 +73,9 @@ class ImageDataset(Dataset):
             img = resize(image=img, shape=self.shape,
                          keep_size_ratio=self.keep_size_ratio)
         return {'image': img}
+
+    def multiply_size(self, factor):
+        assert factor > 1
 
     def init_cache(self):
         self.use_cache = False
@@ -147,6 +155,9 @@ class ImageDataset(Dataset):
             self.gts[k] = files[indices]
 
     def __getitem__(self, index, torch_cast=True, transpose_img=True, return_indices=True):
+        if index >= self.real_length:
+            index = index % self.real_length
+    
         inputs = self.load_array(index)
         if self.composer:
             outputs = self.composer(**inputs)
