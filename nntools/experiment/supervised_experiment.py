@@ -9,6 +9,7 @@ from nntools.utils import reduce_tensor
 from nntools.utils.misc import call_with_filtered_kwargs
 from torch.cuda.amp import autocast, GradScaler
 from torch.nn.utils import clip_grad_norm_
+import numpy as np
 
 from .experiment import Experiment
 
@@ -108,7 +109,7 @@ class SupervisedExperiment(Experiment):
         lr_scheduler = self.ctx_train['lr_scheduler']
         train_loader = self.ctx_train['train_loader']
         iters_to_accumulate = self.c['Training'].get('iters_to_accumulate', 1)
-
+        moving_loss = []
         if self.is_main_process(rank):
             progressBar = tqdm.tqdm(total=len(train_loader))
 
@@ -134,6 +135,7 @@ class SupervisedExperiment(Experiment):
 
                     if self.ctx_train['scheduler_opt'].call_on == 'on_iteration':
                         self.lr_scheduler_step(lr_scheduler, epoch, i, len(train_loader))
+                moving_loss.append(loss.detach().item())
 
             """
             Validation step
@@ -151,7 +153,8 @@ class SupervisedExperiment(Experiment):
                     self.lr_scheduler_step(lr_scheduler, epoch, i, len(train_loader), valid_metric)
 
                 if self.is_main_process(rank):
-                    self.log_metrics(self.ctx_train['iteration'], trainining_loss=loss.detach().item())
+                    moving_loss = []
+                    self.log_metrics(self.ctx_train['iteration'], trainining_loss=np.mean(moving_loss))
                     self.save_model(model, filename='last')
 
             if self.multi_gpu:
@@ -169,7 +172,8 @@ class SupervisedExperiment(Experiment):
         if self.validation_dataset is None:
             if self.is_main_process(rank):
                 self.save_model(model,
-                                filename='iteration_%i_loss_%f' % (self.ctx_train['iteration'], loss.detach().item()))
+                                filename='iteration_%i_loss_%f' % (self.ctx_train['iteration'],
+                                                                   float(np.mean(moving_loss))))
 
         if self.ctx_train['scheduler_opt'].call_on == 'on_epoch':
             self.lr_scheduler_step(lr_scheduler, epoch, self.ctx_train['iteration'], len(train_loader))

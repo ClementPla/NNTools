@@ -157,7 +157,7 @@ class ImageDataset(Dataset):
 
     def __getitem__(self, index, torch_cast=True, transpose_img=True, return_indices=True):
         if index >= self.real_length:
-            index = index % self.real_length
+            index = int(index % self.real_length)
 
         inputs = self.load_array(index)
         if self.composer:
