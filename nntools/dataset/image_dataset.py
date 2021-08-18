@@ -156,6 +156,8 @@ class ImageDataset(Dataset):
             self.gts[k] = files[indices]
 
     def __getitem__(self, index, torch_cast=True, transpose_img=True, return_indices=True):
+        if abs(index) >= len(self):
+            raise ValueError("Absolute value of index should not exceed dataset length")
         if index >= self.real_length:
             index = int(index % self.real_length)
 
