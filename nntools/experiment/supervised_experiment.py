@@ -153,8 +153,9 @@ class SupervisedExperiment(Experiment):
                     self.lr_scheduler_step(lr_scheduler, epoch, i, len(train_loader), valid_metric)
 
                 if self.is_main_process(rank):
+                    if moving_loss:
+                        self.log_metrics(self.ctx_train['iteration'], trainining_loss=np.mean(moving_loss))
                     moving_loss = []
-                    self.log_metrics(self.ctx_train['iteration'], trainining_loss=np.mean(moving_loss))
                     self.save_model(model, filename='last')
 
             if self.multi_gpu:
