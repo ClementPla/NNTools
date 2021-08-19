@@ -53,6 +53,9 @@ class ImageDataset(Dataset):
         if self.use_cache:
             self.cache()
 
+        self.tags = None
+        self.return_tags = False
+
     def __len__(self):
         return int(self.multiplicative_size_factor*self.real_length)
 
@@ -180,6 +183,13 @@ class ImageDataset(Dataset):
 
         if self.return_indices and return_indices:
             outputs['index'] = index
+
+        if self.tags and self.return_tags:
+            if isinstance(self.tags, dict):
+                for k, v in self.tags.items():
+                    outputs[k] = v
+            else:
+                outputs["tag"] = self.tags
         return outputs
 
     def plot(self, item, classes=None, fig_size=1):
