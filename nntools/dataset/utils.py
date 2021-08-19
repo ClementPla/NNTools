@@ -110,6 +110,17 @@ class ConcatDataset(torch.utils.data.ConcatDataset):
         for d in self.datasets:
             d.multiply_size(factor)
 
+    def cache(self):
+        for d in self.datasets:
+            d.cache()
+
+    def __setattr__(self, key, value):
+        if hasattr(self, key):
+            super(ConcatDataset, self).__setattr__(key, value)
+        else:
+            for d in self.datasets:
+                d.__setattr__(key, value)
+
 
 def concat_datasets_if_needed(datasets):
     if isinstance(datasets, list):
