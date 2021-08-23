@@ -121,6 +121,8 @@ class ConcatDataset(torch.utils.data.ConcatDataset):
             d.cache()
 
     def __setattr__(self, key, value):
+        if key == 'post_init':
+            super(ConcatDataset, self).__setattr__(key, value)
         if hasattr(self, key) or not self.post_init:
             super(ConcatDataset, self).__setattr__(key, value)
         else:
