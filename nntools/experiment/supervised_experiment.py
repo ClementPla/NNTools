@@ -186,9 +186,9 @@ class SupervisedExperiment(Experiment):
     def forward_train(self, model, loss_function, batch, rank):
         pred = model(*self.pass_data_keys_to_model(batch))
         if isinstance(pred, tuple):
-            loss = loss_function(*pred, batch[self.gt_name])
+            loss = loss_function(*pred, y_true=batch[self.gt_name])
         else:
-            loss = loss_function(pred, batch[self.gt_name])
+            loss = loss_function(pred, y_true=batch[self.gt_name])
         return loss
 
     def pass_data_keys_to_model(self, batch):
