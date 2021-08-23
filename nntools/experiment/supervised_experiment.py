@@ -25,6 +25,7 @@ class SupervisedExperiment(Experiment):
         self.n_classes = config['Network'].get('n_classes', -1)
         self.class_weights = None
         self.gt_name = 'mask'
+        self.data_keys = ['image']
 
     def start(self, run_id=None):
         if self.c['Loss'].get('weighted_loss', False) and self.class_weights is None:
@@ -183,12 +184,19 @@ class SupervisedExperiment(Experiment):
             dist.barrier()
 
     def forward_train(self, model, loss_function, batch, rank):
-        pred = model(batch['image'])
+        pred = model(*self.pass_data_keys_to_model(batch))
         if isinstance(pred, tuple):
             loss = loss_function(*pred, batch[self.gt_name])
         else:
             loss = loss_function(pred, batch[self.gt_name])
         return loss
+
+    def pass_data_keys_to_model(self, batch):
+        args = []
+        for key in self.data_keys:
+            if key in batch:
+                args.append(batch[key])
+        return tuple(args)
 
     def validate(self, model, valid_loader, iteration, rank=0, loss_function=None):
         gpu = self.get_gpu_from_rank(rank)

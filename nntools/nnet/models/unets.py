@@ -9,7 +9,7 @@ from nntools.nnet import AbstractNet
 from torch.nn import init
 
 
-def init_weights(net, init_type='normal', gain=0.02):
+def init_weights(net, init_type='kaiming', gain=0.02):
     def init_func(m):
         classname = m.__class__.__name__
         if hasattr(m, 'weight') and (classname.find('Conv') != -1 or classname.find('Linear') != -1):
@@ -42,8 +42,7 @@ class ConvBlock(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(ch_out, ch_out, kernel_size=3, stride=1, padding=1, bias=True),
             nn.BatchNorm2d(ch_out),
-            nn.ReLU(inplace=True)
-        )
+            nn.ReLU(inplace=True))
 
     def forward(self, x):
         x = self.conv(x)
@@ -54,11 +53,10 @@ class UpConv(nn.Module):
     def __init__(self, ch_in, ch_out):
         super(UpConv, self).__init__()
         self.up = nn.Sequential(
-            nn.Upsample(scale_factor=2),
+            nn.Upsample(scale_factor=2, mode='bilinear'),
             nn.Conv2d(ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=True),
             nn.BatchNorm2d(ch_out),
-            nn.ReLU(inplace=True)
-        )
+            nn.ReLU(inplace=True))
 
     def forward(self, x):
         x = self.up(x)
@@ -170,6 +168,8 @@ class UNet(AbstractNet):
         self.Up_conv2 = ConvBlock(ch_in=128, ch_out=64)
 
         self.Conv_1x1 = nn.Conv2d(64, output_ch, kernel_size=1, stride=1, padding=0)
+
+        self.apply(init_weights)
 
     def forward(self, x):
         # encoding path
