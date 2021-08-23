@@ -80,6 +80,12 @@ def random_split(dataset, lengths, generator=default_generator):
 
 
 class ConcatDataset(torch.utils.data.ConcatDataset):
+
+    def __init__(self, *args, **kwargs):
+        self.post_init = False
+        super(ConcatDataset, self).__init__(*args, **kwargs)
+        self.post_init = True
+
     def plot(self, idx):
         if idx < 0:
             if -idx > len(self):
@@ -115,7 +121,7 @@ class ConcatDataset(torch.utils.data.ConcatDataset):
             d.cache()
 
     def __setattr__(self, key, value):
-        if hasattr(self, key):
+        if hasattr(self, key) or not self.post_init:
             super(ConcatDataset, self).__setattr__(key, value)
         else:
             for d in self.datasets:
