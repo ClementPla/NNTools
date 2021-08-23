@@ -28,10 +28,10 @@ class FuseLoss:
             losses = [losses]
         self.losses = losses
 
-    def __call__(self, y_pred, y_true):
+    def __call__(self, *y_pred, y_true):
         list_losses = []
         for l in self.losses:
-            list_losses.append(l(y_pred, y_true))
+            list_losses.append(l(*y_pred, y_true))
         if self.fusion == 'sum':
             return sum(list_losses)
         if self.fusion == 'mean':
