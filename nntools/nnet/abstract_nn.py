@@ -2,8 +2,9 @@ import datetime
 from os.path import join, splitext
 
 import torch
-from nntools.utils.io import create_folder, get_most_recent_file
 from torch import nn
+
+from nntools.utils.io import create_folder, get_most_recent_file
 
 
 def check_nan(state_dict):
@@ -61,7 +62,8 @@ class AbstractNet(nn.Module):
         torch.save(save_dict, path)
         return path
 
-    def load(self, path, ignore_nan=False, load_most_recent=False, strict=False, map_location=None, filtername=None):
+    def load(self, path, ignore_nan=False, load_most_recent=False, strict=False, map_location=None, filtername=None,
+             allow_size_mismatch=True):
         if map_location is None:
             map_location = torch.device('cpu')
         if load_most_recent:
@@ -69,6 +71,13 @@ class AbstractNet(nn.Module):
         print("Loading model from ", path)
 
         state_dict = torch.load(path, map_location=map_location)['model_state_dict']
+        if allow_size_mismatch and not strict:
+            current_model = self.state_dict()
+            new_state_dict = {
+                k: state_dict.get(k, None) if (k in state_dict and (state_dict[k].size() == v.size())) else v for k, v
+                in current_model.items()}
+            state_dict = new_state_dict
+
         if not ignore_nan:
             check_nan(state_dict)
         self.load_state_dict(state_dict, strict=strict)
