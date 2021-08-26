@@ -8,7 +8,8 @@ SUPPORTED_LOSS = {'CrossEntropy': nn.CrossEntropyLoss,
                   'Jaccard': smp_l.JaccardLoss,
                   'SoftBinaryCrossEntropy': smp_l.SoftBCEWithLogitsLoss,
                   'SoftCrossEntropy': smp_l.SoftCrossEntropyLoss,
-                  'Lovasz': smp_l.LovaszLoss}
+                  'Lovasz': smp_l.LovaszLoss,
+                  'NLL': nn.NLLLoss}
 
 
 def register_loss(key, value):
