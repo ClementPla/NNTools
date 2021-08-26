@@ -17,12 +17,6 @@ def register_loss(key, value):
     SUPPORTED_LOSS[key] = value
 
 
-def auto_register(func):
-    global SUPPORTED_LOSS
-    SUPPORTED_LOSS[func.__name__] = func
-    return func
-
-
 class FuseLoss:
     def __init__(self, losses=None, fusion='mean', mode=MULTICLASS_MODE):
 
