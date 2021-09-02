@@ -206,14 +206,16 @@ class Experiment(Manager):
         self.ctx_train['scheduler_opt'] = scheduler
         self.partial_lr_scheduler = partial_fill_kwargs(scheduler.func, config['params_scheduler'])
 
-    def get_dataloader(self, dataset, shuffle=True, batch_size=None, drop_last=False, persistent_workers=True, rank=0):
-        num_workers = self.config['Manager']['num_workers']
+    def get_dataloader(self, dataset, shuffle=True, batch_size=None,
+                       num_workers=None,
+                       drop_last=False, persistent_workers=True, rank=0):
+        num_workers = self.config['Manager']['num_workers'] if num_workers is None else num_workers
+
         exp_dataloader = self.config['Manager'].get('experimental_dataloader', False)
         c_shuffle = self.config['Dataset'].get('shuffle', True)
         shuffle = shuffle & c_shuffle
 
-        if batch_size is None:
-            batch_size = self.batch_size
+        batch_size = self.batch_size if batch_size is None else batch_size
         if self.multi_gpu:
             sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=shuffle,
                                                                       num_replicas=self.world_size, rank=rank)

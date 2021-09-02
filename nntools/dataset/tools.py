@@ -32,3 +32,6 @@ class Composition:
         for i, o in enumerate(self.ops):
             output += '%i_' % i + str(o) + ' STATUS: ' + ('Active' if i not in self.deactivated else 'Inactive') + ' \n'
         return output
+
+    def __len__(self):
+        return len(self.ops)
