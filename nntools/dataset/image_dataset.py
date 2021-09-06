@@ -199,10 +199,10 @@ class ImageDataset(Dataset):
         return outputs
 
     def filter_data(self, datadict):
-        if self.ignore_keys:
-            for k in datadict.keys():
-                if k in self.ignore_keys:
-                    datadict.pop(k)
+        list_keys = list(datadict.keys())
+        for k in self.ignore_keys:
+            if k in list_keys:
+                datadict.pop(k)
 
     def plot(self, item, classes=None, fig_size=1):
         arrays = self.__getitem__(item, torch_cast=False, transpose_img=False, return_indices=False)
