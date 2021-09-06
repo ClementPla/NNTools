@@ -204,6 +204,12 @@ class ImageDataset(Dataset):
             if k in list_keys:
                 datadict.pop(k)
 
+    def set_ignore_key(self, key):
+        self.ignore_keys.append(key)
+
+    def clean_filter(self):
+        self.ignore_keys = []
+        
     def plot(self, item, classes=None, fig_size=1):
         arrays = self.__getitem__(item, torch_cast=False, transpose_img=False, return_indices=False)
 
