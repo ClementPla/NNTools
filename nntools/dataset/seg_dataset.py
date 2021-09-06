@@ -123,7 +123,7 @@ class SegmentationDataset(ImageDataset):
                     mask = read_image(filepath, cv2.IMREAD_GRAYSCALE)
                 if self.auto_resize:
                     mask = resize(image=mask, shape=self.shape, keep_size_ratio=self.keep_size_ratio,
-                                  flag=cv2.INTER_NEAREST)
+                                  flag=cv2.INTER_NEAREST_EXACT)
                 inputs[k] = mask
 
         return inputs

@@ -7,16 +7,17 @@ from nntools.utils.io import read_image
 from nntools.utils.misc import to_iterable, identity
 from torch.utils.data import Dataset
 
-supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
+import math
 import multiprocessing as mp
 import ctypes
 import tqdm
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib import cm
+import cv2
 
+supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
 plt.rcParams['image.cmap'] = 'gray'
-import math
 
 
 class ImageDataset(Dataset):
@@ -158,7 +159,8 @@ class ImageDataset(Dataset):
         for k, files in self.gts.items():
             self.gts[k] = files[indices]
 
-    def __getitem__(self, index, torch_cast=True, transpose_img=True, return_indices=True):
+    def __getitem__(self, index, torch_cast=True, transpose_img=True, return_indices=True,
+                    return_tag=True):
         if abs(index) >= len(self):
             raise StopIteration
         if index >= self.real_length:
@@ -184,7 +186,7 @@ class ImageDataset(Dataset):
         if self.return_indices and return_indices:
             outputs['index'] = index
 
-        if self.tag and self.return_tag:
+        if self.tag and (self.return_tag and return_tag):
             if isinstance(self.tag, dict):
                 for k, v in self.tag.items():
                     outputs[k] = v
@@ -239,3 +241,60 @@ class ImageDataset(Dataset):
 
         fig.tight_layout()
         fig.show()
+
+    def get_mosaic(self, n_items=9, shuffle=False, indexes=None, resolution=(512, 512), show=False, fig_size=1,
+                   save=None):
+
+        if indexes is None:
+            if shuffle:
+                indexes = np.random.randint(0, len(self), n_items)
+            else:
+                indexes = np.arange(n_items)
+
+        ref_dict = self.__getitem__(0, torch_cast=False, transpose_img=False, return_indices=False, return_tag=False)
+        count_images = 0
+        for k, v in ref_dict.items():
+            if isinstance(v, np.ndarray):
+                count_images += 1
+
+        n_row = math.ceil(math.sqrt(n_items))
+        n_col = math.ceil(n_items / n_row)
+        cols = []
+        for c in range(n_col):
+            row = []
+            for r in range(n_row):
+                i = (n_col + 1) * c + r
+                if i >= n_items:
+                    for n in range(count_images):
+                        row.append(np.zeros(resolution + (3,)))
+                    continue
+                index = indexes[i]
+                data = self.__getitem__(index, torch_cast=False, transpose_img=False, return_indices=False,
+                                        return_tag=False)
+
+                for k, v in data.items():
+                    if v.ndim == 3 and v.shape[-1] > 3:
+                        v_tmp = np.argmax(v, axis=-1) + 1
+                        v_tmp[v.max(axis=-1) == 0] = 0
+                        v = v_tmp
+                    if v.ndim == 3:
+                        v = (v - v.min()) / (v.max() - v.min())
+                    if v.ndim == 2:
+                        cmap = plt.get_cmap(self.cmap_name, v.max() + 1)
+                        v = cmap(v)[:, :, :3]
+                    v = cv2.resize(v, resolution, cv2.INTER_NEAREST_EXACT)
+                    row.append(v)
+
+            row = np.hstack(row)
+            cols.append(row)
+        mosaic = np.vstack(cols)
+        if show:
+            fig, ax = plt.subplots(1, 1)
+            ax.imshow(mosaic)
+            fig.set_size_inches(fig_size * 5 * count_images * n_col, 5 * n_row * fig_size)
+            fig.show()
+        if save:
+            assert isinstance(save, str)
+            cv2.imwrite(save, (mosaic * 255)[:, :, ::-1])
+
+        return mosaic
