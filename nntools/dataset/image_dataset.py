@@ -57,6 +57,8 @@ class ImageDataset(Dataset):
         self.tag = None
         self.return_tag = False
 
+        self.ignore_keys = []
+
     def __len__(self):
         return int(self.multiplicative_size_factor*self.real_length)
 
@@ -167,6 +169,7 @@ class ImageDataset(Dataset):
             index = int(index % self.real_length)
 
         inputs = self.load_array(index)
+
         if self.composer:
             outputs = self.composer(**inputs)
         else:
@@ -192,7 +195,14 @@ class ImageDataset(Dataset):
                     outputs[k] = v
             else:
                 outputs["tag"] = self.tag
+        self.filter_data(outputs)
         return outputs
+
+    def filter_data(self, datadict):
+        if self.ignore_keys:
+            for k in datadict.keys():
+                if k in self.ignore_keys:
+                    datadict.pop(k)
 
     def plot(self, item, classes=None, fig_size=1):
         arrays = self.__getitem__(item, torch_cast=False, transpose_img=False, return_indices=False)
