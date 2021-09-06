@@ -209,7 +209,7 @@ class ImageDataset(Dataset):
 
     def clean_filter(self):
         self.ignore_keys = []
-        
+
     def plot(self, item, classes=None, fig_size=1):
         arrays = self.__getitem__(item, torch_cast=False, transpose_img=False, return_indices=False)
 
@@ -241,7 +241,7 @@ class ImageDataset(Dataset):
                         ax[i][j].imshow(np.squeeze(arr), cmap='gray', interpolation='none')
                     elif arr.ndim == 2:
                         n_classes = np.max(arr) + 1
-                        if n_classes == 0:
+                        if n_classes == 1:
                             n_classes = 2
                         cmap = cm.get_cmap(self.cmap_name, n_classes)
                         ax[i][j].imshow(np.squeeze(arr), cmap=cmap, interpolation='none')
@@ -296,7 +296,10 @@ class ImageDataset(Dataset):
                     if v.ndim == 3:
                         v = (v - v.min()) / (v.max() - v.min())
                     if v.ndim == 2:
-                        cmap = plt.get_cmap(self.cmap_name, v.max() + 1)
+                        n_classes = np.max(v) + 1
+                        if n_classes == 1:
+                            n_classes = 2
+                        cmap = plt.get_cmap(self.cmap_name, n_classes)
                         v = cmap(v)[:, :, :3]
                     v = cv2.resize(v, resolution, cv2.INTER_NEAREST_EXACT)
                     row.append(v)
