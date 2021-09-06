@@ -6,7 +6,7 @@ from nntools.dataset.image_tools import resize
 from nntools.utils.io import read_image
 from nntools.utils.misc import to_iterable, identity
 from torch.utils.data import Dataset
-
+import os
 import math
 import multiprocessing as mp
 import ctypes
@@ -259,7 +259,7 @@ class ImageDataset(Dataset):
         fig.show()
 
     def get_mosaic(self, n_items=9, shuffle=False, indexes=None, resolution=(512, 512), show=False, fig_size=1,
-                   save=None):
+                   save=None, add_labels=False):
 
         if indexes is None:
             if shuffle:
@@ -275,14 +275,17 @@ class ImageDataset(Dataset):
 
         n_row = math.ceil(math.sqrt(n_items))
         n_col = math.ceil(n_items / n_row)
+        pad = 50
         cols = []
+
         for c in range(n_col):
             row = []
             for r in range(n_row):
-                i = (n_col + 1) * c + r
+                i = n_row * c + r
                 if i >= n_items:
                     for n in range(count_images):
-                        row.append(np.zeros(resolution + (3,)))
+                        tmp = np.zeros((resolution[0]+pad, resolution[1], 3))
+                        row.append(tmp)
                     continue
                 index = indexes[i]
                 data = self.__getitem__(index, torch_cast=False, transpose_img=False, return_indices=False,
@@ -301,11 +304,39 @@ class ImageDataset(Dataset):
                             n_classes = 2
                         cmap = plt.get_cmap(self.cmap_name, n_classes)
                         v = cmap(v)[:, :, :3]
+
                     v = cv2.resize(v, resolution, cv2.INTER_NEAREST_EXACT)
+                    if add_labels:
+                        v = np.pad(v, ((50, 0), (0, 0), (0, 0)))
+                        if k in self.gts:
+                            text = self.gts[k][index]
+                        elif k in self.img_filepath:
+                            text = self.img_filepath[k][index]
+                        else:
+                            text = ''
+                        text = os.path.basename(text)
+                        font = cv2.FONT_HERSHEY_PLAIN
+                        fontScale = 1.75
+                        fontColor = (255, 255, 255)
+                        lineType = 2
+
+                        textsize = cv2.getTextSize(text, font, fontScale, lineType)[0]
+                        textX = (v.shape[1] - textsize[0]) // 2
+                        textY = (textsize[1]+pad) // 2
+
+                        bottomLeftCornerOfText = textX, textY
+                        cv2.putText(v, text,
+                                    bottomLeftCornerOfText,
+                                    font,
+                                    fontScale,
+                                    fontColor,
+                                    lineType)
                     row.append(v)
 
-            row = np.hstack(row)
-            cols.append(row)
+            rows = np.hstack(row)
+
+            cols.append(rows)
+
         mosaic = np.vstack(cols)
         if show:
             fig, ax = plt.subplots(1, 1)
