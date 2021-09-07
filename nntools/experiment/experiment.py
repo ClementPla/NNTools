@@ -333,7 +333,20 @@ class Experiment(Manager):
         self.start(run_id=run_id)
 
     def train(self, model, rank):
-        pass
+        iteration = self.tracker.current_iteration - 1
+        train_loader, train_sampler = self.get_dataloader(self.train_dataset, drop_last=True, rank=rank)
+
+        if self.validation_dataset is not None:
+            valid_loader, valid_sampler = self.get_dataloader(self.validation_dataset, shuffle=False, rank=rank)
+            self.ctx_train['valid_loader'] = valid_loader
+            self.ctx_train['valid_sampler'] = valid_sampler
+
+        self.ctx_train['train_loader'] = train_loader
+        self.ctx_train['train_sampler'] = train_sampler
+        self.ctx_train['iteration'] = iteration
+        self.ctx_train['model'] = model
+        self.main_training_loop(rank=rank)
+
 
     def validate(self, model, valid_loader, iteration, rank=0, loss_function=None):
         pass

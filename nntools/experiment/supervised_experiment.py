@@ -68,6 +68,7 @@ class SupervisedExperiment(Experiment):
             self.class_weights = weights
 
     def train(self, model, rank=0):
+
         loss_function = self.get_loss(self.class_weights, rank=rank)
         optimizer = self.partial_optimizer(
             model.get_trainable_parameters(self.c['Optimizer']['params_solver']['lr']))
@@ -76,31 +77,14 @@ class SupervisedExperiment(Experiment):
             lr_scheduler = self.partial_lr_scheduler(optimizer)
         else:
             lr_scheduler = None
-        iteration = self.tracker.current_iteration - 1
-        train_loader, train_sampler = self.get_dataloader(self.train_dataset, rank=rank)
-
-        if self.validation_dataset is not None:
-            valid_loader, valid_sampler = self.get_dataloader(self.validation_dataset,
-                                                              batch_size=1,
-                                                              shuffle=False, rank=rank)
-            self.ctx_train['valid_loader'] = valid_loader
-            self.ctx_train['valid_sampler'] = valid_sampler
-
         scaler = GradScaler(enabled=self.c['Manager'].get('grad_scaling', False))
 
         self.ctx_train['loss_function'] = loss_function
         self.ctx_train['lr_scheduler'] = lr_scheduler
-        self.ctx_train['iteration'] = iteration
-
         self.ctx_train['scaler'] = scaler
-
-        self.ctx_train['train_loader'] = train_loader
-        self.ctx_train['train_sampler'] = train_sampler
-
         self.ctx_train['optimizer'] = optimizer
-        self.ctx_train['model'] = model
 
-        self.main_training_loop(rank=rank)
+        super(SupervisedExperiment, self).train(model, rank)
 
     def in_epoch(self, epoch, rank=0):
         model = self.ctx_train['model']
