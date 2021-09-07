@@ -1,6 +1,7 @@
 import segmentation_models_pytorch.losses as smp_l
 import torch.nn as nn
-from nntools import MULTICLASS_MODE, MULTILABEL_MODE, BINARY_MODE
+
+from nntools import MULTICLASS_MODE
 
 SUPPORTED_LOSS = {'CrossEntropy': nn.CrossEntropyLoss,
                   'Dice': smp_l.DiceLoss,

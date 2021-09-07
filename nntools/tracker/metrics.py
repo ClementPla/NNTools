@@ -109,4 +109,3 @@ def report_cm(confMat, epsilon=1e-7, macro=True, micro=False):
     if micro:
         score.update(micro_score(confMat, epsilon))
     return score
-

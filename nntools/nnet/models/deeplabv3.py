@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from nntools.nnet.abstract_nn import AbstractNet
 from nntools.nnet.ops.conv import Conv2d
 

@@ -1,13 +1,14 @@
+import bisect
 import copy
 import os
-import bisect
 
 import numpy as np
-from nntools.tracker import Log
-from torch import randperm, default_generator
-from torch._utils import _accumulate
 import torch
 import tqdm
+from torch import randperm, default_generator
+from torch._utils import _accumulate
+
+from nntools.tracker import Log
 
 
 def get_classification_class_count(dataset):
@@ -17,7 +18,6 @@ def get_classification_class_count(dataset):
 
 
 def get_segmentation_class_count(dataset, save=True, load=True):
-
     sample = dataset[0]
     if 'mask' not in sample.keys():
         raise NotImplementedError

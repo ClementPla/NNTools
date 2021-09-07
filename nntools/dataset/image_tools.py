@@ -18,6 +18,7 @@ def nntools_wrapper(func):
         output = func(**arguments)
         output.update(kwargs)
         return output
+
     return wrapper
 
 
@@ -34,4 +35,3 @@ def resize(image, keep_size_ratio=True, shape=(512, 512), flag=cv2.INTER_LINEAR)
 
     image = cv2.resize(image, dsize=shape, interpolation=flag)
     return image
-

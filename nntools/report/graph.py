@@ -8,12 +8,11 @@ from bokeh.models.widgets import RadioButtonGroup
 from bokeh.plotting import figure
 
 
-def display_confMat(confMats, labels, text_angle=0, plot_size=800, text_size="8pt"):
-    if not isinstance(confMats, dict):
-        confMats = {"Confusion Matrix": confMats}
+def display_confusion_matrix(conf_mats, labels, text_angle=0, plot_size=800, text_size="8pt"):
+    if not isinstance(conf_mats, dict):
+        conf_mats = {"Confusion Matrix": conf_mats}
 
     COLOR = '#00cc66'
-    TOOLS = "hover,save,pan"
 
     def get_list(cm):
         """
@@ -42,7 +41,7 @@ def display_confMat(confMats, labels, text_angle=0, plot_size=800, text_size="8p
         return predicted, actual, count, color, alpha, ratios
 
     source_data = {}
-    for i, (k, v) in enumerate(confMats.items()):
+    for i, (k, v) in enumerate(conf_mats.items()):
         predicted, actual, count, color, alpha, ratios = get_list(v)
         source_data[str(i) + 'count'] = ["{:.2e}".format(c) for c in count]
         source_data[str(i) + 'alphas'] = alpha
@@ -85,7 +84,7 @@ def display_confMat(confMats, labels, text_angle=0, plot_size=800, text_size="8p
         ('groundtruth', '@groundtruth'),
         ('ratio', '@ratios'),
     ])
-    if len(confMats) > 1:
+    if len(conf_mats) > 1:
         callback = CustomJS(args=dict(source=source),
                             code=
                             """
@@ -104,7 +103,7 @@ def display_confMat(confMats, labels, text_angle=0, plot_size=800, text_size="8p
                             source.change.emit();
                             """
                             )
-        radio_button_group = RadioButtonGroup(labels=list(confMats.keys()), active=0)
+        radio_button_group = RadioButtonGroup(labels=list(conf_mats.keys()), active=0)
         radio_button_group.js_on_change('active', callback)
         p = column(radio_button_group, p)
     return p

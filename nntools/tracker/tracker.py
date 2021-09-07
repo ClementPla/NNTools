@@ -1,8 +1,8 @@
 import os
 
 from mlflow.tracking.client import MlflowClient
-from nntools.utils.io import create_folder
 
+from nntools.utils.io import create_folder
 from .log_mlflow import log_metrics, log_params, log_artifact, set_tags
 
 
@@ -18,8 +18,10 @@ class Tracker:
         self._artifacts = []
         self.run_started = False
         self.register_params = True
+        self.client = None
+        self.exp_id = None
 
-    def add_path(self, key:str, path:str):
+    def add_path(self, key: str, path: str):
         self.save_paths[key] = path
         create_folder(path)
         self.__dict__.update(self.save_paths)

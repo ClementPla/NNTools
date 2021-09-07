@@ -1,7 +1,8 @@
 import os
-from collections import OrderedDict
-from nntools.utils.io import load_yaml
 import pprint
+from collections import OrderedDict
+
+from nntools.utils.io import load_yaml
 
 TAG_COMPRESS = '*'
 TAG_IGNORE = '^'
@@ -49,7 +50,7 @@ class DictParsed(dict):
             current_key = "%s%s" % (parent, k)
             if isinstance(v, DictParsed):
                 if not tags[1] or (level == 0):
-                    tmp_t_params = v.tracked_params(current_key+'/', level+1)
+                    tmp_t_params = v.tracked_params(current_key + '/', level + 1)
                     tracked_params.update(tmp_t_params)
                 else:
                     tracked_params[current_key] = v.filtered_dict()
@@ -113,8 +114,10 @@ def recursive_dict_replacement(org_dict):
             new_dict.update(v)
             org_dict[k] = new_dict
 
+
 if __name__ == '__main__':
     from icecream import ic
+
     path = '../../tests/c_file_test.yaml'
     c = Config(path)
     c['Loss']['type'] = 'A'
@@ -124,6 +127,3 @@ if __name__ == '__main__':
 
     pprint.pprint(c.tracked_params, compact=False)
     ic(c)
-
-
-

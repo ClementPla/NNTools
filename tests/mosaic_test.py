@@ -1,7 +1,5 @@
 import nntools.dataset as D
 
-
-
 img_root = '/home/clement/Documents/phd/DR/MessidorAnnotation/img/images/'
 label = '/home/clement/Documents/phd/DR/MessidorAnnotation/labelId/'
 dataset = D.SegmentationDataset(img_root, label, shape=(1024, 1024))

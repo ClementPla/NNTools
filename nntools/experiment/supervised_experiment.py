@@ -1,16 +1,16 @@
-import nntools.tracker.metrics as NNmetrics
+import numpy as np
 import torch
 import torch.distributed as dist
 import tqdm
-from nntools.dataset import class_weighting
-from nntools.nnet import FuseLoss, SUPPORTED_LOSS
-from nntools import BINARY_MODE, MULTICLASS_MODE, MULTILABEL_MODE
-from nntools.utils import reduce_tensor
-from nntools.utils.misc import call_with_filtered_kwargs
 from torch.cuda.amp import autocast, GradScaler
 from torch.nn.utils import clip_grad_norm_
-import numpy as np
 
+import nntools.tracker.metrics as NNmetrics
+from nntools import BINARY_MODE, MULTICLASS_MODE
+from nntools.dataset import class_weighting
+from nntools.nnet import FuseLoss, SUPPORTED_LOSS
+from nntools.utils import reduce_tensor
+from nntools.utils.misc import call_with_filtered_kwargs
 from .experiment import Experiment
 
 

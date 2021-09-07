@@ -2,13 +2,13 @@ import glob
 
 import cv2
 import numpy as np
+
+from nntools import NN_FILL_DOWNSAMPLE, NN_FILL_UPSAMPLE, MISSING_DATA_FLAG
 from nntools.dataset.image_tools import resize
 from nntools.tracker import Log
 from nntools.utils.io import read_image, path_leaf
 from nntools.utils.misc import to_iterable
-
 from .image_dataset import ImageDataset, supportedExtensions
-from nntools import NN_FILL_DOWNSAMPLE, NN_FILL_UPSAMPLE, MISSING_DATA_FLAG
 
 
 class SegmentationDataset(ImageDataset):

@@ -1,4 +1,5 @@
 import glob
+import math
 import os
 from abc import ABC
 
@@ -7,19 +8,19 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch.nn as nn
 from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
+from torch.cuda.amp import autocast
+from tqdm import tqdm
+
+from nntools.dataset.utils import concat_datasets_if_needed
 from nntools.nnet import nnt_format
 from nntools.tracker import Log, Tracker
+from nntools.utils import Config
 from nntools.utils.io import save_yaml
 from nntools.utils.misc import partial_fill_kwargs
 from nntools.utils.optims import OPTIMS
 from nntools.utils.random import set_seed, set_non_torch_seed
 from nntools.utils.scheduler import SCHEDULERS
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP, MultiEpochsDataLoader
-from nntools.dataset.utils import concat_datasets_if_needed
-from torch.cuda.amp import autocast
-from tqdm import tqdm
-from nntools.utils import Config
-import math
 
 
 class Manager(ABC):
@@ -105,7 +106,7 @@ class Manager(ABC):
     def set_params_group(self, params_group: dict):
         self.model.set_params_group(params_group)
 
-    def batch_to_device(self, batch: (dict, tuple, list), rank: int ) -> (dict, tuple, list):
+    def batch_to_device(self, batch: (dict, tuple, list), rank: int) -> (dict, tuple, list):
         device = self.get_gpu_from_rank(rank)
         if isinstance(batch, tuple) or isinstance(batch, list):
             batch = [b.cuda(device) if isinstance(b, torch.Tensor) else b for b in batch]
@@ -231,11 +232,11 @@ class Experiment(Manager):
                                                      persistent_workers=persistent_workers if num_workers else False)
         else:
             dataloader = MultiEpochsDataLoader(dataset, batch_size=batch_size,
-                                                     num_workers=num_workers,
-                                                     pin_memory=True, shuffle=shuffle if sampler is None else False,
-                                                     sampler=sampler,
-                                                     worker_init_fn=set_non_torch_seed, drop_last=drop_last,
-                                                     persistent_workers=persistent_workers if num_workers else False)
+                                               num_workers=num_workers,
+                                               pin_memory=True, shuffle=shuffle if sampler is None else False,
+                                               sampler=sampler,
+                                               worker_init_fn=set_non_torch_seed, drop_last=drop_last,
+                                               persistent_workers=persistent_workers if num_workers else False)
 
         return dataloader, sampler
 
@@ -347,7 +348,6 @@ class Experiment(Manager):
         self.ctx_train['model'] = model
         self.main_training_loop(rank=rank)
 
-
     def validate(self, model, valid_loader, iteration, rank=0, loss_function=None):
         pass
 
@@ -363,7 +363,7 @@ class Experiment(Manager):
         assert (total_epoch > 0) or (max_iterations > 0), "You must define a number of training iterations or a number " \
                                                           "of epochs"
         if max_iterations > 0:
-            total_epoch = math.ceil(max_iterations / math.ceil(len(self.train_dataset)/self.batch_size))
+            total_epoch = math.ceil(max_iterations / math.ceil(len(self.train_dataset) / self.batch_size))
 
         for e in range(total_epoch):
             if self.is_main_process(rank):

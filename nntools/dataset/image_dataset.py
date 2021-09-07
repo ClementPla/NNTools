@@ -1,20 +1,20 @@
+import ctypes
+import math
+import multiprocessing as mp
 import os
 
+import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import tqdm
+from matplotlib import cm
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from torch.utils.data import Dataset
+
 from nntools.dataset.image_tools import resize
 from nntools.utils.io import read_image
 from nntools.utils.misc import to_iterable, identity
-from torch.utils.data import Dataset
-import os
-import math
-import multiprocessing as mp
-import ctypes
-import tqdm
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from matplotlib import cm
-import cv2
 
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
 plt.rcParams['image.cmap'] = 'gray'
@@ -60,7 +60,7 @@ class ImageDataset(Dataset):
         self.ignore_keys = []
 
     def __len__(self):
-        return int(self.multiplicative_size_factor*self.real_length)
+        return int(self.multiplicative_size_factor * self.real_length)
 
     @property
     def real_length(self):
@@ -284,7 +284,7 @@ class ImageDataset(Dataset):
                 i = n_row * c + r
                 if i >= n_items:
                     for n in range(count_images):
-                        tmp = np.zeros((resolution[0]+pad, resolution[1], 3))
+                        tmp = np.zeros((resolution[0] + pad, resolution[1], 3))
                         row.append(tmp)
                     continue
                 index = indexes[i]
@@ -322,7 +322,7 @@ class ImageDataset(Dataset):
 
                         textsize = cv2.getTextSize(text, font, fontScale, lineType)[0]
                         textX = (v.shape[1] - textsize[0]) // 2
-                        textY = (textsize[1]+pad) // 2
+                        textY = (textsize[1] + pad) // 2
 
                         bottomLeftCornerOfText = textX, textY
                         cv2.putText(v, text,
