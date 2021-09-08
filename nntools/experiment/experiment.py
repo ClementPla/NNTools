@@ -338,7 +338,9 @@ class Experiment(Manager):
         train_loader, train_sampler = self.get_dataloader(self.train_dataset, drop_last=True, rank=rank)
 
         if self.validation_dataset is not None:
-            valid_loader, valid_sampler = self.get_dataloader(self.validation_dataset, shuffle=False, rank=rank)
+            valid_loader, valid_sampler = self.get_dataloader(self.validation_dataset,
+                                                              batch_size=self.world_size,
+                                                              shuffle=False, rank=rank)
             self.ctx_train['valid_loader'] = valid_loader
             self.ctx_train['valid_sampler'] = valid_sampler
 
