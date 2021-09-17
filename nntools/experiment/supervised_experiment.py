@@ -192,7 +192,7 @@ class SupervisedExperiment(Experiment):
             img = batch['image']
             gt = batch[self.gt_name]
             proba = model(img)
-            losses += loss_function(proba, gt).detach()
+            losses += loss_function(proba, y_true=gt).detach()
             pred = torch.argmax(proba, 1)
             confMat += NNmetrics.confusion_matrix(pred, gt, num_classes=self.n_classes)
         if self.multi_gpu:
