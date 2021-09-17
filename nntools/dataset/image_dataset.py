@@ -315,7 +315,8 @@ class ImageDataset(Dataset):
                             text = self.img_filepath[k][index]
                         else:
                             text = ''
-
+                        if not isinstance(text, str):
+                            text = ''
                         text = os.path.basename(text)
                         if np.isscalar(v):
                             text += ' %s: %s' % (k, v)
