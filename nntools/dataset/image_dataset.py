@@ -315,7 +315,6 @@ class ImageDataset(Dataset):
                         else:
                             text = ''
                         text = os.path.basename(text)
-                        text += ' %s: %s' % (k, v)
                         font = cv2.FONT_HERSHEY_PLAIN
                         fontScale = 1.75
                         fontColor = (255, 255, 255)
