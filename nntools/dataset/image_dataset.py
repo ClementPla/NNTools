@@ -270,7 +270,7 @@ class ImageDataset(Dataset):
         ref_dict = self.__getitem__(0, torch_cast=False, transpose_img=False, return_indices=False, return_tag=False)
         count_images = 0
         for k, v in ref_dict.items():
-            if isinstance(v, np.ndarray):
+            if isinstance(v, np.ndarray) and not np.isscalar(v):
                 count_images += 1
 
         n_row = math.ceil(math.sqrt(n_items))
@@ -304,17 +304,21 @@ class ImageDataset(Dataset):
                             n_classes = 2
                         cmap = plt.get_cmap(self.cmap_name, n_classes)
                         v = cmap(v)[:, :, :3]
-
-                    v = cv2.resize(v, resolution, cv2.INTER_NEAREST_EXACT)
+                    if not np.isscalar(v):
+                        v = cv2.resize(v, resolution, cv2.INTER_NEAREST_EXACT)
                     if add_labels:
-                        v = np.pad(v, ((50, 0), (0, 0), (0, 0)))
+                        if not np.isscalar(v):
+                            v = np.pad(v, ((50, 0), (0, 0), (0, 0)))
                         if k in self.gts:
                             text = self.gts[k][index]
                         elif k in self.img_filepath:
                             text = self.img_filepath[k][index]
                         else:
                             text = ''
+
                         text = os.path.basename(text)
+                        if np.isscalar(v):
+                            text += ' %s: %s' % (k, v)
                         font = cv2.FONT_HERSHEY_PLAIN
                         fontScale = 1.75
                         fontColor = (255, 255, 255)
