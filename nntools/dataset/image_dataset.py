@@ -306,20 +306,16 @@ class ImageDataset(Dataset):
                         v = cmap(v)[:, :, :3]
                     if v.shape:
                         v = cv2.resize(v, resolution, cv2.INTER_NEAREST_EXACT)
-                    if add_labels:
-                        if v.shape:
-                            v = np.pad(v, ((50, 0), (0, 0), (0, 0)))
+                    if add_labels and v.shape:
+                        v = np.pad(v, ((50, 0), (0, 0), (0, 0)))
                         if k in self.gts:
                             text = self.gts[k][index]
                         elif k in self.img_filepath:
                             text = self.img_filepath[k][index]
                         else:
                             text = ''
-                        if not isinstance(text, str):
-                            text = ''
                         text = os.path.basename(text)
-                        if np.isscalar(v):
-                            text += ' %s: %s' % (k, v)
+                        text += ' %s: %s' % (k, v)
                         font = cv2.FONT_HERSHEY_PLAIN
                         fontScale = 1.75
                         fontColor = (255, 255, 255)
