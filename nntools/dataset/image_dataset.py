@@ -305,6 +305,7 @@ class ImageDataset(Dataset):
                         cmap = plt.get_cmap(self.cmap_name, n_classes)
                         v = cmap(v)[:, :, :3]
                     if not np.isscalar(v):
+                        print(v)
                         v = cv2.resize(v, resolution, cv2.INTER_NEAREST_EXACT)
                     if add_labels:
                         if not np.isscalar(v):
