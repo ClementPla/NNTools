@@ -335,7 +335,8 @@ class ImageDataset(Dataset):
                                     fontScale,
                                     fontColor,
                                     lineType)
-                    row.append(v)
+                    if v.shape:
+                        row.append(v)
 
             rows = np.hstack(row)
 
