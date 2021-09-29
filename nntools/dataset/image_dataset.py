@@ -15,7 +15,7 @@ from torch.utils.data import Dataset
 from nntools.dataset.image_tools import resize
 from nntools.utils.io import read_image
 from nntools.utils.misc import to_iterable, identity
-
+from nntools.tracker.logger import Log
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
 plt.rcParams['image.cmap'] = 'gray'
 
@@ -259,7 +259,8 @@ class ImageDataset(Dataset):
         fig.show()
 
     def get_mosaic(self, n_items=9, shuffle=False, indexes=None, resolution=(512, 512), show=False, fig_size=1,
-                   save=None, add_labels=False):
+                   save=None, add_labels=False,
+                   n_row=None, n_col=None):
 
         if indexes is None:
             if shuffle:
@@ -272,10 +273,13 @@ class ImageDataset(Dataset):
         for k, v in ref_dict.items():
             if isinstance(v, np.ndarray) and not np.isscalar(v):
                 count_images += 1
-
-        n_row = math.ceil(math.sqrt(n_items))
-        n_col = math.ceil(n_items / n_row)
-        pad = 50
+        if n_row is None and n_col is None:
+            n_row = math.ceil(math.sqrt(n_items))
+            n_col = math.ceil(n_items / n_row)
+        if n_row*n_col < n_items:
+            Log.warn("With %i columns, %i row(s), only %i items can be plotted" % (n_col, n_row, n_row*n_col))
+            n_items = n_row*n_col
+        pad = 50 if add_labels else 0
         cols = []
 
         for c in range(n_col):
@@ -307,7 +311,7 @@ class ImageDataset(Dataset):
                     if v.shape:
                         v = cv2.resize(v, resolution, cv2.INTER_NEAREST_EXACT)
                     if add_labels and v.shape:
-                        v = np.pad(v, ((50, 0), (0, 0), (0, 0)))
+                        v = np.pad(v, ((pad, 0), (0, 0), (0, 0)))
                         if k in self.gts:
                             text = self.gts[k][index]
                         elif k in self.img_filepath:
