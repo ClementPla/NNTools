@@ -282,9 +282,9 @@ class ImageDataset(Dataset):
         pad = 50 if add_labels else 0
         cols = []
 
-        for c in range(n_col):
+        for c in range(n_row):
             row = []
-            for r in range(n_row):
+            for r in range(n_col):
                 i = n_row * c + r
                 if i >= n_items:
                     for n in range(count_images):
