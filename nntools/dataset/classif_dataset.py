@@ -75,6 +75,15 @@ class ClassificationDataset(ImageDataset):
                     self.gts[col_label][self.gts[col_label] == k] = v
                 self.gts[col_label] = self.gts[col_label].astype(int)
 
+    def get_class_count(self):
+        if len(self.gt_column) > 1:
+            raise NotImplementedError('Getting the class count for more than one target is not implemented')
+
+        col = self.gt_column[0]
+        unique, count = np.unique(self.gts[col], return_counts=True)
+        return count
+            
+
     def load_image(self, item):
         inputs = super(ClassificationDataset, self).load_image(item)
         for k, v in inputs.items():

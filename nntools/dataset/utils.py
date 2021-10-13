@@ -11,12 +11,6 @@ from torch._utils import _accumulate
 from nntools.tracker import Log
 
 
-def get_classification_class_count(dataset):
-    gts = dataset.gts
-    unique, count = np.unique(gts, return_counts=True)
-    return count
-
-
 def get_segmentation_class_count(dataset, save=True, load=True):
     sample = dataset[0]
     if 'mask' not in sample.keys():
