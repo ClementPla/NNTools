@@ -206,11 +206,12 @@ class Experiment(Manager):
         else:
             self.partial_optimizer = self.create_optimizer(**config)
 
-    def set_scheduler(self, **config):
-        scheduler_name = config['scheduler']
+    def set_scheduler(self):
+        scheduler_name = self.config['Learning_rate_scheduler']['scheduler']
         scheduler = SCHEDULERS[scheduler_name]
         self.ctx.scheduler_opt = scheduler
-        self.partial_lr_scheduler = partial_fill_kwargs(scheduler.func, config['params_scheduler'])
+        self.ctx.scheduler_call_on = self.config['Learning_rate_scheduler']['update_type']
+        self.partial_lr_scheduler = partial_fill_kwargs(scheduler.func, self.config['params_scheduler'])
 
     def get_dataloader(self, dataset, shuffle=True, batch_size=None,
                        num_workers=None,
@@ -345,7 +346,7 @@ class Experiment(Manager):
         train_loader, train_sampler = self.get_dataloader(self.train_dataset, drop_last=True, rank=rank)
         optimizer = self.partial_optimizer(
             model.get_trainable_parameters(self.c['Optimizer']['params_solver']['lr']))
-
+        self.set_scheduler()
         if self.partial_lr_scheduler is not None:
             lr_scheduler = self.partial_lr_scheduler(optimizer)
         else:
@@ -404,15 +405,15 @@ class Experiment(Manager):
         self.tracker.current_iteration = value
 
     def update_scheduler_on_epoch(self):
-        if self.ctx.scheduler_opt.call_on == 'on_epoch':
+        if self.ctx.scheduler_call_on == 'on_epoch':
             self.lr_scheduler_step()
 
     def update_scheduler_on_validation(self, validation_metric):
-        if self.ctx.scheduler_opt.call_on == 'on_validation':
+        if self.ctx.scheduler_call_on == 'on_validation':
             self.lr_scheduler_step(validation_metric)
 
     def update_scheduler_on_iteration(self):
-        if self.ctx.scheduler_opt.call_on == 'on_iteration':
+        if self.ctx.scheduler_call_on == 'on_iteration':
             self.lr_scheduler_step()
 
 
@@ -432,6 +433,7 @@ class Context:
     rank_main_process: int = 0
     progress_bar = None
     multi_gpu: bool = False
+    scheduler_call_on = 'on_epoch'
 
     @property
     def epoch_size(self):
