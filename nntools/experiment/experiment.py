@@ -50,6 +50,8 @@ class Manager(ABC):
             os.environ['MASTER_ADDR'] = 'localhost'
             os.environ['MASTER_PORT'] = '12355'
 
+        self.ddp_config = self.config.get('DDP', dict())
+
     def convert_batch_norm(self, model: nn.Module) -> nn.Module:
         if self.c['Network']['synchronized_batch_norm'] and self.multi_gpu:
             model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
@@ -88,7 +90,8 @@ class Manager(ABC):
         model = self.convert_batch_norm(model)
         model = model.cuda(self.get_gpu_from_rank(rank))
         if self.multi_gpu:
-            model = DDP(model, device_ids=[self.get_gpu_from_rank(rank)], find_unused_parameters=True)
+            model = DDP(model, device_ids=[self.get_gpu_from_rank(rank)],
+                        find_unused_parameters=self.ddp_config.get('find_unused_parameters', False))
         return model
 
     def get_model(self) -> nn.Module:
