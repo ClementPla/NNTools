@@ -430,7 +430,7 @@ class Context:
     scheduler_opt = None
     rank: int = 0
     rank_main_process: int = 0
-    progress_bar: = None
+    progress_bar = None
     multi_gpu: bool = False
 
     @property
