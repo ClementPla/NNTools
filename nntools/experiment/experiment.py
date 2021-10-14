@@ -405,16 +405,16 @@ class Experiment(Manager):
 
 @dataclass
 class Context:
-    model: None
-    train_loader: None
-    train_sampler: None
-    valid_loader: None
-    valid_sampler: None
-    loss_function: None
-    lr_scheduler: None
-    scaler: None
-    optimizer: None
-    scheduler_opt: None
+    model = None
+    train_loader = None
+    train_sampler = None
+    valid_loader = None
+    valid_sampler = None
+    loss_function = None
+    lr_scheduler = None
+    scaler = None
+    optimizer = None
+    scheduler_opt = None
     rank: 0
 
 
