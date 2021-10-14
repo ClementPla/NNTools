@@ -361,6 +361,7 @@ class Experiment(Manager):
 
         self.ctx.train_loader = train_loader
         from icecream import ic
+        ic(self.ctx)
         ic(self.ctx.train_loader)
         self.ctx.train_loader = train_sampler
         self.ctx.lr_scheduler = lr_scheduler
