@@ -22,7 +22,7 @@ from nntools.utils.random import set_seed, set_non_torch_seed
 from nntools.utils.scheduler import SCHEDULERS
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP, MultiEpochsDataLoader
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from torch.cuda.amp import autocast, GradScaler
 
 
@@ -360,10 +360,7 @@ class Experiment(Manager):
             self.ctx.valid_sampler = valid_sampler
 
         self.ctx.train_loader = train_loader
-        from icecream import ic
-        ic(self.ctx)
-        ic(self.ctx.train_loader)
-        self.ctx.train_loader = train_sampler
+        self.ctx.train_sampler = train_sampler
         self.ctx.lr_scheduler = lr_scheduler
         self.ctx.scaler = scaler
         self.ctx.optimizer = optimizer
