@@ -54,7 +54,7 @@ class Manager(ABC):
             os.environ['MASTER_PORT'] = '12355'
 
         self.ddp_config = self.config.get('DDP', dict())
-        self.ctx = Context()
+        self.ctx = Context(multi_gpu=self.multi_gpu)
 
     def convert_batch_norm(self, model: nn.Module) -> nn.Module:
         if self.c['Network']['synchronized_batch_norm'] and self.multi_gpu:
@@ -118,8 +118,8 @@ class Manager(ABC):
         if isinstance(batch, tuple) or isinstance(batch, list):
             batch = [b.cuda(device) if isinstance(b, torch.Tensor) else b for b in batch]
         elif isinstance(batch, dict):
-            batch = {k: b.cuda(device) for k, b in batch.items()}
-        else:
+            batch = {k: b.cuda(device) for k, b in batch.items() if isinstance(b, torch.Tensor)}
+        elif isinstance(batch, torch.Tensor):
             batch = batch.cuda(device)
         return batch
 
@@ -174,7 +174,6 @@ class Experiment(Manager):
         self.saved_models = {'best_valid': None, 'last': None}
 
         self.save_last = True
-
         self.run_training = True
 
     def initial_tracking(self):
@@ -267,6 +266,10 @@ class Experiment(Manager):
             dist.init_process_group(backend=self.config['Manager']['dist_backend'], rank=rank,
                                     world_size=self.world_size)
         model = self.get_model_on_device(rank)
+
+        self.ctx.rank = rank
+        self.ctx.model = model
+
         if self.run_training:
             try:
                 self.train(model, rank)
@@ -276,11 +279,11 @@ class Experiment(Manager):
                 self.tracker.set_status('FAILED')
 
             if self.keyboard_exception_raised:
-                if self.is_main_process(rank):
+                if self.ctx.is_main_process:
                     Log.warn("Killed Process. The last model will be registered at %s" % self.saved_models)
                     self.tracker.set_status('KILLED')
 
-        if self.is_main_process(rank) and (self.run_training or self.save_last):
+        if self.ctx.is_main_process and (self.run_training or self.save_last):
             self.save_model(model, 'last')
             self.register_trained_model()
 
@@ -289,7 +292,7 @@ class Experiment(Manager):
 
         if self.call_end_function:
             with autocast(enabled=self.config['Manager']['amp']):
-                self.end(model, rank)
+                self.end(model)
 
         self.clean_up()
 
@@ -326,13 +329,11 @@ class Experiment(Manager):
         if self.saved_models['last']:
             self.log_artifacts(self.saved_models['last'])
 
-    def lr_scheduler_step(self, lr_scheduler, epoch, iteration, size_epoch, validation_metrics=None):
-        if lr_scheduler is None:
-            pass
-        elif self.ctx.scheduler_opt.call_on == 'on_validation':
-            lr_scheduler.step(validation_metrics)
+    def lr_scheduler_step(self, validation_metrics=None):
+        if self.ctx.lr_scheduler is None:
+            return
         else:
-            lr_scheduler.step(self.ctx.scheduler_opt.callback(epoch, iteration, size_epoch))
+            self.ctx.lr_scheduler.step(self.ctx.scheduler_opt.callback(validation_metrics))
 
     def eval(self, register_params=False, run_id=None):
         self.register_params = register_params
@@ -358,8 +359,6 @@ class Experiment(Manager):
             self.ctx.valid_loader = valid_loader
             self.ctx.valid_sampler = valid_sampler
 
-        self.ctx.rank = rank
-        self.ctx.model = model
         self.ctx.train_loader = train_loader
         self.ctx.train_loader = train_sampler
         self.ctx.lr_scheduler = lr_scheduler
@@ -367,10 +366,10 @@ class Experiment(Manager):
         self.ctx.optimizer = optimizer
         self.main_training_loop(model=model, rank=rank)
 
-    def validate(self, model, valid_loader, iteration, rank=0, loss_function=None):
+    def validate(self, model, valid_loader, iteration, loss_function=None):
         pass
 
-    def end(self, model, rank):
+    def end(self, model):
         pass
 
     def in_epoch(self, *args, **kwargs):
@@ -383,24 +382,38 @@ class Experiment(Manager):
                                                           "of epochs"
         if max_iterations > 0:
             total_epoch = math.ceil(max_iterations / math.ceil(len(self.train_dataset) / self.batch_size))
-        current_epoch = math.floor(self.current_iteration/math.ceil(len(self.train_dataset) / self.batch_size))
         # Reset epoch count from the saved iterations.
 
-        print('Rank %i, Ctx %i'%(rank, self.ctx.rank))
         for e in range(total_epoch):
             if self.is_main_process(rank):
                 tqdm.write('** Epoch %i/%i **' % (e, total_epoch))
                 self.log_metrics(e, progress=100 * e / total_epoch)
-            if e >= current_epoch:
+            if e >= self.current_epoch:
                 self.in_epoch(model=model, epoch=e, rank=rank)
 
     @property
     def current_iteration(self):
         return self.tracker.current_iteration
 
+    @property
+    def current_epoch(self):
+        return math.floor(self.current_iteration/math.ceil(len(self.train_dataset) / self.batch_size))
+
     @current_iteration.setter
     def current_iteration(self, value: int):
         self.tracker.current_iteration = value
+
+    def update_scheduler_on_epoch(self):
+        if self.ctx.scheduler_opt.call_on == 'on_epoch':
+            self.lr_scheduler_step()
+
+    def update_scheduler_on_validation(self, validation_metric):
+        if self.ctx.scheduler_opt.call_on == 'on_validation':
+            self.lr_scheduler_step(validation_metric)
+
+    def update_scheduler_on_iteration(self):
+        if self.ctx.scheduler_opt.call_on == 'on_iteration':
+            self.lr_scheduler_step()
 
 
 @dataclass
@@ -415,6 +428,38 @@ class Context:
     scaler = None
     optimizer = None
     scheduler_opt = None
-    rank = 0
+    rank: int = 0
+    rank_main_process: int = 0
+    progress_bar: tqdm.tqdm = None
+    multi_gpu: bool = False
+
+    @property
+    def epoch_size(self):
+        return len(self.train_loader)
+
+    def init_progress_bar(self):
+        if self.rank == self.rank_main_process:
+            if self.progress_bar is None:
+                self.progress_bar = tqdm.tqdm(total=self.epoch_size)
+            else:
+                self.progress_bar.refresh()
+                self.progress_bar.reset()
+
+    def update_progress_bar(self):
+        if self.rank == self.rank_main_process:
+            self.progress_bar.update(1)
+
+    def close_progress_bar(self):
+        if self.rank == self.rank_main_process:
+            if self.rank == self.rank_main_process:
+                self.progress_bar.refresh()
+                self.progress_bar.close()
+
+    @property
+    def is_main_process(self):
+        return (self.rank == self.rank_main_process) or (not self.multi_gpu)
+
+
+
 
 

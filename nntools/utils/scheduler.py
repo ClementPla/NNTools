@@ -1,36 +1,26 @@
 import torch
 
 
-def identity(*args):
+def pass_args(*args):
     return args
 
 
-def empty(*args):
+def block_args(*args):
     pass
-
-
-def continuous_epoch(epoch, iteration, epoch_size):
-    return epoch + iteration / epoch_size
-
-
-def discrete_epoch(epoch, iteration, epoch_size):
-    return epoch
-
 
 from collections import namedtuple
 
-Scheduler = namedtuple('Scheduler', ['func', 'call_on', 'callback'])
+Scheduler = namedtuple('Scheduler', ['func', 'callback'])
 
 SCHEDULERS = {
-    'LambdaLR': Scheduler(torch.optim.lr_scheduler.LambdaLR, 'on_epoch', empty),
-    'MultiplicativeLR': Scheduler(torch.optim.lr_scheduler.MultiplicativeLR, 'on_epoch', empty),
-    'StepLR': Scheduler(torch.optim.lr_scheduler.StepLR, 'on_epoch', empty),
-    'MultiStepLR': Scheduler(torch.optim.lr_scheduler.MultiStepLR, 'on_epoch', empty),
-    'ExponentialLR': Scheduler(torch.optim.lr_scheduler.ExponentialLR, 'on_epoch', empty),
-    'CosineAnnealingLR': Scheduler(torch.optim.lr_scheduler.CosineAnnealingLR, 'on_epoch', empty),
-    'ReduceLROnPlateau': Scheduler(torch.optim.lr_scheduler.ReduceLROnPlateau, 'on_validation', identity),
-    'CyclicLR': Scheduler(torch.optim.lr_scheduler.CyclicLR, 'on_iteration', identity),
-    'OneCycleLR': Scheduler(torch.optim.lr_scheduler.OneCycleLR, 'on_iteration', identity),
-    'CosineAnnealingWarmRestarts': Scheduler(
-        torch.optim.lr_scheduler.CosineAnnealingWarmRestarts, 'on_iteration', identity)
+    'LambdaLR': Scheduler(torch.optim.lr_scheduler.LambdaLR, block_args),
+    'MultiplicativeLR': Scheduler(torch.optim.lr_scheduler.MultiplicativeLR, block_args),
+    'StepLR': Scheduler(torch.optim.lr_scheduler.StepLR, block_args),
+    'MultiStepLR': Scheduler(torch.optim.lr_scheduler.MultiStepLR, block_args),
+    'ExponentialLR': Scheduler(torch.optim.lr_scheduler.ExponentialLR, block_args),
+    'CosineAnnealingLR': Scheduler(torch.optim.lr_scheduler.CosineAnnealingLR, block_args),
+    'ReduceLROnPlateau': Scheduler(torch.optim.lr_scheduler.ReduceLROnPlateau, pass_args),
+    'CyclicLR': Scheduler(torch.optim.lr_scheduler.CyclicLR, block_args),
+    'OneCycleLR': Scheduler(torch.optim.lr_scheduler.OneCycleLR, block_args),
+    'CosineAnnealingWarmRestarts': Scheduler(torch.optim.lr_scheduler.CosineAnnealingWarmRestarts, block_args)
 }

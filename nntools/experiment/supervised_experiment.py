@@ -51,9 +51,7 @@ class SupervisedExperiment(Experiment):
             loss_args['weight'] = weights
             if k in config.get('params_loss', {}):
                 loss_args.update(config['params_loss'][k])
-
             fuse_loss.add(call_with_filtered_kwargs(loss, loss_args))
-
         return fuse_loss
 
     def get_class_weights(self) -> torch.Tensor:
@@ -73,16 +71,10 @@ class SupervisedExperiment(Experiment):
         super(SupervisedExperiment, self).train(model, rank)
 
     def in_epoch(self, model, epoch, rank=0):
-        print(self.ctx.rank)
-        epoch_size = len(self.ctx.train_loader)
         clip_grad = self.c['Training'].get('grad_clipping', False)
         iters_to_accumulate = self.c['Training'].get('iters_to_accumulate', 1)
         moving_loss = []
-        if self.is_main_process(rank):
-            progressBar = tqdm.tqdm(total=epoch_size)
-
-        if self.validation_dataset is not None:
-            valid_loader = self.ctx.valid_loader
+        self.ctx.init_progress_bar()
 
         if self.ctx.train_sampler is not None:
             self.ctx.train_sampler.set_epoch(epoch)
@@ -91,7 +83,7 @@ class SupervisedExperiment(Experiment):
             self.current_iteration += 1
             with autocast(enabled=self.c['Manager']['amp']):
                 batch = self.batch_to_device(batch, rank)
-                loss = self.forward_train(self.model, self.loss, batch, rank)
+                loss = self.forward_train(self.model, self.loss, batch)
                 loss = loss / iters_to_accumulate
                 self.ctx.scaler.scale(loss).backward()
                 if (i + 1) % iters_to_accumulate == 0:
@@ -101,26 +93,13 @@ class SupervisedExperiment(Experiment):
                     self.ctx.scaler.update()
                     model.zero_grad()
 
-                    if self.ctx.scheduler_opt.call_on == 'on_iteration':
-                        self.lr_scheduler_step(self.ctx.lr_scheduler, epoch, i, epoch_size)
-                moving_loss.append(loss.detach().item())
-
+            self.update_scheduler_on_iteration()
+            moving_loss.append(loss.detach().item())
             """
             Validation step
             """
             if self.current_iteration % self.c['Validation']['log_interval'] == 0:
-                if self.validation_dataset is not None:
-                    with torch.no_grad():
-                        with autocast(enabled=self.c['Manager'].get('amp', False)):
-                            valid_metric = self.validate(model, valid_loader,
-                                                         self.current_iteration,
-                                                         rank,
-                                                         self.loss)
-
-                if self.ctx.scheduler_opt.call_on == 'on_validation':
-                    self.lr_scheduler_step(self.ctx.lr_scheduler, epoch, i, epoch_size, valid_metric)
-
-                if self.is_main_process(rank):
+                if self.ctx.is_main_process:
                     if moving_loss:
                         self.log_metrics(self.current_iteration, trainining_loss=np.mean(moving_loss))
                     moving_loss = []
@@ -128,12 +107,7 @@ class SupervisedExperiment(Experiment):
 
             if self.multi_gpu:
                 dist.barrier()
-
-            if self.is_main_process(rank):
-                progressBar.update(1)
-
-        if self.is_main_process(rank):
-            progressBar.close()
+            self.ctx.update_progress_bar()
 
         """ 
         If the validation set is not provided, we save the model once per epoch
@@ -144,13 +118,25 @@ class SupervisedExperiment(Experiment):
                                 filename='iteration_%i_loss_%f' % (self.current_iteration,
                                                                    float(np.mean(moving_loss))))
 
-        if self.ctx.scheduler_opt.call_on == 'on_epoch':
-            self.lr_scheduler_step(self.ctx.lr_scheduler, epoch, self.current_iteration, epoch_size)
-
+        self.update_scheduler_on_epoch()
         if self.multi_gpu:
             dist.barrier()
+        self.ctx.close_progress_bar()
 
-    def forward_train(self, model, loss_function, batch, rank):
+    def in_validation(self):
+        model = self.ctx.model
+        valid_loader = self.ctx.valid_loader
+
+        if valid_loader is not None:
+            with torch.no_grad():
+                with autocast(enabled=self.c['Manager'].get('amp', False)):
+                    valid_metric = self.validate(model, valid_loader,
+                                                 self.current_iteration,
+                                                 self.loss)
+
+        self.update_scheduler_on_validation(valid_metric)
+
+    def forward_train(self, model, loss_function, batch):
         pred = model(*self.pass_data_keys_to_model(batch))
         if isinstance(pred, tuple):
             loss = loss_function(*pred, y_true=batch[self.gt_name])
@@ -165,13 +151,13 @@ class SupervisedExperiment(Experiment):
                 args.append(batch[key])
         return tuple(args)
 
-    def validate(self, model, valid_loader, iteration, rank=0, loss_function=None):
-        gpu = self.get_gpu_from_rank(rank)
+    def validate(self, model, valid_loader, iteration, loss_function=None):
+        gpu = self.get_gpu_from_rank(self.ctx.rank)
         confMat = torch.zeros(self.n_classes, self.n_classes).cuda(gpu)
         losses = 0
         model.eval()
         for n, batch in enumerate(valid_loader):
-            batch = self.batch_to_device(batch, rank)
+            batch = self.batch_to_device(batch, self.ctx.rank)
             img = batch['image']
             gt = batch[self.gt_name]
             proba = model(img)
@@ -184,7 +170,7 @@ class SupervisedExperiment(Experiment):
         losses = losses / n
         confMat = NNmetrics.filter_index_cm(confMat, self.ignore_index)
         mIoU = NNmetrics.mIoU_cm(confMat)
-        if self.is_main_process(rank):
+        if self.ctx.is_main_process:
             stats = NNmetrics.report_cm(confMat)
             stats['mIoU'] = mIoU
             stats['validation_loss'] = losses.item()
