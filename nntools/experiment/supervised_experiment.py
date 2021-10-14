@@ -68,78 +68,61 @@ class SupervisedExperiment(Experiment):
             self.class_weights = weights
 
     def train(self, model, rank=0):
-
         loss_function = self.get_loss(self.class_weights, rank=rank)
-        optimizer = self.partial_optimizer(
-            model.get_trainable_parameters(self.c['Optimizer']['params_solver']['lr']))
-
-        if self.partial_lr_scheduler is not None:
-            lr_scheduler = self.partial_lr_scheduler(optimizer)
-        else:
-            lr_scheduler = None
-        scaler = GradScaler(enabled=self.c['Manager'].get('grad_scaling', False))
-
-        self.ctx_train['loss_function'] = loss_function
-        self.ctx_train['lr_scheduler'] = lr_scheduler
-        self.ctx_train['scaler'] = scaler
-        self.ctx_train['optimizer'] = optimizer
-
+        self.loss = loss_function
         super(SupervisedExperiment, self).train(model, rank)
 
-    def in_epoch(self, epoch, rank=0):
-        model = self.ctx_train['model']
-        optimizer = self.ctx_train['optimizer']
+    def in_epoch(self, model, epoch, rank=0):
+        print(self.ctx.rank)
+        epoch_size = len(self.ctx.train_loader)
         clip_grad = self.c['Training'].get('grad_clipping', False)
-        scaler = self.ctx_train['scaler']
-        lr_scheduler = self.ctx_train['lr_scheduler']
-        train_loader = self.ctx_train['train_loader']
         iters_to_accumulate = self.c['Training'].get('iters_to_accumulate', 1)
         moving_loss = []
         if self.is_main_process(rank):
-            progressBar = tqdm.tqdm(total=len(train_loader))
+            progressBar = tqdm.tqdm(total=epoch_size)
 
         if self.validation_dataset is not None:
-            valid_loader = self.ctx_train['valid_loader']
+            valid_loader = self.ctx.valid_loader
 
-        if self.ctx_train['train_sampler'] is not None:
-            self.ctx_train['train_sampler'].set_epoch(epoch)
+        if self.ctx.train_sampler is not None:
+            self.ctx.train_sampler.set_epoch(epoch)
 
-        for i, batch in (enumerate(train_loader)):
-            self.ctx_train['iteration'] += 1
+        for i, batch in (enumerate(self.ctx.train_loader)):
+            self.current_iteration += 1
             with autocast(enabled=self.c['Manager']['amp']):
                 batch = self.batch_to_device(batch, rank)
-                loss = self.forward_train(self.ctx_train['model'], self.ctx_train['loss_function'], batch, rank)
+                loss = self.forward_train(self.model, self.loss, batch, rank)
                 loss = loss / iters_to_accumulate
-                self.ctx_train['scaler'].scale(loss).backward()
+                self.ctx.scaler.scale(loss).backward()
                 if (i + 1) % iters_to_accumulate == 0:
                     if clip_grad:
                         clip_grad_norm_(model.parameters(), float(clip_grad))
-                    scaler.step(optimizer)
-                    scaler.update()
+                    self.ctx.scaler.step(self.ctx.optimizer)
+                    self.ctx.scaler.update()
                     model.zero_grad()
 
-                    if self.ctx_train['scheduler_opt'].call_on == 'on_iteration':
-                        self.lr_scheduler_step(lr_scheduler, epoch, i, len(train_loader))
+                    if self.ctx.scheduler_opt.call_on == 'on_iteration':
+                        self.lr_scheduler_step(self.ctx.lr_scheduler, epoch, i, epoch_size)
                 moving_loss.append(loss.detach().item())
 
             """
             Validation step
             """
-            if self.ctx_train['iteration'] % self.c['Validation']['log_interval'] == 0:
+            if self.current_iteration % self.c['Validation']['log_interval'] == 0:
                 if self.validation_dataset is not None:
                     with torch.no_grad():
                         with autocast(enabled=self.c['Manager'].get('amp', False)):
                             valid_metric = self.validate(model, valid_loader,
-                                                         self.ctx_train['iteration'],
+                                                         self.current_iteration,
                                                          rank,
-                                                         self.ctx_train['loss_function'])
+                                                         self.loss)
 
-                if self.ctx_train['scheduler_opt'].call_on == 'on_validation':
-                    self.lr_scheduler_step(lr_scheduler, epoch, i, len(train_loader), valid_metric)
+                if self.ctx.scheduler_opt.call_on == 'on_validation':
+                    self.lr_scheduler_step(self.ctx.lr_scheduler, epoch, i, epoch_size, valid_metric)
 
                 if self.is_main_process(rank):
                     if moving_loss:
-                        self.log_metrics(self.ctx_train['iteration'], trainining_loss=np.mean(moving_loss))
+                        self.log_metrics(self.current_iteration, trainining_loss=np.mean(moving_loss))
                     moving_loss = []
                     self.save_model(model, filename='last')
 
@@ -158,11 +141,11 @@ class SupervisedExperiment(Experiment):
         if self.validation_dataset is None:
             if self.is_main_process(rank):
                 self.save_model(model,
-                                filename='iteration_%i_loss_%f' % (self.ctx_train['iteration'],
+                                filename='iteration_%i_loss_%f' % (self.current_iteration,
                                                                    float(np.mean(moving_loss))))
 
-        if self.ctx_train['scheduler_opt'].call_on == 'on_epoch':
-            self.lr_scheduler_step(lr_scheduler, epoch, self.ctx_train['iteration'], len(train_loader))
+        if self.ctx.scheduler_opt.call_on == 'on_epoch':
+            self.lr_scheduler_step(self.ctx.lr_scheduler, epoch, self.current_iteration, epoch_size)
 
         if self.multi_gpu:
             dist.barrier()

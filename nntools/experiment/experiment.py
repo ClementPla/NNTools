@@ -22,6 +22,9 @@ from nntools.utils.random import set_seed, set_non_torch_seed
 from nntools.utils.scheduler import SCHEDULERS
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP, MultiEpochsDataLoader
 
+from dataclasses import dataclass
+from torch.cuda.amp import autocast, GradScaler
+
 
 class Manager(ABC):
     def __init__(self, config: Config, run_id: str = None):
@@ -51,6 +54,7 @@ class Manager(ABC):
             os.environ['MASTER_PORT'] = '12355'
 
         self.ddp_config = self.config.get('DDP', dict())
+        self.ctx = Context()
 
     def convert_batch_norm(self, model: nn.Module) -> nn.Module:
         if self.c['Network']['synchronized_batch_norm'] and self.multi_gpu:
@@ -172,7 +176,6 @@ class Experiment(Manager):
         self.save_last = True
 
         self.run_training = True
-        self.ctx_train = {}
 
     def initial_tracking(self):
         self.log_params(**self.config.tracked_params)
@@ -207,7 +210,7 @@ class Experiment(Manager):
     def set_scheduler(self, **config):
         scheduler_name = config['scheduler']
         scheduler = SCHEDULERS[scheduler_name]
-        self.ctx_train['scheduler_opt'] = scheduler
+        self.ctx.scheduler_opt = scheduler
         self.partial_lr_scheduler = partial_fill_kwargs(scheduler.func, config['params_scheduler'])
 
     def get_dataloader(self, dataset, shuffle=True, batch_size=None,
@@ -326,10 +329,10 @@ class Experiment(Manager):
     def lr_scheduler_step(self, lr_scheduler, epoch, iteration, size_epoch, validation_metrics=None):
         if lr_scheduler is None:
             pass
-        elif self.ctx_train['scheduler_opt'].call_on == 'on_validation':
+        elif self.ctx.scheduler_opt.call_on == 'on_validation':
             lr_scheduler.step(validation_metrics)
         else:
-            lr_scheduler.step(self.ctx_train['scheduler_opt'].callback(epoch, iteration, size_epoch))
+            lr_scheduler.step(self.ctx.scheduler_opt.callback(epoch, iteration, size_epoch))
 
     def eval(self, register_params=False, run_id=None):
         self.register_params = register_params
@@ -337,21 +340,32 @@ class Experiment(Manager):
         self.start(run_id=run_id)
 
     def train(self, model, rank):
-        iteration = self.tracker.current_iteration - 1
+
         train_loader, train_sampler = self.get_dataloader(self.train_dataset, drop_last=True, rank=rank)
+        optimizer = self.partial_optimizer(
+            model.get_trainable_parameters(self.c['Optimizer']['params_solver']['lr']))
+
+        if self.partial_lr_scheduler is not None:
+            lr_scheduler = self.partial_lr_scheduler(optimizer)
+        else:
+            lr_scheduler = None
+        scaler = GradScaler(enabled=self.c['Manager'].get('grad_scaling', False))
 
         if self.validation_dataset is not None:
             valid_loader, valid_sampler = self.get_dataloader(self.validation_dataset,
                                                               batch_size=self.world_size,
                                                               shuffle=False, rank=rank)
-            self.ctx_train['valid_loader'] = valid_loader
-            self.ctx_train['valid_sampler'] = valid_sampler
+            self.ctx.valid_loader = valid_loader
+            self.ctx.valid_sampler = valid_sampler
 
-        self.ctx_train['train_loader'] = train_loader
-        self.ctx_train['train_sampler'] = train_sampler
-        self.ctx_train['iteration'] = iteration
-        self.ctx_train['model'] = model
-        self.main_training_loop(rank=rank)
+        self.ctx.rank = rank
+        self.ctx.model = model
+        self.ctx.train_loader = train_loader
+        self.ctx.train_loader = train_sampler
+        self.ctx.lr_scheduler = lr_scheduler
+        self.ctx.scaler = scaler
+        self.ctx.optimizer = optimizer
+        self.main_training_loop(model=model, rank=rank)
 
     def validate(self, model, valid_loader, iteration, rank=0, loss_function=None):
         pass
@@ -362,16 +376,45 @@ class Experiment(Manager):
     def in_epoch(self, *args, **kwargs):
         pass
 
-    def main_training_loop(self, rank=0):
+    def main_training_loop(self, model, rank=0):
         total_epoch = self.config['Training'].get('epochs', -1)
         max_iterations = self.config['Training'].get('iterations', -1)
         assert (total_epoch > 0) or (max_iterations > 0), "You must define a number of training iterations or a number " \
                                                           "of epochs"
         if max_iterations > 0:
             total_epoch = math.ceil(max_iterations / math.ceil(len(self.train_dataset) / self.batch_size))
+        current_epoch = math.floor(self.current_iteration/math.ceil(len(self.train_dataset) / self.batch_size))
+        # Reset epoch count from the saved iterations.
 
+        print('Rank %i, Ctx %i'%(rank, self.ctx.rank))
         for e in range(total_epoch):
             if self.is_main_process(rank):
                 tqdm.write('** Epoch %i/%i **' % (e, total_epoch))
                 self.log_metrics(e, progress=100 * e / total_epoch)
-            self.in_epoch(epoch=e, rank=rank)
+            if e >= current_epoch:
+                self.in_epoch(model=model, epoch=e, rank=rank)
+
+    @property
+    def current_iteration(self):
+        return self.tracker.current_iteration
+
+    @current_iteration.setter
+    def current_iteration(self, value: int):
+        self.tracker.current_iteration = value
+
+
+@dataclass
+class Context:
+    model: None
+    train_loader: None
+    train_sampler: None
+    valid_loader: None
+    valid_sampler: None
+    loss_function: None
+    lr_scheduler: None
+    scaler: None
+    optimizer: None
+    scheduler_opt: None
+    rank: 0
+
+
