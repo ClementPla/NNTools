@@ -209,7 +209,7 @@ class Experiment(Manager):
     def set_scheduler(self):
         config = self.config.get('Learning_rate_scheduler', None)
         if config is not None:
-            scheduler_name = config(['scheduler'])
+            scheduler_name = config['scheduler']
             scheduler = SCHEDULERS[scheduler_name]
             self.ctx.scheduler_opt = scheduler
             self.ctx.scheduler_call_on = config.get('update_type', self.ctx.scheduler_call_on)
