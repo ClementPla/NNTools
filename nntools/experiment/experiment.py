@@ -213,7 +213,7 @@ class Experiment(Manager):
             scheduler = SCHEDULERS[scheduler_name]
             self.ctx.scheduler_opt = scheduler
             self.ctx.scheduler_call_on = config.get('update_type', self.ctx.scheduler_call_on)
-            self.partial_lr_scheduler = partial_fill_kwargs(scheduler.func, self.config.get('params_scheduler', None))
+            self.partial_lr_scheduler = partial_fill_kwargs(scheduler.func, config['params_scheduler'])
 
     def get_dataloader(self, dataset, shuffle=True, batch_size=None,
                        num_workers=None,
