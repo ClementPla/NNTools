@@ -207,11 +207,13 @@ class Experiment(Manager):
             self.partial_optimizer = self.create_optimizer(**config)
 
     def set_scheduler(self):
-        scheduler_name = self.config['Learning_rate_scheduler']['scheduler']
-        scheduler = SCHEDULERS[scheduler_name]
-        self.ctx.scheduler_opt = scheduler
-        self.ctx.scheduler_call_on = self.config['Learning_rate_scheduler']['update_type']
-        self.partial_lr_scheduler = partial_fill_kwargs(scheduler.func, self.config['params_scheduler'])
+        config = self.config.get('Learning_rate_scheduler', None)
+        if config is not None:
+            scheduler_name = config(['scheduler'])
+            scheduler = SCHEDULERS[scheduler_name]
+            self.ctx.scheduler_opt = scheduler
+            self.ctx.scheduler_call_on = config.get('update_type', self.ctx.scheduler_call_on)
+            self.partial_lr_scheduler = partial_fill_kwargs(scheduler.func, self.config.get('params_scheduler', None))
 
     def get_dataloader(self, dataset, shuffle=True, batch_size=None,
                        num_workers=None,
