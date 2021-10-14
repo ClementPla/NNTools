@@ -430,7 +430,7 @@ class Context:
     scheduler_opt = None
     rank: int = 0
     rank_main_process: int = 0
-    progress_bar: tqdm.tqdm = None
+    progress_bar: = None
     multi_gpu: bool = False
 
     @property
@@ -440,7 +440,7 @@ class Context:
     def init_progress_bar(self):
         if self.rank == self.rank_main_process:
             if self.progress_bar is None:
-                self.progress_bar = tqdm.tqdm(total=self.epoch_size)
+                self.progress_bar = tqdm(total=self.epoch_size)
             else:
                 self.progress_bar.refresh()
                 self.progress_bar.reset()
