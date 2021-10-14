@@ -360,6 +360,8 @@ class Experiment(Manager):
             self.ctx.valid_sampler = valid_sampler
 
         self.ctx.train_loader = train_loader
+        from icecream import ic
+        ic(self.ctx.train_loader)
         self.ctx.train_loader = train_sampler
         self.ctx.lr_scheduler = lr_scheduler
         self.ctx.scaler = scaler
