@@ -415,6 +415,6 @@ class Context:
     scaler = None
     optimizer = None
     scheduler_opt = None
-    rank: 0
+    rank = 0
 
 
