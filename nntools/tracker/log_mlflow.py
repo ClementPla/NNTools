@@ -23,7 +23,7 @@ def set_tags(tracker, **tags):
         client.set_tag(run_id, k, v)
 
 
-def log_artifact(tracker, *paths):
+def     log_artifact(tracker, *paths):
     run_id = tracker.run_id
     client = tracker.client
     for p in paths:

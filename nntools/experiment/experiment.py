@@ -337,7 +337,7 @@ class Experiment(Manager):
         if self.ctx.lr_scheduler is None:
             return
         else:
-            self.ctx.lr_scheduler.step(self.ctx.scheduler_opt.callback(validation_metrics))
+            self.ctx.lr_scheduler.step(*self.ctx.scheduler_opt.callback(validation_metrics))
 
     def eval(self, register_params=False, run_id=None):
         self.register_params = register_params
