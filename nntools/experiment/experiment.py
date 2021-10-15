@@ -396,7 +396,7 @@ class Experiment(Manager):
                 tqdm.write('** Epoch %i/%i **' % (e, total_epoch))
                 self.log_metrics(e, progress=100 * e / total_epoch)
             if e >= self.current_epoch:
-                self.in_epoch(model=model, epoch=e)
+                self.in_epoch(model=model)
 
             if self.multi_gpu:
                 dist.barrier()
