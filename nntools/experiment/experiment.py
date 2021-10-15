@@ -304,6 +304,7 @@ class Experiment(Manager):
             self.start_run(run_id)
 
         if self.run_training:
+            self.set_scheduler()
             assert self.partial_optimizer is not None, "Missing optimizer for training"
             assert self.train_dataset is not None, "Missing dataset"
             if self.validation_dataset is None:
@@ -348,7 +349,6 @@ class Experiment(Manager):
         train_loader, train_sampler = self.get_dataloader(self.train_dataset, drop_last=True, rank=rank)
         optimizer = self.partial_optimizer(
             model.get_trainable_parameters(self.c['Optimizer']['params_solver']['lr']))
-        self.set_scheduler()
         if self.partial_lr_scheduler is not None:
             lr_scheduler = self.partial_lr_scheduler(optimizer)
         else:
