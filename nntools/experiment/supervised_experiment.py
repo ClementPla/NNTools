@@ -100,7 +100,7 @@ class SupervisedExperiment(Experiment):
                         self.log_metrics(self.current_iteration, trainining_loss=np.mean(moving_loss))
                     moving_loss = []
                     self.save_model(model, filename='last')
-                    self.in_validation()
+                self.in_validation()
 
             if self.multi_gpu:
                 dist.barrier()
