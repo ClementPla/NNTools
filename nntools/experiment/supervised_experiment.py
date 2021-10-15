@@ -70,7 +70,7 @@ class SupervisedExperiment(Experiment):
         self.loss = loss_function
         super(SupervisedExperiment, self).train(model, rank)
 
-    def in_epoch(self, model, epoch, rank=0):
+    def in_epoch(self, model, epoch):
         clip_grad = self.c['Training'].get('grad_clipping', False)
         iters_to_accumulate = self.c['Training'].get('iters_to_accumulate', 1)
         moving_loss = []
@@ -82,7 +82,7 @@ class SupervisedExperiment(Experiment):
         for i, batch in (enumerate(self.ctx.train_loader)):
             self.current_iteration += 1
             with autocast(enabled=self.c['Manager']['amp']):
-                batch = self.batch_to_device(batch, rank)
+                batch = self.batch_to_device(batch, rank=self.ctx.rank)
                 loss = self.forward_train(self.model, self.loss, batch)
                 loss = loss / iters_to_accumulate
                 self.ctx.scaler.scale(loss).backward()
@@ -92,9 +92,9 @@ class SupervisedExperiment(Experiment):
                     self.ctx.scaler.step(self.ctx.optimizer)
                     self.ctx.scaler.update()
                     model.zero_grad()
+                    self.update_scheduler_on_iteration()
+                moving_loss.append(loss.detach().item())
 
-            self.update_scheduler_on_iteration()
-            moving_loss.append(loss.detach().item())
             """
             Validation step
             """
@@ -104,6 +104,7 @@ class SupervisedExperiment(Experiment):
                         self.log_metrics(self.current_iteration, trainining_loss=np.mean(moving_loss))
                     moving_loss = []
                     self.save_model(model, filename='last')
+                    self.in_validation()
 
             if self.multi_gpu:
                 dist.barrier()
@@ -113,7 +114,7 @@ class SupervisedExperiment(Experiment):
         If the validation set is not provided, we save the model once per epoch
         """
         if self.validation_dataset is None:
-            if self.is_main_process(rank):
+            if self.ctx.is_main_process:
                 self.save_model(model,
                                 filename='iteration_%i_loss_%f' % (self.current_iteration,
                                                                    float(np.mean(moving_loss))))

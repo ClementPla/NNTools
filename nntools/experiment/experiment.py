@@ -367,7 +367,7 @@ class Experiment(Manager):
         self.ctx.lr_scheduler = lr_scheduler
         self.ctx.scaler = scaler
         self.ctx.optimizer = optimizer
-        self.main_training_loop(model=model, rank=rank)
+        self.main_training_loop(model=model)
 
     def validate(self, model, valid_loader, iteration, loss_function=None):
         pass
@@ -378,7 +378,7 @@ class Experiment(Manager):
     def in_epoch(self, *args, **kwargs):
         pass
 
-    def main_training_loop(self, model, rank=0):
+    def main_training_loop(self, model):
         total_epoch = self.config['Training'].get('epochs', -1)
         max_iterations = self.config['Training'].get('iterations', -1)
         assert (total_epoch > 0) or (max_iterations > 0), "You must define a number of training iterations or a number " \
@@ -388,11 +388,11 @@ class Experiment(Manager):
         # Reset epoch count from the saved iterations.
 
         for e in range(total_epoch):
-            if self.is_main_process(rank):
+            if self.ctx.is_main_process:
                 tqdm.write('** Epoch %i/%i **' % (e, total_epoch))
                 self.log_metrics(e, progress=100 * e / total_epoch)
             if e >= self.current_epoch:
-                self.in_epoch(model=model, epoch=e, rank=rank)
+                self.in_epoch(model=model, epoch=e)
 
     @property
     def current_iteration(self):
@@ -442,7 +442,7 @@ class Context:
         return len(self.train_loader)
 
     def init_progress_bar(self):
-        if self.rank == self.rank_main_process:
+        if self.is_main_process:
             if self.progress_bar is None:
                 self.progress_bar = tqdm(total=self.epoch_size)
             else:
@@ -450,14 +450,13 @@ class Context:
                 self.progress_bar.reset()
 
     def update_progress_bar(self):
-        if self.rank == self.rank_main_process:
+        if self.is_main_process:
             self.progress_bar.update(1)
 
     def close_progress_bar(self):
-        if self.rank == self.rank_main_process:
-            if self.rank == self.rank_main_process:
-                self.progress_bar.refresh()
-                self.progress_bar.close()
+        if self.is_main_process:
+            self.progress_bar.refresh()
+            self.progress_bar.close()
 
     @property
     def is_main_process(self):
