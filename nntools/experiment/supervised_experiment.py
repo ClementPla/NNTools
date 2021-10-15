@@ -70,14 +70,10 @@ class SupervisedExperiment(Experiment):
         self.loss = loss_function
         super(SupervisedExperiment, self).train(model, rank)
 
-    def in_epoch(self, model, epoch):
+    def in_epoch(self, model):
         clip_grad = self.c['Training'].get('grad_clipping', False)
         iters_to_accumulate = self.c['Training'].get('iters_to_accumulate', 1)
         moving_loss = []
-        self.ctx.init_progress_bar()
-
-        if self.ctx.train_sampler is not None:
-            self.ctx.train_sampler.set_epoch(epoch)
 
         for i, batch in (enumerate(self.ctx.train_loader)):
             self.current_iteration += 1
@@ -118,11 +114,7 @@ class SupervisedExperiment(Experiment):
                 self.save_model(model,
                                 filename='iteration_%i_loss_%f' % (self.current_iteration,
                                                                    float(np.mean(moving_loss))))
-
         self.update_scheduler_on_epoch()
-        if self.multi_gpu:
-            dist.barrier()
-        self.ctx.close_progress_bar()
 
     def in_validation(self):
         model = self.ctx.model

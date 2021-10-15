@@ -388,11 +388,19 @@ class Experiment(Manager):
         # Reset epoch count from the saved iterations.
 
         for e in range(total_epoch):
+            self.ctx.init_progress_bar()
+            if self.ctx.train_sampler is not None:
+                self.ctx.train_sampler.set_epoch(e)
+
             if self.ctx.is_main_process:
                 tqdm.write('** Epoch %i/%i **' % (e, total_epoch))
                 self.log_metrics(e, progress=100 * e / total_epoch)
             if e >= self.current_epoch:
                 self.in_epoch(model=model, epoch=e)
+
+            if self.multi_gpu:
+                dist.barrier()
+        self.ctx.close_progress_bar()
 
     @property
     def current_iteration(self):
