@@ -82,6 +82,13 @@ class ClassificationDataset(ImageDataset):
         col = self.gt_column[0]
         unique, count = np.unique(self.gts[col], return_counts=True)
         return count
+
+    def remap(self, old_key, new_key):
+        try:
+            self.gt_column[self.gt_column.index(old_key)] = new_key
+        except ValueError:
+            pass
+        super(ClassificationDataset, self).remap(old_key, new_key)
             
 
     def load_image(self, item):

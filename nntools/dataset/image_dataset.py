@@ -195,14 +195,15 @@ class ImageDataset(Dataset):
                     outputs[k] = v
             else:
                 outputs["tag"] = self.tag
-        self.filter_data(outputs)
+        outputs = self.filter_data(outputs)
         return outputs
 
     def filter_data(self, datadict):
         list_keys = list(datadict.keys())
+        filtered_dict = {}
         for k in self.ignore_keys:
-            if k in list_keys:
-                datadict.pop(k)
+            if k not in list_keys:
+                filtered_dict[k] = datadict[k]
 
     def set_ignore_key(self, key):
         self.ignore_keys.append(key)
