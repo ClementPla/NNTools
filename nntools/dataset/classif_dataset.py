@@ -89,7 +89,6 @@ class ClassificationDataset(ImageDataset):
         except ValueError:
             pass
         super(ClassificationDataset, self).remap(old_key, new_key)
-            
 
     def load_image(self, item):
         inputs = super(ClassificationDataset, self).load_image(item)

@@ -204,6 +204,7 @@ class ImageDataset(Dataset):
         for k in self.ignore_keys:
             if k not in list_keys:
                 filtered_dict[k] = datadict[k]
+        return filtered_dict
 
     def set_ignore_key(self, key):
         self.ignore_keys.append(key)
