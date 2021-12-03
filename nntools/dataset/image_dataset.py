@@ -201,8 +201,8 @@ class ImageDataset(Dataset):
     def filter_data(self, datadict):
         list_keys = list(datadict.keys())
         filtered_dict = {}
-        for k in self.ignore_keys:
-            if k not in list_keys:
+        for k in list_keys:
+            if k not in self.ignore_keys:
                 filtered_dict[k] = datadict[k]
         return filtered_dict
 
