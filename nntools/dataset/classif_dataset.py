@@ -75,7 +75,8 @@ class ClassificationDataset(ImageDataset):
                     self.gts[col_label][self.gts[col_label] == k] = v
                 self.gts[col_label] = self.gts[col_label].astype(int)
 
-    def get_class_count(self):
+    def get_class_count(self, load=True, save=True):
+        # Todo add loading and saving of class counts
         if len(self.gt_column) > 1:
             raise NotImplementedError('Getting the class count for more than one target is not implemented')
 

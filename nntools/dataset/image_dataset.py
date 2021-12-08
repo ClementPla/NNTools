@@ -145,7 +145,7 @@ class ImageDataset(Dataset):
     def set_composition(self, composer):
         self.composer = composer
 
-    def get_class_count(self):
+    def get_class_count(self, load=True, save=True):
         pass
 
     def transpose_img(self, img):
