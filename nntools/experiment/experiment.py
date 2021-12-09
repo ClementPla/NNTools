@@ -9,7 +9,7 @@ import torch.multiprocessing as mp
 import torch.nn as nn
 from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
 from torch.cuda.amp import autocast
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from nntools.dataset.utils import concat_datasets_if_needed
 from nntools.nnet import nnt_format

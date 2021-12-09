@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import torch.distributed as dist
-import tqdm
 from torch.cuda.amp import autocast, GradScaler
 from torch.nn.utils import clip_grad_norm_
 
