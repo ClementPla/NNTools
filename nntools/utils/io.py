@@ -43,3 +43,22 @@ def get_most_recent_file(dirpath, filtername=None):
         files = [f for f in files if filtername in os.path.basename(f)]
     if files:
         return files[-1]
+
+
+def quick_load(project_folder, experiment, run_name, run_id, filename=None, filtername='best'):
+    import torch
+    folder_path = os.path.join(project_folder, experiment, run_name, 'trained_model', run_id)
+    script_path = os.path.join(folder_path, 'model_scripted.pth')
+    if not os.path.exists(script_path):
+        return ValueError("No scripted model found")
+    model = torch.jit.load(script_path)
+
+    if filename:
+        path = os.path.join(folder_path, filename)
+    else:
+        path = folder_path
+
+    model.load(path, load_most_recent=filename is None, filtername=filtername)
+
+
+

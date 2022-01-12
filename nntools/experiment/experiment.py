@@ -43,6 +43,8 @@ class Manager(ABC):
         self.continue_training = True
         self.call_end_function = True
         self.keyboard_exception_raised = False
+        self.save_jit_model = True
+
         if not isinstance(self.gpu, list):
             self.gpu = [self.gpu]
 
@@ -55,11 +57,6 @@ class Manager(ABC):
 
         self.ddp_config = self.config.get('DDP', dict())
         self.ctx = Context(multi_gpu=self.multi_gpu)
-
-    def convert_batch_norm(self, model: nn.Module) -> nn.Module:
-        if self.c['Network']['synchronized_batch_norm'] and self.multi_gpu:
-            model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
-        return model
 
     def start_run(self, run_id: str = None):
         Log.warn('Initializing tracker')
@@ -86,42 +83,6 @@ class Manager(ABC):
 
     def get_gpu_from_rank(self, rank: int):
         return self.gpu[rank]
-
-    def get_model_on_device(self, rank: int) -> nn.Module:
-        tqdm.write('Rank %i, gpu %i' % (rank, self.get_gpu_from_rank(rank)))
-        torch.cuda.set_device(self.get_gpu_from_rank(rank))
-        model = self.get_model()
-        model = self.convert_batch_norm(model)
-        model = model.cuda(self.get_gpu_from_rank(rank))
-        if self.multi_gpu:
-            model = DDP(model, device_ids=[self.get_gpu_from_rank(rank)],
-                        find_unused_parameters=self.ddp_config.get('find_unused_parameters', False))
-        return model
-
-    def get_model(self) -> nn.Module:
-        assert self.model is not None, "The model has not been configured, call set_model(model)"
-        if self.continue_training:
-            self.model.load(self.tracker.network_savepoint, load_most_recent=True, map_location='cpu')
-
-        return self.model
-
-    def set_model(self, model: nn.Module) -> nn.Module:
-        model = nnt_format(model)
-        self.model = model
-        return model
-
-    def set_params_group(self, params_group: dict):
-        self.model.set_params_group(params_group)
-
-    def batch_to_device(self, batch: (dict, tuple, list), rank: int) -> (dict, tuple, list):
-        device = self.get_gpu_from_rank(rank)
-        if isinstance(batch, tuple) or isinstance(batch, list):
-            batch = [b.cuda(device) if isinstance(b, torch.Tensor) else b for b in batch]
-        elif isinstance(batch, dict):
-            batch = {k: b.cuda(device) for k, b in batch.items() if isinstance(b, torch.Tensor)}
-        elif isinstance(batch, torch.Tensor):
-            batch = batch.cuda(device)
-        return batch
 
     def log_metrics(self, step, **metrics):
         self.tracker.log_metrics(step, **metrics)
@@ -175,6 +136,42 @@ class Experiment(Manager):
 
         self.save_last = True
         self.run_training = True
+
+    def get_model_on_device(self, rank: int) -> nn.Module:
+        tqdm.write('Rank %i, gpu %i' % (rank, self.get_gpu_from_rank(rank)))
+        torch.cuda.set_device(self.get_gpu_from_rank(rank))
+        model = self.get_model()
+        model = self.convert_batch_norm(model)
+        model = model.cuda(self.get_gpu_from_rank(rank))
+        if self.multi_gpu:
+            model = DDP(model, device_ids=[self.get_gpu_from_rank(rank)],
+                        find_unused_parameters=self.ddp_config.get('find_unused_parameters', False))
+        return model
+
+    def get_model(self) -> nn.Module:
+        assert self.model is not None, "The model has not been configured, call set_model(model) first"
+        if self.continue_training:
+            self.model.load(self.tracker.network_savepoint, load_most_recent=True, map_location='cpu')
+
+        return self.model
+
+    def set_model(self, model: nn.Module) -> nn.Module:
+        model = nnt_format(model)
+        self.model = model
+        return model
+
+    def set_params_group(self, params_group: dict):
+        self.model.set_params_group(params_group)
+
+    def batch_to_device(self, batch: (dict, tuple, list), rank: int) -> (dict, tuple, list):
+        device = self.get_gpu_from_rank(rank)
+        if isinstance(batch, tuple) or isinstance(batch, list):
+            batch = [b.cuda(device) if isinstance(b, torch.Tensor) else b for b in batch]
+        elif isinstance(batch, dict):
+            batch = {k: b.cuda(device) for k, b in batch.items() if isinstance(b, torch.Tensor)}
+        elif isinstance(batch, torch.Tensor):
+            batch = batch.cuda(device)
+        return batch
 
     def initial_tracking(self):
         self.log_params(**self.config.tracked_params)
@@ -263,6 +260,9 @@ class Experiment(Manager):
             for f in files[:-self.config['Manager']['max_saved_model']]:
                 os.remove(f)
 
+    def save_scripted_model(self, model):
+        model.save_scripted(savepoint=self.tracker.network_savepoint, filename='model_scripted')
+
     def _start_process(self, rank: int = 0):
         tqdm.write('Initializing process %i' % rank)
         if self.multi_gpu:
@@ -272,6 +272,9 @@ class Experiment(Manager):
 
         self.ctx.rank = rank
         self.ctx.model = model
+
+        if self.ctx.is_main_process and self.save_jit_model:
+            self.save_scripted_model(model)
 
         if self.run_training:
             try:
@@ -318,6 +321,7 @@ class Experiment(Manager):
         if self.register_params:
             self.initial_tracking()
 
+
         if self.multi_gpu:
             mp.spawn(self._start_process, nprocs=self.world_size, join=True)
 
@@ -326,6 +330,11 @@ class Experiment(Manager):
 
         if not self.keyboard_exception_raised:
             self.tracker.set_status(status='FINISHED')
+
+    def convert_batch_norm(self, model: nn.Module) -> nn.Module:
+        if self.c['Network']['synchronized_batch_norm'] and self.multi_gpu:
+            model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
+        return model
 
     def register_trained_model(self):
         if self.saved_models['best_valid']:

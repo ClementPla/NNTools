@@ -1,5 +1,5 @@
 import datetime
-from os.path import join, splitext
+import os
 
 import torch
 from torch import nn
@@ -23,19 +23,9 @@ class AbstractNet(nn.Module):
         if model is not None:
             self.network = model
 
-    def save(self, filename='trained_model',
-             optimizers=None,
-             savepoint=None,
-             use_datetime=False, **filestamps):
-
+    def get_savepath(self, filename, savepoint, use_datetime=False, **filestamps):
         if savepoint is not None:
             self.savepoint = savepoint
-
-        if optimizers is not None:
-            if not isinstance(optimizers, list):
-                optimizers = [optimizers]
-        else:
-            optimizers = []
 
         for k, v in filestamps.items():
             filename += '_' + k + '_%f' % v
@@ -43,24 +33,43 @@ class AbstractNet(nn.Module):
         if '.' not in filename:
             filename += '.pth'
 
-        path = self.savepoint + '/'
+        path = self.savepoint
 
         if use_datetime:
             today = str(self._today)
-            path = join(path, today + '/')
-        create_folder(path)
-        path = join(path, filename)
+            path = os.path.join(path, today)
 
+        create_folder(path)
+        path = os.path.join(path, filename)
+
+        filename, file_extension = os.path.splitext(path)
+        if not file_extension:
+            path = path + '.pth'
+
+        return path
+
+    def save(self, filename='trained_model',
+             optimizers=None,
+             savepoint=None,
+             use_datetime=False, **filestamps):
+
+        if optimizers is not None:
+            if not isinstance(optimizers, list):
+                optimizers = [optimizers]
+        else:
+            optimizers = []
         save_dict = dict(model_state_dict=self.state_dict())
         for i, optim in enumerate(optimizers):
             save_dict['optim_%i' % i] = optim.state_dict()
 
-        filename, file_extension = splitext(path)
-        if not file_extension:
-            path = path + '.pth'
-
+        path = self.get_savepath(filename, savepoint, use_datetime, **filestamps)
         torch.save(save_dict, path)
         return path
+
+    def save_scripted(self, filename='model_scripted', savepoint=None, use_datetime=False):
+        model_scripted = torch.jit.script(self)
+        path = self.get_savepath(filename, savepoint=savepoint, use_datetime=use_datetime)
+        model_scripted.save(path)
 
     def load(self, path, ignore_nan=False, load_most_recent=False, strict=False, map_location=None, filtername=None,
              allow_size_mismatch=True):
