@@ -8,12 +8,17 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 def plot_images(arrays_dict, cmap_name='jet_r', classes=None, fig_size=1):
     arrays = [(k, v) for k, v in arrays_dict.items() if isinstance(v, np.ndarray)]
     nb_plots = len(arrays)
-    row, col = int(math.ceil(nb_plots / 2)), 2
+    if nb_plots == 1:
+        row, col = 1, 1
+    else:
+        row, col = int(math.ceil(nb_plots / 2)), 2
 
     fig, ax = plt.subplots(row, col)
     if row == 1:
         ax = [ax]
-    fig.set_size_inches(fig_size * 10, 5 * row * fig_size)
+    if col == 1:
+        ax = [ax]
+    fig.set_size_inches(fig_size * 10, (10//col) * row * fig_size)
 
     for i in range(row):
         for j in range(col):
