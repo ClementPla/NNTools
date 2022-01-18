@@ -215,7 +215,7 @@ class ImageDataset(Dataset):
     def plot(self, item, classes=None, fig_size=1):
         arrays = self.__getitem__(item, torch_cast=False, transpose_img=False, return_indices=False)
         plot_images(arrays, self.cmap_name, classes=classes, fig_size=fig_size)
-        
+
     def get_mosaic(self, n_items=9, shuffle=False, indexes=None, resolution=(512, 512), show=False, fig_size=1,
                    save=None, add_labels=False,
                    n_row=None, n_col=None):
