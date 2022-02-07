@@ -85,13 +85,16 @@ class Manager(ABC):
         return self.gpu[rank]
 
     def log_metrics(self, step, **metrics):
-        self.tracker.log_metrics(step, **metrics)
+        if self.ctx.is_main_process:
+            self.tracker.log_metrics(step, **metrics)
 
     def log_params(self, **params):
-        self.tracker.log_params(**params)
+        if self.ctx.is_main_process:
+            self.tracker.log_params(**params)
 
     def log_artifacts(self, *paths):
-        self.tracker.log_artifacts(*paths)
+        if self.ctx.is_main_process:
+            self.tracker.log_artifacts(*paths)
 
     def set_tags(self, **tags):
         self.tracker.set_tags(**tags)
@@ -136,6 +139,8 @@ class Experiment(Manager):
 
         self.save_last = True
         self.run_training = True
+
+        self.additional_datasets = {}
 
     def get_model_on_device(self, rank: int) -> nn.Module:
         tqdm.write('Rank %i, gpu %i' % (rank, self.get_gpu_from_rank(rank)))
@@ -194,6 +199,9 @@ class Experiment(Manager):
         func = OPTIMS[solver]
         return partial_fill_kwargs(func, config['params_solver'])
 
+    def register_dataset(self, dataset, name):
+        self.additional_datasets[name] = dataset
+
     def set_optimizer(self, optimizers=None, **config):
         """
         :return: A partial function of an optimizers. Partial passed arguments are hyper parameters
@@ -212,9 +220,11 @@ class Experiment(Manager):
             self.ctx.scheduler_call_on = config.get('update_type', self.ctx.scheduler_call_on)
             self.partial_lr_scheduler = partial_fill_kwargs(scheduler.func, config['params_scheduler'])
 
-    def get_dataloader(self, dataset, shuffle=True, batch_size=None,
+    def get_dataloader(self, dataset, shuffle=True,
+                       batch_size=None,
                        num_workers=None,
                        drop_last=False, persistent_workers=True, rank=0):
+
         num_workers = self.config['Manager']['num_workers'] if num_workers is None else num_workers
 
         exp_dataloader = self.config['Manager'].get('experimental_dataloader', False)
@@ -246,6 +256,8 @@ class Experiment(Manager):
         return dataloader, sampler
 
     def save_model(self, model, filename, **kwargs):
+        if not self.ctx.is_main_process:
+            return
         tqdm.write('Saving model')
         save = model.save(savepoint=self.tracker.network_savepoint, filename=filename, **kwargs)
 
@@ -321,7 +333,6 @@ class Experiment(Manager):
         if self.register_params:
             self.initial_tracking()
 
-
         if self.multi_gpu:
             mp.spawn(self._start_process, nprocs=self.world_size, join=True)
 
@@ -359,8 +370,12 @@ class Experiment(Manager):
     def train(self, model, rank):
 
         train_loader, train_sampler = self.get_dataloader(self.train_dataset, drop_last=True, rank=rank)
+        for key, value in self.additional_datasets:
+            self.ctx.additional_dataloader[key] = self.get_dataloader(value, drop_last=True, rank=rank)
+
         optimizer = self.partial_optimizer(
-            model.get_trainable_parameters(self.c['Optimizer']['params_solver']['lr']))
+            model.get_trainable_parameters())
+
         if self.partial_lr_scheduler is not None:
             lr_scheduler = self.partial_lr_scheduler(optimizer)
         else:
@@ -451,6 +466,7 @@ class Context:
     scaler = None
     optimizer = None
     scheduler_opt = None
+    additional_dataloader: dict
     rank: int = 0
     rank_main_process: int = 0
     progress_bar = None
@@ -482,7 +498,8 @@ class Context:
     def is_main_process(self):
         return (self.rank == self.rank_main_process) or (not self.multi_gpu)
 
-
+    def get_dataloader(self, name):
+        return self.additional_dataloader[name]
 
 
 

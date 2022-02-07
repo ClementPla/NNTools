@@ -94,25 +94,20 @@ class SupervisedExperiment(Experiment):
             Validation step
             """
             if self.current_iteration % self.c['Validation']['log_interval'] == 0:
-                if self.ctx.is_main_process:
-                    if moving_loss:
-                        self.log_metrics(self.current_iteration, trainining_loss=np.mean(moving_loss))
-                    moving_loss = []
-                    self.save_model(model, filename='last')
+                if moving_loss:
+                    self.log_metrics(self.current_iteration, trainining_loss=np.mean(moving_loss))
+                moving_loss = []
+                self.save_model(model, filename='last')
                 self.in_validation()
 
-            if self.multi_gpu:
-                dist.barrier()
             self.ctx.update_progress_bar()
 
         """ 
         If the validation set is not provided, we save the model once per epoch
         """
         if self.validation_dataset is None:
-            if self.ctx.is_main_process:
-                self.save_model(model,
-                                filename='iteration_%i_loss_%f' % (self.current_iteration,
-                                                                   float(np.mean(moving_loss))))
+            self.save_model(model, filename='iteration_%i_loss_%f' % (self.current_iteration,
+                                                                      float(np.mean(moving_loss))))
         self.update_scheduler_on_epoch()
 
     def in_validation(self):
@@ -162,18 +157,17 @@ class SupervisedExperiment(Experiment):
         losses = losses / n
         confMat = NNmetrics.filter_index_cm(confMat, self.ignore_index)
         mIoU = NNmetrics.mIoU_cm(confMat)
-        if self.ctx.is_main_process:
-            stats = NNmetrics.report_cm(confMat)
-            stats['mIoU'] = mIoU
-            stats['validation_loss'] = losses.item()
+        stats = NNmetrics.report_cm(confMat)
+        stats['mIoU'] = mIoU
+        stats['validation_loss'] = losses.item()
 
-            self.log_metrics(step=iteration, **stats)
-            if self.tracked_metric is None:
+        self.log_metrics(step=iteration, **stats)
+        if self.tracked_metric is None:
+            self.tracked_metric = mIoU
+        else:
+            if mIoU > self.tracked_metric:
                 self.tracked_metric = mIoU
-            else:
-                if mIoU > self.tracked_metric:
-                    self.tracked_metric = mIoU
-                    filename = ('best_valid_iteration_%i_mIoU_%.3f' % (iteration, mIoU)).replace('.', '')
-                    self.save_model(model, filename=filename)
+                filename = ('best_valid_iteration_%i_mIoU_%.3f' % (iteration, mIoU)).replace('.', '')
+                self.save_model(model, filename=filename)
         model.train()
         return mIoU

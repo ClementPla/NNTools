@@ -91,7 +91,7 @@ class AbstractNet(nn.Module):
             check_nan(state_dict)
         return self.load_state_dict(state_dict, strict=strict)
 
-    def get_trainable_parameters(self, lr=None):
+    def get_trainable_parameters(self):
         if self.params_group:
             return self.params_group
         else:
