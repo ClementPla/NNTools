@@ -43,7 +43,7 @@ class Manager(ABC):
         self.continue_training = True
         self.call_end_function = True
         self.keyboard_exception_raised = False
-        self.save_jit_model = True
+        self.save_jit_model = False
 
         if not isinstance(self.gpu, list):
             self.gpu = [self.gpu]
