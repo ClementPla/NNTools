@@ -370,7 +370,7 @@ class Experiment(Manager):
     def train(self, model, rank):
 
         train_loader, train_sampler = self.get_dataloader(self.train_dataset, drop_last=True, rank=rank)
-        for key, value in self.additional_datasets:
+        for key, value in self.additional_datasets.items():
             self.ctx.additional_dataloader[key] = self.get_dataloader(value, drop_last=True, rank=rank)
 
         optimizer = self.partial_optimizer(
