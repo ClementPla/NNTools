@@ -368,13 +368,9 @@ class Experiment(Manager):
         self.start(run_id=run_id)
 
     def train(self, model, rank):
-        print('Debug 1')
         train_loader, train_sampler = self.get_dataloader(self.train_dataset, drop_last=True, rank=rank)
-        print('Debug 1-a')
         for key, value in self.additional_datasets.items():
-            print(key, value)
             self.ctx.additional_dataloader[key] = self.get_dataloader(value, drop_last=True, rank=rank)
-        print('Debug 1-b')
 
         optimizer = self.partial_optimizer(
             model.get_trainable_parameters())
@@ -397,7 +393,6 @@ class Experiment(Manager):
         self.ctx.lr_scheduler = lr_scheduler
         self.ctx.scaler = scaler
         self.ctx.optimizer = optimizer
-        print('Debug 2')
         self.main_training_loop(model=model)
 
     def validate(self, model, valid_loader, iteration, loss_function=None):
