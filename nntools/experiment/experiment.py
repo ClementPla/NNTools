@@ -368,7 +368,7 @@ class Experiment(Manager):
         self.start(run_id=run_id)
 
     def train(self, model, rank):
-
+        print('Debug 1')
         train_loader, train_sampler = self.get_dataloader(self.train_dataset, drop_last=True, rank=rank)
         for key, value in self.additional_datasets.items():
             self.ctx.additional_dataloader[key] = self.get_dataloader(value, drop_last=True, rank=rank)
@@ -394,6 +394,7 @@ class Experiment(Manager):
         self.ctx.lr_scheduler = lr_scheduler
         self.ctx.scaler = scaler
         self.ctx.optimizer = optimizer
+        print('Debug 2')
         self.main_training_loop(model=model)
 
     def validate(self, model, valid_loader, iteration, loss_function=None):
@@ -425,8 +426,6 @@ class Experiment(Manager):
             if e >= self.current_epoch:
                 self.in_epoch(model=model)
 
-            if self.multi_gpu:
-                dist.barrier()
         self.ctx.close_progress_bar()
 
     @property
