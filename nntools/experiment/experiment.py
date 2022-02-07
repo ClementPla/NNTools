@@ -56,7 +56,7 @@ class Manager(ABC):
             os.environ['MASTER_PORT'] = '12355'
 
         self.ddp_config = self.config.get('DDP', dict())
-        self.ctx = Context(multi_gpu=self.multi_gpu)
+        self.ctx = Context(multi_gpu=self.multi_gpu, additional_dataloader={})
 
     def start_run(self, run_id: str = None):
         Log.warn('Initializing tracker')
