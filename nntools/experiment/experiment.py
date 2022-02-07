@@ -200,7 +200,7 @@ class Experiment(Manager):
         return partial_fill_kwargs(func, config['params_solver'])
 
     def register_dataset(self, dataset, name):
-        self.additional_datasets[name] = dataset
+        self.additional_datasets[name] = concat_datasets_if_needed(dataset)
 
     def set_optimizer(self, optimizers=None, **config):
         """
