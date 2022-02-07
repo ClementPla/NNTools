@@ -370,6 +370,7 @@ class Experiment(Manager):
     def train(self, model, rank):
         print('Debug 1')
         train_loader, train_sampler = self.get_dataloader(self.train_dataset, drop_last=True, rank=rank)
+        print('Debug 1-a')
         for key, value in self.additional_datasets.items():
             self.ctx.additional_dataloader[key] = self.get_dataloader(value, drop_last=True, rank=rank)
         print('Debug 1-b')
