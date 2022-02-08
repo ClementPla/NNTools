@@ -479,6 +479,7 @@ class Context:
             if self.progress_bar is None:
                 self.progress_bar = tqdm(total=self.epoch_size)
             else:
+                self.progress_bar.total = self.epoch_size
                 self.progress_bar.refresh()
                 self.progress_bar.reset()
 
