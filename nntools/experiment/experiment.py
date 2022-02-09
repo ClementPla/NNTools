@@ -421,8 +421,8 @@ class Experiment(Manager):
             if self.ctx.is_main_process:
                 tqdm.write('** Epoch %i/%i **' % (e, total_epoch))
                 self.log_metrics(e, progress=100 * e / total_epoch)
-            if e >= self.current_epoch:
-                self.in_epoch(model=model)
+
+            self.in_epoch(model=model)
 
         self.ctx.close_progress_bar()
 
