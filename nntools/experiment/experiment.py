@@ -455,8 +455,9 @@ class Experiment(Manager):
         from torchvision.io import write_jpeg
         images = create_mosaic(images, masks)
         if filename is None:
-            filename = 'image.jpeg'
-        filepath = os.path.join(self.tracker.run_folder, filename)
+            filename = 'image'
+
+        filepath = os.path.join(self.tracker.run_folder, filename, '.jpeg')
         write_jpeg(images, filepath)
         self.log_artifacts(filepath)
 
