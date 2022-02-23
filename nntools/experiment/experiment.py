@@ -458,7 +458,7 @@ class Experiment(Manager):
             filename = 'image.jpeg'
         filepath = os.path.join(self.tracker.run_folder, filename)
         write_jpeg(images, filepath)
-
+        self.log_artifacts(filepath)
 
 @dataclass
 class Context:
