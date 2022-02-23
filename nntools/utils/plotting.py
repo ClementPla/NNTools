@@ -3,6 +3,18 @@ import math
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from torchvision.utils import make_grid, draw_segmentation_masks
+import torch
+
+
+def create_mosaic(images, masks=None):
+    mosaic_imgs = make_grid(images, normalize=True) * 255
+    mosaic_imgs.type(torch.uint8)
+    if masks is not None:
+        mosaic_gt = make_grid(masks, normalize=False)
+        mosaic_imgs = draw_segmentation_masks(mosaic_imgs, mosaic_gt.bool())
+
+    return mosaic_imgs
 
 
 def plot_images(arrays_dict, cmap_name='jet_r', classes=None, fig_size=1):

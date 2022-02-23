@@ -18,6 +18,7 @@ from nntools.utils import Config
 from nntools.utils.io import save_yaml
 from nntools.utils.misc import partial_fill_kwargs
 from nntools.utils.optims import OPTIMS
+from nntools.utils.plotting import create_mosaic
 from nntools.utils.random import set_seed, set_non_torch_seed
 from nntools.utils.scheduler import SCHEDULERS
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP, MultiEpochsDataLoader
@@ -410,7 +411,7 @@ class Experiment(Manager):
         assert (total_epoch > 0) or (max_iterations > 0), "You must define a number of training iterations or a number " \
                                                           "of epochs"
         if max_iterations > 0:
-            total_epoch = math.ceil(max_iterations / math.ceil(len(self.train_dataset) / self.batch_size))
+            total_epoch = math.ceil(max_iterations / self.ctx.epoch_size)
         # Reset epoch count from the saved iterations.
 
         for e in range(total_epoch):
@@ -432,7 +433,7 @@ class Experiment(Manager):
 
     @property
     def current_epoch(self):
-        return math.floor(self.current_iteration/math.ceil(len(self.train_dataset) / self.batch_size))
+        return math.floor(self.current_iteration/self.ctx.epoch_size)
 
     @current_iteration.setter
     def current_iteration(self, value: int):
@@ -449,6 +450,14 @@ class Experiment(Manager):
     def update_scheduler_on_iteration(self):
         if self.ctx.scheduler_call_on == 'on_iteration':
             self.lr_scheduler_step()
+
+    def visualization_images(self, images, masks=None, filename=None):
+        from torchvision.io import write_jpeg
+        images = create_mosaic(images, masks)
+        if filename is None:
+            filename = 'image.jpeg'
+        filepath = os.path.join(self.tracker.run_folder, filename)
+        write_jpeg(images, filepath)
 
 
 @dataclass
