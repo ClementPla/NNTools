@@ -457,7 +457,7 @@ class Experiment(Manager):
         if filename is None:
             filename = 'image'
 
-        filepath = os.path.join(self.tracker.run_folder, filename, '.jpeg')
+        filepath = os.path.join(self.tracker.run_folder, filename + '.jpeg')
         write_jpeg(images, filepath)
         self.log_artifacts(filepath)
 
