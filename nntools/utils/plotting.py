@@ -9,9 +9,9 @@ import torch
 
 def create_mosaic(images, masks=None):
     mosaic_imgs = make_grid(images, normalize=True) * 255
-    mosaic_imgs = mosaic_imgs.type(torch.uint8)
+    mosaic_imgs = mosaic_imgs.type(torch.uint8).cpu()
     if masks is not None:
-        mosaic_gt = make_grid(masks, normalize=False)
+        mosaic_gt = make_grid(masks, normalize=False).cpu()
         mosaic_imgs = draw_segmentation_masks(mosaic_imgs, mosaic_gt.bool())
 
     return mosaic_imgs
