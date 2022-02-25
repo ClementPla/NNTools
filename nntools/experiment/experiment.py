@@ -140,6 +140,7 @@ class Experiment(Manager):
 
         self.save_last = True
         self.run_training = True
+        self.validation_batch_size = None
 
         self.additional_datasets = {}
 
@@ -384,7 +385,9 @@ class Experiment(Manager):
 
         if self.validation_dataset is not None:
             valid_loader, valid_sampler = self.get_dataloader(self.validation_dataset,
-                                                              batch_size=self.world_size,
+                                                              batch_size=self.world_size
+                                                              if self.validation_batch_size is None else
+                                                              self.validation_batch_size,
                                                               shuffle=False, rank=rank)
             self.ctx.valid_loader = valid_loader
             self.ctx.valid_sampler = valid_sampler
