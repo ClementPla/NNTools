@@ -388,7 +388,7 @@ class Experiment(Manager):
                                                               batch_size=self.world_size
                                                               if self.validation_batch_size is None else
                                                               self.validation_batch_size,
-                                                              shuffle=False, rank=rank)
+                                                              shuffle=True, rank=rank)
             self.ctx.valid_loader = valid_loader
             self.ctx.valid_sampler = valid_sampler
 
