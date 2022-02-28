@@ -496,7 +496,7 @@ class Context:
 
     @epoch_size.setter
     def epoch_size(self, value):
-        self.epoch_size = value
+        self._epoch_size = value
 
     def init_progress_bar(self):
         if self.is_main_process:
