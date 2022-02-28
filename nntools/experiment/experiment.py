@@ -66,6 +66,7 @@ class Manager(ABC):
             self.continue_training = False
             self.tracker.create_run(tags)
         else:
+            self.tracker.set_run_id(run_id)
             self.tracker.get_run(run_id)
 
         if self.continue_training:
@@ -318,6 +319,8 @@ class Experiment(Manager):
 
     def start(self, run_id=None):
         if not self.run_started:
+            from icecream import ic
+            ic('Debug test')
             self.start_run(run_id)
 
         if self.run_training:
@@ -366,6 +369,7 @@ class Experiment(Manager):
 
     def eval(self, register_params=False, run_id=None):
         self.register_params = register_params
+        self.continue_training = False
         self.run_training = False
         self.start(run_id=run_id)
 

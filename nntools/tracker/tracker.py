@@ -92,6 +92,9 @@ class Tracker:
         self.initialize_run()
         return self.client.get_run(self.run_id)
 
+    def set_run_id(self, run_id: str):
+        self.run_id = run_id
+
     def set_status(self, status: str):
         self.client.set_terminated(self.run_id, status)
 
