@@ -485,7 +485,6 @@ class Context:
     multi_gpu: bool = False
     scheduler_call_on = 'on_epoch'
     _epoch_size = None
-    epoch_size: int = 0
 
     @property
     def epoch_size(self):
