@@ -319,8 +319,6 @@ class Experiment(Manager):
 
     def start(self, run_id=None):
         if not self.run_started:
-            from icecream import ic
-            ic('Debug test')
             self.start_run(run_id)
 
         if self.run_training:
@@ -486,10 +484,19 @@ class Context:
     progress_bar = None
     multi_gpu: bool = False
     scheduler_call_on = 'on_epoch'
+    _epoch_size = None
+    epoch_size: int = 0
 
     @property
     def epoch_size(self):
-        return len(self.train_loader)
+        if self._epoch_size is None:
+            return len(self.train_loader)
+        else:
+            return self._epoch_size
+
+    @epoch_size.setter
+    def epoch_size(self, value):
+        self.epoch_size = value
 
     def init_progress_bar(self):
         if self.is_main_process:
