@@ -103,6 +103,7 @@ class SegmentationDataset(ImageDataset):
                     self.gts[k] = np.asarray(gt_k)
 
             if self.filling_strategy == NN_FILL_DOWNSAMPLE or all_equal:
+                img_filenames = [path_leaf(path).split('.')[0] for path in self.img_filepath['image']]
                 sort_key_img = np.argsort([self.extract_image_id_function(x) for x in img_filenames])
                 self.img_filepath['image'] = self.img_filepath['image'][sort_key_img]
 
