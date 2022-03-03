@@ -254,7 +254,7 @@ class ImageDataset(Dataset):
                                         return_tag=False)
 
                 for k, v in data.items():
-                    if v.ndim == 3 and v.shape[-1] > 3:
+                    if v.ndim == 3 and v.shape[-1] != 3:
                         v_tmp = np.argmax(v, axis=-1) + 1
                         v_tmp[v.max(axis=-1) == 0] = 0
                         v = v_tmp
