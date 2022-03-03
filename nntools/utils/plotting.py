@@ -42,7 +42,7 @@ def plot_images(arrays_dict, cmap_name='jet_r', classes=None, fig_size=1):
                 name, arr = arrays[j + i * col]
 
                 ax[i][j].set_title(name)
-                if arr.ndim == 3 and arr.shape[-1] > 3:
+                if arr.ndim == 3 and arr.shape[-1] != 3 or arr.shape[-1] != 1:
                     arr_tmp = np.argmax(arr, axis=-1) + 1
                     arr_tmp[arr.max(axis=-1) == 0] = 0
                     arr = arr_tmp
