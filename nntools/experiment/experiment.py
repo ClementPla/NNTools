@@ -144,6 +144,7 @@ class Experiment(Manager):
         self.validation_batch_size = None
 
         self.additional_datasets = {}
+        self.additional_datasets_batch_size = {}
 
     def get_model_on_device(self, rank: int) -> nn.Module:
         tqdm.write('Rank %i, gpu %i' % (rank, self.get_gpu_from_rank(rank)))
@@ -202,8 +203,11 @@ class Experiment(Manager):
         func = OPTIMS[solver]
         return partial_fill_kwargs(func, config['params_solver'])
 
-    def register_dataset(self, dataset, name):
+    def register_dataset(self, dataset, name, batch_size=None):
         self.additional_datasets[name] = concat_datasets_if_needed(dataset)
+        if batch_size is None:
+            batch_size = self.batch_size
+        self.additional_datasets_batch_size[name] = batch_size
 
     def set_optimizer(self, optimizers=None, **config):
         """
@@ -374,7 +378,10 @@ class Experiment(Manager):
     def train(self, model, rank):
         train_loader, train_sampler = self.get_dataloader(self.train_dataset, drop_last=True, rank=rank)
         for key, value in self.additional_datasets.items():
-            self.ctx.additional_dataloader[key] = self.get_dataloader(value, drop_last=True, rank=rank)
+            self.ctx.additional_dataloader[key] = self.get_dataloader(value,
+                                                                      drop_last=True,
+                                                                      rank=rank,
+                                                                      batch_size=self.additional_datasets_batch_size[key])
 
         optimizer = self.partial_optimizer(
             model.get_trainable_parameters())
