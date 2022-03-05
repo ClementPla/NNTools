@@ -382,7 +382,6 @@ class Experiment(Manager):
                                                                       drop_last=True,
                                                                       rank=rank,
                                                                       batch_size=self.additional_datasets_batch_size[key])
-
         optimizer = self.partial_optimizer(
             model.get_trainable_parameters())
 

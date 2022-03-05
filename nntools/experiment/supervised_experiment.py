@@ -1,7 +1,6 @@
 import numpy as np
 import torch
-import torch.distributed as dist
-from torch.cuda.amp import autocast, GradScaler
+from torch.cuda.amp import autocast
 from torch.nn.utils import clip_grad_norm_
 
 import nntools.tracker.metrics as NNmetrics

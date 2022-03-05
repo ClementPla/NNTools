@@ -66,10 +66,10 @@ class AbstractNet(nn.Module):
         torch.save(save_dict, path)
         return path
 
-    def save_scripted(self, filename='model_scripted', savepoint=None, use_datetime=False):
-        model_scripted = torch.jit.script(self)
-        path = self.get_savepath(filename, savepoint=savepoint, use_datetime=use_datetime)
-        model_scripted.save(path)
+    # def save_scripted(self, filename='model_scripted', savepoint=None, use_datetime=False):
+    #     model_scripted = torch.jit.script(self)
+    #     path = self.get_savepath(filename, savepoint=savepoint, use_datetime=use_datetime)
+    #     model_scripted.save(path)
 
     def load(self, path, ignore_nan=False, load_most_recent=False, strict=False, map_location=None, filtername=None,
              allow_size_mismatch=True):
