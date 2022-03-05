@@ -25,6 +25,7 @@ from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP, Mu
 
 from dataclasses import dataclass, fields
 from torch.cuda.amp import autocast, GradScaler
+import copy
 
 
 class Manager(ABC):
@@ -153,7 +154,7 @@ class Experiment(Manager):
         model = self.convert_batch_norm(model)
         model = model.cuda(self.get_gpu_from_rank(rank))
         if self.multi_gpu:
-            model = DDP(model, device_ids=[self.get_gpu_from_rank(rank)],
+            model = DDP(copy.deepcopy(model), device_ids=[self.get_gpu_from_rank(rank)],
                         find_unused_parameters=self.ddp_config.get('find_unused_parameters', False))
         return model
 
