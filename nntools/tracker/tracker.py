@@ -51,11 +51,10 @@ class Tracker:
                 self._params.append(params)
 
     def log_artifacts(self, *paths):
-        if self.register_params:
-            if self.run_started:
-                log_artifact(self, *paths)
-            else:
-                self._artifacts.append(paths)
+        if self.run_started:
+            log_artifact(self, *paths)
+        else:
+            self._artifacts.append(paths)
 
     def set_tags(self, **tags):
         if self.register_params:
