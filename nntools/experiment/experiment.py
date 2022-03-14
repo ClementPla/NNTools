@@ -170,6 +170,9 @@ class Experiment(Manager):
         self.model = model
         return model
 
+    def init_model(self):
+        pass
+
     def set_params_group(self, params_group: dict):
         self.model.set_params_group(params_group)
 
@@ -288,6 +291,7 @@ class Experiment(Manager):
         if self.multi_gpu:
             dist.init_process_group(backend=self.config['Manager']['dist_backend'], rank=rank,
                                     world_size=self.world_size)
+        self.init_model()
         model = self.get_model_on_device(rank)
 
         self.ctx.rank = rank
