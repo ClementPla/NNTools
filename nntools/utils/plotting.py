@@ -7,12 +7,12 @@ from torchvision.utils import make_grid, draw_segmentation_masks
 import torch
 
 
-def create_mosaic(images, masks=None):
+def create_mosaic(images, masks=None, alpha=0.8, colors=None):
     mosaic_imgs = make_grid(images, normalize=True, nrow=4) * 255
     mosaic_imgs = mosaic_imgs.type(torch.uint8).cpu()
     if masks is not None:
         mosaic_gt = make_grid(masks, normalize=False, nrow=4).cpu()
-        mosaic_imgs = draw_segmentation_masks(mosaic_imgs, mosaic_gt.bool())
+        mosaic_imgs = draw_segmentation_masks(mosaic_imgs, mosaic_gt.bool(), colors=colors, alpha=alpha)
 
     return mosaic_imgs
 
