@@ -218,7 +218,7 @@ class ImageDataset(Dataset):
 
     def get_mosaic(self, n_items=9, shuffle=False, indexes=None, resolution=(512, 512), show=False, fig_size=1,
                    save=None, add_labels=False,
-                   n_row=None, n_col=None):
+                   n_row=None, n_col=None, n_classes=None):
 
         if indexes is None:
             if shuffle:
@@ -261,7 +261,7 @@ class ImageDataset(Dataset):
                     if v.ndim == 3:
                         v = (v - v.min()) / (v.max() - v.min())
                     if v.ndim == 2:
-                        n_classes = np.max(v) + 1
+                        n_classes = np.max(v) + 1 if n_classes is None else n_classes
                         if n_classes == 1:
                             n_classes = 2
                         cmap = plt.get_cmap(self.cmap_name, n_classes)

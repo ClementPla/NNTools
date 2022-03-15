@@ -80,7 +80,7 @@ class ConcatDataset(torch.utils.data.ConcatDataset):
         super(ConcatDataset, self).__init__(*args, **kwargs)
         self.post_init = True
 
-    def plot(self, idx):
+    def plot(self, idx, **kwargs):
         if idx < 0:
             if -idx > len(self):
                 raise ValueError("absolute value of index should not exceed dataset length")
@@ -91,7 +91,7 @@ class ConcatDataset(torch.utils.data.ConcatDataset):
         else:
             sample_idx = idx - self.cumulative_sizes[dataset_idx - 1]
 
-        self.datasets[dataset_idx].plot(sample_idx)
+        self.datasets[dataset_idx].plot(sample_idx, **kwargs)
 
     def get_class_count(self, load=True, save=True):
         class_count = None
