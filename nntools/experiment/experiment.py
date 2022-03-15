@@ -380,21 +380,18 @@ class Experiment(Manager):
         self.run_training = False
         self.start(run_id=run_id)
 
-    def train(self, model, rank):
+    def create_default_dataloader(self):
+        rank = self.ctx.rank
         train_loader, train_sampler = self.get_dataloader(self.train_dataset, drop_last=True, rank=rank)
         for key, value in self.additional_datasets.items():
             self.ctx.additional_dataloader[key] = self.get_dataloader(value,
                                                                       drop_last=True,
                                                                       rank=rank,
-                                                                      batch_size=self.additional_datasets_batch_size[key])
-        optimizer = self.partial_optimizer(
-            model.get_trainable_parameters())
+                                                                      batch_size=self.additional_datasets_batch_size[
+                                                                          key])
 
-        if self.partial_lr_scheduler is not None:
-            lr_scheduler = self.partial_lr_scheduler(optimizer)
-        else:
-            lr_scheduler = None
-        scaler = GradScaler(enabled=self.c['Manager'].get('grad_scaling', False))
+        self.ctx.train_loader = train_loader
+        self.ctx.train_sampler = train_sampler
 
         if self.validation_dataset is not None:
             valid_loader, valid_sampler = self.get_dataloader(self.validation_dataset,
@@ -405,8 +402,17 @@ class Experiment(Manager):
             self.ctx.valid_loader = valid_loader
             self.ctx.valid_sampler = valid_sampler
 
-        self.ctx.train_loader = train_loader
-        self.ctx.train_sampler = train_sampler
+    def train(self, model, rank):
+        optimizer = self.partial_optimizer(
+            model.get_trainable_parameters())
+
+        if self.partial_lr_scheduler is not None:
+            lr_scheduler = self.partial_lr_scheduler(optimizer)
+        else:
+            lr_scheduler = None
+        scaler = GradScaler(enabled=self.c['Manager'].get('grad_scaling', False))
+
+        self.create_default_dataloader()
         self.ctx.lr_scheduler = lr_scheduler
         self.ctx.scaler = scaler
         self.ctx.optimizer = optimizer
