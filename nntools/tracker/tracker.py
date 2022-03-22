@@ -21,6 +21,9 @@ class Tracker:
         self.client = None
         self.exp_id = None
 
+    def get_run(self, run_id):
+        return self.client.get_run(run_id)
+
     def add_path(self, key: str, path: str):
         self.save_paths[key] = path
         create_folder(path)

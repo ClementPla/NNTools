@@ -25,7 +25,6 @@ from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP, Mu
 
 from dataclasses import dataclass, fields
 from torch.cuda.amp import autocast, GradScaler
-import copy
 
 
 class Manager(ABC):
@@ -104,6 +103,15 @@ class Manager(ABC):
 
     def check_run_status(self, run_id):
         return self.tracker.check_run_status(run_id)
+
+    def find_similar_run(self):
+        list_runs = self.tracker.list_existing_runs()
+        for r in list_runs:
+            run = self.tracker.get_run(r.run_id)
+            run_name = run.data.tags[MLFLOW_RUN_NAME]
+            if run_name == self.config['Manager']['run']:
+                return r.run_id
+        return False
 
     @property
     def c(self):
