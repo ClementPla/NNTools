@@ -21,9 +21,6 @@ class Tracker:
         self.client = None
         self.exp_id = None
 
-    def get_run(self, run_id):
-        return self.client.get_run(run_id)
-
     def add_path(self, key: str, path: str):
         self.save_paths[key] = path
         create_folder(path)
@@ -91,7 +88,8 @@ class Tracker:
 
     def initialize_run(self):
         if not self.run_started:
-            return False
+            self.run_started = True
+
         for step, metrics in self._metrics:
             self.log_metrics(step, **metrics)
         for params in self._params:
@@ -103,11 +101,9 @@ class Tracker:
         return True
 
     def get_run(self, run_id: str = None):
-        if run_id is not None:
-            self.run_id = run_id
-        self.run_started = True
-        self.initialize_run()
-        return self.client.get_run(self.run_id)
+        if run_id is None:
+            run_id = self.run_id
+        return self.client.get_run(run_id)
 
     def set_run_id(self, run_id: str):
         self.run_id = run_id

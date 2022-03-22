@@ -67,7 +67,7 @@ class Manager(ABC):
             self.tracker.create_run(tags)
         else:
             self.tracker.set_run_id(run_id)
-            self.tracker.get_run(run_id)
+            self.tracker.initialize_run()
 
         if self.continue_training:
             self.tracker.go_to_exp_last_iteration()
