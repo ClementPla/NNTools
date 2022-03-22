@@ -77,7 +77,7 @@ class AbstractNet(nn.Module):
             map_location = torch.device('cpu')
         if load_most_recent:
             path = get_most_recent_file(path, filtername)
-        print("Loading modecl from ", path)
+        print("Loading model from ", path)
 
         state_dict = torch.load(path, map_location=map_location)['model_state_dict']
         if allow_size_mismatch and not strict:

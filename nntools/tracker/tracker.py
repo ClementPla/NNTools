@@ -63,6 +63,21 @@ class Tracker:
             else:
                 self._tags.append(tags)
 
+    def list_existing_runs(self):
+        return self.client.list_run_infos(self.exp_id)
+
+    def check_is_run_exists(self, run_id):
+        list_runs = self.list_existing_runs()
+        return any([r == run_id for r in list_runs])
+
+    def check_run_status(self, run_id):
+
+        if not self.check_is_run_exists(run_id=run_id):
+            return 'ABSENT'
+        list_runs = self.list_existing_runs()
+        r = [r for r in list_runs if r==run_id][0]
+        return r.status
+
     def create_run(self, tags=None):
         if tags is None:
             tags = {}

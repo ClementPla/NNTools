@@ -102,6 +102,9 @@ class Manager(ABC):
     def set_tags(self, **tags):
         self.tracker.set_tags(**tags)
 
+    def check_run_status(self, run_id):
+        return self.tracker.check_run_status(run_id)
+
     @property
     def c(self):
         return self.config
