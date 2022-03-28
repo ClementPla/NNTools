@@ -7,7 +7,7 @@ from .log_mlflow import log_metrics, log_params, log_artifact, set_tags
 
 
 class Tracker:
-    def __init__(self, exp_name, run_id=None):
+    def __init__(self, exp_name, run_id=None, tracker_uri=None):
         self.exp_name = exp_name
         self.run_id = run_id
         self.save_paths = {}
@@ -20,6 +20,8 @@ class Tracker:
         self.register_params = True
         self.client = None
         self.exp_id = None
+        if tracker_uri:
+            self.create_client(tracker_uri)
 
     def add_path(self, key: str, path: str):
         self.save_paths[key] = path
@@ -68,15 +70,13 @@ class Tracker:
 
     def check_is_run_exists(self, run_id):
         list_runs = self.list_existing_runs()
-        return any([r == run_id for r in list_runs])
+        return any([r.run_id == run_id for r in list_runs])
 
     def check_run_status(self, run_id):
 
         if not self.check_is_run_exists(run_id=run_id):
             return 'ABSENT'
-        list_runs = self.list_existing_runs()
-        r = [r for r in list_runs if r==run_id][0]
-        return r.status
+        return self.get_run(run_id).info.status
 
     def create_run(self, tags=None):
         if tags is None:
