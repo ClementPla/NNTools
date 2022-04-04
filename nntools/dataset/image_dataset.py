@@ -17,6 +17,8 @@ from nntools.utils.plotting import plot_images
 from nntools.utils.misc import to_iterable, identity
 from nntools.tracker.logger import Log
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
+supportedExtensions = supportedExtensions + [ext.upper() for ext in supportedExtensions]
+
 plt.rcParams['image.cmap'] = 'gray'
 
 
