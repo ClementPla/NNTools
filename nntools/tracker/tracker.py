@@ -126,7 +126,7 @@ class Tracker:
         return self.client.get_metric_history(self.run_id, metric)
     
     def get_best_metric(self, metric:str, maximize=True):
-        metric_history = self.get_metric_history(self, metric)
+        metric_history = self.get_metric_history(metric)
         if maximize:
             return max([m.value for m in metric_history])
         else:
