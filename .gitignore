@@ -137,3 +137,5 @@ dmypy.json
 .ipynb_checkpoints/
 # Cython debug symbols
 cython_debug/
+/tests/test.png
+*.directory

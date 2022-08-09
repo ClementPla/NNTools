@@ -136,7 +136,7 @@ class Manager(ABC):
 
 
 class Experiment(Manager):
-    def __init__(self, config, run_id=None, tracked_metric='mIoU'):
+    def __init__(self, config, run_id=None, tracked_metric='mIoU', trial=None):
         super(Experiment, self).__init__(config, run_id)
 
         self.batch_size = self.config['Training']['batch_size'] // self.world_size
@@ -158,6 +158,8 @@ class Experiment(Manager):
 
         self.additional_datasets = {}
         self.additional_datasets_batch_size = {}
+
+        self._trial = trial
 
     def get_model_on_device(self, rank: int) -> nn.Module:
         tqdm.write('Rank %i, gpu %i' % (rank, self.get_gpu_from_rank(rank)))
@@ -220,7 +222,7 @@ class Experiment(Manager):
 
     def get_state_metric(self):
         if(self.tracked_metric):
-            return {'epoch': self.current_epoch, 'self.tracked_metric': self.tracker.get_best_metric(self.tracked_metric)}
+            return {'epoch': self.current_epoch, self.tracked_metric: self.tracker.get_best_metric(self.tracked_metric)}
 
     def create_optimizer(self, **config):
         solver = config['solver']
@@ -348,6 +350,7 @@ class Experiment(Manager):
             dist.barrier()
 
         if self.call_end_function:
+            self.ctx.model._metrics.reset()
             with autocast(enabled=self.config['Manager']['amp']):
                 self.end(model)
 

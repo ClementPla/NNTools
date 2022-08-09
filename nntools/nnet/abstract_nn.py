@@ -1,9 +1,10 @@
+from typing import Any, Dict, Hashable, Iterable, List, Optional, Sequence, Tuple, Union
 import datetime
 import os
 
 import torch
 from torch import nn
-
+from torchmetrics import MetricCollection, Metric
 from nntools.utils.io import create_folder, get_most_recent_file
 
 
@@ -18,6 +19,8 @@ class AbstractNet(nn.Module):
         self._today = datetime.datetime.now().date()
         self.savepoint = None
         self.params_group = {}
+
+        self._metrics = MetricCollection([])
 
         super(AbstractNet, self).__init__()
         if model is not None:
@@ -102,3 +105,6 @@ class AbstractNet(nn.Module):
 
     def set_params_group(self, params_group):
         self.params_group = params_group
+
+    def add_metric(self, metrics: Union[Metric, Sequence[Metric], Dict[str, Metric]], *additional_metrics: Metric):
+        self._metrics.add_metrics(metrics, *additional_metrics)

@@ -10,12 +10,13 @@ from nntools.nnet import FuseLoss, SUPPORTED_LOSS
 from nntools.utils import reduce_tensor
 from nntools.utils.misc import call_with_filtered_kwargs
 from .experiment import Experiment
+import optuna
 
 
 class SupervisedExperiment(Experiment):
-    def __init__(self, config, run_id=None, tracked_metric='mIoU'):
+    def __init__(self, config, run_id=None, tracked_metric='mIoU', trial=None):
         super(SupervisedExperiment, self).__init__(
-            config, run_id=run_id, tracked_metric=tracked_metric)
+            config, run_id=run_id, tracked_metric=tracked_metric, trial=trial)
         if 'ignore_index' in self.c['Training']:
             self.ignore_index = self.c['Training']['ignore_index']
         else:
@@ -119,7 +120,11 @@ class SupervisedExperiment(Experiment):
                                                  self.current_iteration,
                                                  self.loss)
 
-        self.update_scheduler_on_validation(valid_metric)
+            if self._trial:
+                self._trial.report(valid_metric, self.current_iteration)
+                if self._trial.should_prune():
+                    raise optuna.TrialPruned()
+            self.update_scheduler_on_validation(valid_metric)
 
     def forward_train(self, model, loss_function, batch):
         pred = model(*self.pass_data_keys_to_model(batch))
@@ -137,6 +142,7 @@ class SupervisedExperiment(Experiment):
         return tuple(args)
 
     def validate(self, model, valid_loader, iteration, loss_function=None):
+        model._metrics.reset()
         gpu = self.get_gpu_from_rank(self.ctx.rank)
         confMat = torch.zeros(self.n_classes, self.n_classes).cuda(gpu)
         losses = 0
@@ -147,6 +153,7 @@ class SupervisedExperiment(Experiment):
             gt = batch[self.gt_name]
             proba = model(img)
             losses += loss_function(proba, y_true=gt).detach()
+            model._metrics.update(proba, gt)
             pred = torch.argmax(proba, 1)
             confMat += NNmetrics.confusion_matrix(pred,
                                                   gt, num_classes=self.n_classes)
@@ -160,7 +167,7 @@ class SupervisedExperiment(Experiment):
         stats = NNmetrics.report_cm(confMat)
         stats['mIoU'] = mIoU
         stats['validation_loss'] = losses.item()
-
+        stats.update(model._metrics.compute())
         self.log_metrics(step=iteration, **stats)
 
         best_state_metric = self.get_state_metric()
@@ -170,4 +177,5 @@ class SupervisedExperiment(Experiment):
                 iteration, self.tracked_metric,  current_metric)).replace('.', '')
             self.save_model(model, filename=filename)
         model.train()
+
         return current_metric
