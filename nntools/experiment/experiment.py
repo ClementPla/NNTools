@@ -471,12 +471,15 @@ class Experiment(Manager):
             record_shapes=True,
             with_stack=True)
             prof.start()
-            for step, batch_data in enumerate(self.ctx.train_loader):
-                with autocast(enabled=self.c['Manager']['amp']):
-                    batch = self.batch_to_device(batch, rank=self.ctx.rank)
-                    loss = self.forward_train(self.model, self.loss, batch)
-                    self.ctx.scaler.step(self.ctx.optimizer)
-                prof.step()
+            with autocast(enabled=self.c['Manager']['amp']):
+                for step, batch in enumerate(self.ctx.train_loader):
+                    if step >= (1 + 1 + 3) * 2:
+                        break
+                        batch = self.batch_to_device(batch, rank=self.ctx.rank)
+                        loss = self.forward_train(self.model, self.loss, batch)
+                        self.ctx.scaler.scale(loss).backward()
+                        self.ctx.scaler.step(self.ctx.optimizer)
+                    prof.step()
             prof.stop()
 
         total_epoch = self.config['Training'].get('epochs', -1)
