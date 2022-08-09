@@ -47,6 +47,8 @@ class Manager(ABC):
         self.keyboard_exception_raised = False
         self.save_jit_model = False
 
+        self.run_profiling = False
+
         if not isinstance(self.gpu, list):
             self.gpu = [self.gpu]
 
@@ -462,6 +464,21 @@ class Experiment(Manager):
         pass
 
     def main_training_loop(self, model):
+        if self.run_profiling:
+            prof = torch.profiler.profile(
+            schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=2),
+            on_trace_ready=torch.profiler.tensorboard_trace_handler('./profile/'+self.tracker.run_id),
+            record_shapes=True,
+            with_stack=True)
+            prof.start()
+            for step, batch_data in enumerate(self.ctx.train_loader):
+                with autocast(enabled=self.c['Manager']['amp']):
+                    batch = self.batch_to_device(batch, rank=self.ctx.rank)
+                    loss = self.forward_train(self.model, self.loss, batch)
+                    self.ctx.scaler.step(self.ctx.optimizer)
+                prof.step()
+            prof.stop()
+
         total_epoch = self.config['Training'].get('epochs', -1)
         max_iterations = self.config['Training'].get('iterations', -1)
         assert (total_epoch > 0) or (max_iterations > 0), "You must define a number of training iterations or a number " \

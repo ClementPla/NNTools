@@ -167,7 +167,8 @@ class SupervisedExperiment(Experiment):
         stats = NNmetrics.report_cm(confMat)
         stats['mIoU'] = mIoU
         stats['validation_loss'] = losses.item()
-        stats.update(model._metrics.compute())
+        
+        stats.update({k:v.item() for k, v in model._metrics.compute().items()})
         self.log_metrics(step=iteration, **stats)
 
         best_state_metric = self.get_state_metric()
