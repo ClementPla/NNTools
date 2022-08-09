@@ -475,10 +475,12 @@ class Experiment(Manager):
                 for step, batch in enumerate(self.ctx.train_loader):
                     if step >= (1 + 1 + 3) * 2:
                         break
-                        batch = self.batch_to_device(batch, rank=self.ctx.rank)
-                        loss = self.forward_train(self.model, self.loss, batch)
-                        self.ctx.scaler.scale(loss).backward()
-                        self.ctx.scaler.step(self.ctx.optimizer)
+                    batch = self.batch_to_device(batch, rank=self.ctx.rank)
+                    loss = self.forward_train(self.model, self.loss, batch)
+                    self.ctx.scaler.scale(loss).backward()
+                    self.ctx.scaler.step(self.ctx.optimizer)
+                    self.model.zero_grad()
+
                     prof.step()
             prof.stop()
 
