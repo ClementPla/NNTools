@@ -466,14 +466,14 @@ class Experiment(Manager):
     def main_training_loop(self, model):
         if self.run_profiling:
             prof = torch.profiler.profile(
-            schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=2),
+            schedule=torch.profiler.schedule(wait=2, warmup=2, active=10, repeat=2),
             on_trace_ready=torch.profiler.tensorboard_trace_handler('./profile/'+self.tracker.run_id),
             record_shapes=True,
             with_stack=True)
             prof.start()
             with autocast(enabled=self.c['Manager']['amp']):
                 for step, batch in enumerate(self.ctx.train_loader):
-                    if step >= (1 + 1 + 3) * 2:
+                    if step >= (2 + 2 + 10) * 2:
                         break
                     batch = self.batch_to_device(batch, rank=self.ctx.rank)
                     loss = self.forward_train(self.model, self.loss, batch)
