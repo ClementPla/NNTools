@@ -20,9 +20,10 @@ class AbstractNet(nn.Module):
         self.savepoint = None
         self.params_group = {}
 
-        self._metrics = MetricCollection([])
 
         super(AbstractNet, self).__init__()
+        self._metrics = MetricCollection([])
+
         if model is not None:
             self.network = model
 
