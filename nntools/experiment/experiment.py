@@ -34,7 +34,8 @@ class Manager(ABC):
         set_seed(self.seed)
 
         self.tracker = Tracker(self.config['Manager']['experiment'], run_id)
-        self.tracker.create_client(self.config['Manager']['tracking_uri'], self.config['Manager']['artifact_uri'])
+        self.tracker.create_client(
+            self.config['Manager']['tracking_uri'], self.config['Manager']['artifact_uri'])
         self.tracker.set_run_folder(os.path.join(self.config['Manager']['save_point'],
                                                  self.config['Manager']['experiment'],
                                                  self.config['Manager']['run']))
@@ -135,7 +136,7 @@ class Manager(ABC):
 
 
 class Experiment(Manager):
-    def __init__(self, config, run_id=None):
+    def __init__(self, config, run_id=None, tracked_metric='mIoU'):
         super(Experiment, self).__init__(config, run_id)
 
         self.batch_size = self.config['Training']['batch_size'] // self.world_size
@@ -146,7 +147,7 @@ class Experiment(Manager):
         self.partial_optimizer = None
         self.partial_lr_scheduler = None
 
-        self.tracked_metric = None
+        self.tracked_metric = tracked_metric
         self.class_weights = None
 
         self.saved_models = {'best_valid': None, 'last': None}
@@ -172,7 +173,8 @@ class Experiment(Manager):
     def get_model(self) -> nn.Module:
         assert self.model is not None, "The model has not been configured, call set_model(model) first"
         if self.continue_training:
-            self.model.load(self.tracker.network_savepoint, load_most_recent=True, map_location='cpu')
+            self.model.load(self.tracker.network_savepoint,
+                            load_most_recent=True, map_location='cpu')
 
         return self.model
 
@@ -187,19 +189,22 @@ class Experiment(Manager):
     def set_params_group(self, params_group: dict):
         self.model.set_params_group(params_group)
 
-    def batch_to_device(self, batch: (dict, tuple, list), rank: int) -> (dict, tuple, list):
+    def batch_to_device(self, batch, rank: int):
         device = self.get_gpu_from_rank(rank)
         if isinstance(batch, tuple) or isinstance(batch, list):
-            batch = [b.cuda(device) if isinstance(b, torch.Tensor) else b for b in batch]
+            batch = [b.cuda(device) if isinstance(
+                b, torch.Tensor) else b for b in batch]
         elif isinstance(batch, dict):
-            batch = {k: b.cuda(device) for k, b in batch.items() if isinstance(b, torch.Tensor)}
+            batch = {k: b.cuda(device) for k, b in batch.items()
+                     if isinstance(b, torch.Tensor)}
         elif isinstance(batch, torch.Tensor):
             batch = batch.cuda(device)
         return batch
 
     def initial_tracking(self):
         self.log_params(**self.config.tracked_params)
-        save_yaml(self.config, os.path.join(self.tracker.run_folder, 'config.yaml'))
+        save_yaml(self.config, os.path.join(
+            self.tracker.run_folder, 'config.yaml'))
         self.log_artifacts(self.config.get_path())
 
     def set_train_dataset(self, dataset):
@@ -212,6 +217,10 @@ class Experiment(Manager):
 
     def set_test_dataset(self, dataset):
         self.test_dataset = dataset
+
+    def get_state_metric(self):
+        if(self.tracked_metric):
+            return {'epoch': self.current_epoch, 'self.tracked_metric': self.tracker.get_best_metric(self.tracked_metric)}
 
     def create_optimizer(self, **config):
         solver = config['solver']
@@ -226,7 +235,7 @@ class Experiment(Manager):
 
     def set_optimizer(self, optimizers=None, **config):
         """
-        :return: A partial function of an optimizers. Partial passed arguments are hyper parameters
+        :return: A partial function of an optimizer. Partially passed arguments are hyper parameters
         """
         if optimizers is not None:
             self.partial_optimizer = optimizers
@@ -239,8 +248,10 @@ class Experiment(Manager):
             scheduler_name = config['scheduler']
             scheduler = SCHEDULERS[scheduler_name]
             self.ctx.scheduler_opt = scheduler
-            self.ctx.scheduler_call_on = config.get('update_type', self.ctx.scheduler_call_on)
-            self.partial_lr_scheduler = partial_fill_kwargs(scheduler.func, config['params_scheduler'])
+            self.ctx.scheduler_call_on = config.get(
+                'update_type', self.ctx.scheduler_call_on)
+            self.partial_lr_scheduler = partial_fill_kwargs(
+                scheduler.func, config['params_scheduler'])
 
     def get_dataloader(self, dataset, shuffle=True,
                        batch_size=None,
@@ -249,7 +260,8 @@ class Experiment(Manager):
 
         num_workers = self.config['Manager']['num_workers'] if num_workers is None else num_workers
 
-        exp_dataloader = self.config['Manager'].get('experimental_dataloader', False)
+        exp_dataloader = self.config['Manager'].get(
+            'experimental_dataloader', False)
         c_shuffle = self.config['Dataset'].get('shuffle', True)
         shuffle = shuffle & c_shuffle
 
@@ -281,7 +293,8 @@ class Experiment(Manager):
         if not self.ctx.is_main_process:
             return
         tqdm.write('Saving model')
-        save = model.save(savepoint=self.tracker.network_savepoint, filename=filename, **kwargs)
+        save = model.save(
+            savepoint=self.tracker.network_savepoint, filename=filename, **kwargs)
 
         if 'best_valid' in filename:
             self.saved_models['best_valid'] = save
@@ -289,13 +302,15 @@ class Experiment(Manager):
             self.saved_models['last'] = save
 
         if self.config['Manager']['max_saved_model']:
-            files = glob.glob(self.tracker.network_savepoint + "/best_valid_*.pth")
+            files = glob.glob(
+                self.tracker.network_savepoint + "/best_valid_*.pth")
             files.sort(key=os.path.getmtime)
             for f in files[:-self.config['Manager']['max_saved_model']]:
                 os.remove(f)
 
     def save_scripted_model(self, model):
-        model.save_scripted(savepoint=self.tracker.network_savepoint, filename='model_scripted')
+        model.save_scripted(
+            savepoint=self.tracker.network_savepoint, filename='model_scripted')
 
     def _start_process(self, rank: int = 0):
         tqdm.write('Initializing process %i' % rank)
@@ -321,7 +336,8 @@ class Experiment(Manager):
 
             if self.keyboard_exception_raised:
                 if self.ctx.is_main_process:
-                    Log.warn("Killed Process. The last model will be registered at %s" % self.saved_models)
+                    Log.warn(
+                        "Killed Process. The last model will be registered at %s" % self.saved_models)
                     self.tracker.set_status('KILLED')
 
         if self.ctx.is_main_process and (self.run_training or self.save_last):
@@ -346,10 +362,12 @@ class Experiment(Manager):
             assert self.partial_optimizer is not None, "Missing optimizer for training"
             assert self.train_dataset is not None, "Missing dataset"
             if self.validation_dataset is None:
-                Log.warn("Missing validation set, default behaviour is to save the model once per epoch")
+                Log.warn(
+                    "Missing validation set, default behaviour is to save the model once per epoch")
 
             if self.partial_lr_scheduler is None:
-                Log.warn("Missing learning rate scheduler, default behaviour is to keep the learning rate constant")
+                Log.warn(
+                    "Missing learning rate scheduler, default behaviour is to keep the learning rate constant")
 
         self.keyboard_exception_raised = False
 
@@ -393,7 +411,8 @@ class Experiment(Manager):
 
     def create_default_dataloader(self):
         rank = self.ctx.rank
-        train_loader, train_sampler = self.get_dataloader(self.train_dataset, drop_last=True, rank=rank)
+        train_loader, train_sampler = self.get_dataloader(
+            self.train_dataset, drop_last=True, rank=rank)
         for key, value in self.additional_datasets.items():
             self.ctx.additional_dataloader[key] = self.get_dataloader(value,
                                                                       drop_last=True,
@@ -421,7 +440,8 @@ class Experiment(Manager):
             lr_scheduler = self.partial_lr_scheduler(optimizer)
         else:
             lr_scheduler = None
-        scaler = GradScaler(enabled=self.c['Manager'].get('grad_scaling', False))
+        scaler = GradScaler(
+            enabled=self.c['Manager'].get('grad_scaling', False))
 
         self.create_default_dataloader()
         self.ctx.lr_scheduler = lr_scheduler
@@ -461,6 +481,10 @@ class Experiment(Manager):
         self.ctx.close_progress_bar()
 
     @property
+    def metrics(self):
+        return self.tracker.last_metrics()
+
+    @property
     def current_iteration(self):
         return self.tracker.current_iteration
 
@@ -493,6 +517,7 @@ class Experiment(Manager):
         filepath = os.path.join(self.tracker.run_folder, filename + '.jpeg')
         write_jpeg(images, filepath)
         self.log_artifacts(filepath)
+
 
 @dataclass
 class Context:
@@ -549,6 +574,3 @@ class Context:
 
     def get_dataloader(self, name):
         return self.additional_dataloader[name]
-
-
-

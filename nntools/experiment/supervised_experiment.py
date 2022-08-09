@@ -13,8 +13,9 @@ from .experiment import Experiment
 
 
 class SupervisedExperiment(Experiment):
-    def __init__(self, config, run_id=None):
-        super(SupervisedExperiment, self).__init__(config, run_id=run_id)
+    def __init__(self, config, run_id=None, tracked_metric='mIoU'):
+        super(SupervisedExperiment, self).__init__(
+            config, run_id=run_id, tracked_metric=tracked_metric)
         if 'ignore_index' in self.c['Training']:
             self.ignore_index = self.c['Training']['ignore_index']
         else:
@@ -35,13 +36,10 @@ class SupervisedExperiment(Experiment):
         config = self.c['Loss']
         mode = MULTICLASS_MODE if self.n_classes > 2 else BINARY_MODE
         fuse_loss = FuseLoss(fusion=config.get('fusion', 'mean'), mode=mode)
-
         list_losses = config['type'].split('|')
-
         if weights is not None:
             weights = weights.cuda(self.get_gpu_from_rank(rank))
         kwargs = {'ignore_index': self.ignore_index, 'mode': mode}
-
         for k in list_losses:
             k = k.strip()
             loss = SUPPORTED_LOSS[k]
@@ -94,7 +92,8 @@ class SupervisedExperiment(Experiment):
             """
             if self.current_iteration % self.c['Validation']['log_interval'] == 0:
                 if moving_loss:
-                    self.log_metrics(self.current_iteration, trainining_loss=np.mean(moving_loss))
+                    self.log_metrics(self.current_iteration,
+                                     trainining_loss=np.mean(moving_loss))
                 moving_loss = []
                 self.save_model(model, filename='last')
                 self.in_validation()
@@ -149,10 +148,12 @@ class SupervisedExperiment(Experiment):
             proba = model(img)
             losses += loss_function(proba, y_true=gt).detach()
             pred = torch.argmax(proba, 1)
-            confMat += NNmetrics.confusion_matrix(pred, gt, num_classes=self.n_classes)
+            confMat += NNmetrics.confusion_matrix(pred,
+                                                  gt, num_classes=self.n_classes)
         if self.multi_gpu:
             confMat = reduce_tensor(confMat, self.world_size, mode='sum')
-            losses = reduce_tensor(losses, self.world_size, mode='sum') / self.world_size
+            losses = reduce_tensor(
+                losses, self.world_size, mode='sum') / self.world_size
         losses = losses / n
         confMat = NNmetrics.filter_index_cm(confMat, self.ignore_index)
         mIoU = NNmetrics.mIoU_cm(confMat)
@@ -161,12 +162,12 @@ class SupervisedExperiment(Experiment):
         stats['validation_loss'] = losses.item()
 
         self.log_metrics(step=iteration, **stats)
-        if self.tracked_metric is None:
-            self.tracked_metric = mIoU
-        else:
-            if mIoU > self.tracked_metric:
-                self.tracked_metric = mIoU
-                filename = ('best_valid_iteration_%i_mIoU_%.3f' % (iteration, mIoU)).replace('.', '')
-                self.save_model(model, filename=filename)
+
+        best_state_metric = self.get_state_metric()
+        current_metric = self.metrics[self.tracked_metric]
+        if(current_metric >= best_state_metric[self.tracked_metric]):
+            filename = ('best_valid_iteration_%i_%s_%.3f' % (
+                iteration, self.tracked_metric,  current_metric)).replace('.', '')
+            self.save_model(model, filename=filename)
         model.train()
-        return mIoU
+        return current_metric

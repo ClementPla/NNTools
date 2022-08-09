@@ -32,3 +32,6 @@ def log_artifact(tracker, *paths):
             print("File %s won't be stored as an artifact (oversize limit)" % p)
         else:
             client.log_artifact(run_id, p)
+
+
+    

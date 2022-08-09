@@ -121,3 +121,18 @@ class Tracker:
         assert 'run_folder' in self.save_paths
         self.add_path('network_savepoint', os.path.join(self.run_folder, 'trained_model', str(self.run_id)))
         self.add_path('prediction_savepoint', os.path.join(self.run_folder, 'predictions', str(self.run_id)))
+        
+    def get_metric_history(self, metric:str):
+        return self.client.get_metric_history(self.run_id, metric)
+    
+    def get_best_metric(self, metric:str, maximize=True):
+        metric_history = self.get_metric_history(self, metric)
+        if maximize:
+            return max([m.value for m in metric_history])
+        else:
+            return min([m.value for m in metric_history])
+    
+    def last_metrics(self):
+        return self.client.get_run(self.run_id).data.metrics
+    
+    
