@@ -149,7 +149,7 @@ class Experiment(Manager):
         self.partial_optimizer = None
         self.partial_lr_scheduler = None
 
-        self.tracked_metric = self.config.get(['Validation'], {}).get('reference_metric', None)
+        self.tracked_metric = self.config.get('Validation', {}).get('reference_metric', None)
         self.class_weights = None
 
         self.saved_models = {'best_valid': None, 'last': None}

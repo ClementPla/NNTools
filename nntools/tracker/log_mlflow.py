@@ -37,7 +37,7 @@ def log_figures(tracker, *figures:tuple):
     run_id = tracker.run_id
     client = tracker.client
     for fig, figname in figures:
-        client.log_figure(fig, figname)
+        client.log_figure(run_id, fig, figname)
 
 
 
