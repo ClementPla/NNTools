@@ -25,7 +25,7 @@ from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP, Mu
 
 from dataclasses import dataclass, fields
 from torch.cuda.amp import autocast, GradScaler
-
+from torch.profiler import profile, record_function, ProfilerActivity
 
 class Manager(ABC):
     def __init__(self, config: Config, run_id: str = None):
@@ -466,10 +466,11 @@ class Experiment(Manager):
     def main_training_loop(self, model):
         if self.run_profiling:
             prof = torch.profiler.profile(
+            activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
             schedule=torch.profiler.schedule(wait=2, warmup=2, active=self.config['Manager']['num_workers']+1, repeat=2),
             on_trace_ready=torch.profiler.tensorboard_trace_handler('./profile/'+self.tracker.run_id),
             record_shapes=True,
-            profile_memory=True, use_cuda=True, with_flops=True,
+            profile_memory=True, with_flops=True,
             with_stack=True)
             prof.start()
             with autocast(enabled=self.c['Manager']['amp']):
