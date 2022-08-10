@@ -1,4 +1,5 @@
 import imp
+from os import stat
 import numpy as np
 import torch
 from torch.cuda.amp import autocast
@@ -30,28 +31,32 @@ class SupervisedExperiment(Experiment):
         self.gt_name = 'mask'
         self.data_keys = ['image']
 
-    
     def datasets_summary(self):
         support = np.arange(self.n_classes)
 
-        figTrain = build_bar_plot(support, self.train_dataset.get_class_count(), 'Train dataset') 
+        figTrain = build_bar_plot(
+            support, self.train_dataset.get_class_count(), 'Train dataset')
         self.tracker.log_figures([figTrain, 'train_data_count.png'])
-        
+
         if self.validation_dataset:
-            figValid = build_bar_plot(support, self.validation_dataset.get_class_count(), 'Valid dataset') 
+            figValid = build_bar_plot(
+                support, self.validation_dataset.get_class_count(), 'Valid dataset')
             self.tracker.log_figures([figValid, 'valid_data_count.png'])
-        
+
         if self.test_dataset:
             d = self.test_dataset
             if not isinstance(d, list):
                 d = [d]
             for i, dataset in enumerate(d):
-                if len(d)>1:
+                if len(d) > 1:
                     subtitle = f' {i+1}/{len(d)+1}'
-                else : subtitle = ''
-                figTest = build_bar_plot(support, dataset.get_class_count(), 'Test dataset '+subtitle) 
-                self.tracker.log_figures([figTest, f'test_data_count_{subtitle}.png'])
-         
+                else:
+                    subtitle = ''
+                figTest = build_bar_plot(
+                    support, dataset.get_class_count(), 'Test dataset '+subtitle)
+                self.tracker.log_figures(
+                    [figTest, f'test_data_count_{subtitle}.png'])
+
     def start(self, run_id=None):
         if self.c['Loss'].get('weighted_loss', False) and self.class_weights is None:
             class_weights = self.get_class_weights()
@@ -145,13 +150,15 @@ class SupervisedExperiment(Experiment):
         with torch.no_grad():
             with autocast(enabled=self.c['Manager'].get('amp', False)):
                 self.validate(model, valid_loader, self.loss)
-        
+
         best_state_metric = self.get_state_metric()
         current_metric = self.metrics[self.tracked_metric]
 
         if self._trial:
             self._trial.report(current_metric, self.current_iteration)
             if self._trial.should_prune():
+                self.tracker.log_metrics(self.current_iteration, pruned=1)
+                self.tracker.set_status('KILLED')
                 raise optuna.TrialPruned()
 
         if(current_metric >= best_state_metric[self.tracked_metric]):
@@ -178,21 +185,46 @@ class SupervisedExperiment(Experiment):
         return tuple(args)
 
     def validate(self, model, valid_loader, loss_function=None):
+        stats = self.eval_model(model, valid_loader,
+                                loss_function=loss_function)
+        self.log_metrics(step=self.current_iteration, **stats)
+
+    def eval_model(self, model, dataloader, loss_function=None):
+        model.eval()
         model._metrics.reset()
         losses = 0
         model.eval()
-        for n, batch in enumerate(valid_loader):
-            batch = self.batch_to_device(batch, self.ctx.rank)
-            img = batch['image']
-            gt = batch[self.gt_name]
-            proba = model(img)
-            losses += loss_function(proba, y_true=gt).detach()
-            model._metrics.update(proba, gt)
+        with torch.no_grad():
+            for n, batch in tqdm.tqdm(enumerate(dataloader), total=len(dataloader)):
+                batch = self.batch_to_device(batch, self.ctx.rank)
+                img = batch['image']
+                gt = batch[self.gt_name]
+                proba = model(img)
+                if loss_function:
+                    losses += loss_function(proba, y_true=gt).detach()
+                model._metrics.update(proba, gt)
+            if loss_function:
+                if self.multi_gpu:
+                    losses = reduce_tensor(
+                        losses, self.world_size, mode='sum') / self.world_size
+                losses = losses / n
 
-        if self.multi_gpu:
-            losses = reduce_tensor(
-                losses, self.world_size, mode='sum') / self.world_size
-        losses = losses / n
+            stats = {k: v.item() for k, v in model._metrics.compute().items()}
+        model.train()
+        return stats
 
-        stats = {k: v.item() for k, v in model._metrics.compute().items()}
-        self.log_metrics(step=self.current_iteration, **stats)
+    def end(self, model):
+        rank = self.ctx.rank
+        gpu = self.get_gpu_from_rank(rank)
+        map_location = {'cuda:%d' % 0: 'cuda:%d' % gpu}
+        model.load(self.tracker.network_savepoint, load_most_recent=True, map_location=map_location, strict=False,
+                   filtername='best_valid')
+        
+        test_loader, test_sampler = self.get_dataloader(dataset, shuffle=False, batch_size=24,
+                                                        rank=rank)
+        stats = self.eval_model(model, test_loader, self.loss)
+
+        test_scores = {f'Test_{k}':v for k, v in stats.items()}
+
+        self.log_metrics(step=0, **stats)
+
