@@ -6,6 +6,26 @@ from bokeh.models import CustomJS, ColumnDataSource
 from bokeh.models import HoverTool
 from bokeh.models.widgets import RadioButtonGroup
 from bokeh.plotting import figure
+import matplotlib.pyplot as plt
+from matplotlib import cm
+
+
+def build_bar_plot(x, y, title='', size=(8,6)):
+    fig, ax = plt.subplots()
+    ax.grid(axis='y', which='major', zorder=0)
+    std = np.std(y)
+    bar_plot = ax.bar(x, y, tick_label=x, color=cm.get_cmap('tab20', len(x))(x), log=std>1000, zorder=3)
+    def autolabel(rects):
+        for idx,rect in enumerate(bar_plot):
+            height = rect.get_height()
+            ax.text(rect.get_x() + rect.get_width()/2., 1.0*height,
+                    y[idx],
+                    ha='center', va='bottom', rotation=0)
+    autolabel(bar_plot)
+    if title:
+        ax.set_title(title)
+    fig.set_size_inches(*size)
+    return fig
 
 
 def display_confusion_matrix(conf_mats, labels, text_angle=0, plot_size=800, text_size="8pt"):

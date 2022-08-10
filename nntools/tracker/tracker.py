@@ -3,7 +3,7 @@ import os
 from mlflow.tracking.client import MlflowClient
 
 from nntools.utils.io import create_folder
-from .log_mlflow import log_metrics, log_params, log_artifact, set_tags
+from .log_mlflow import log_metrics, log_params, log_artifact, log_figures, set_tags
 
 
 class Tracker:
@@ -16,6 +16,8 @@ class Tracker:
         self._params = []
         self._tags = []
         self._artifacts = []
+        self._figures = []
+        
         self.run_started = False
         self.register_params = True
         self.client = None
@@ -58,6 +60,12 @@ class Tracker:
         else:
             self._artifacts.append(paths)
 
+    def log_figures(self, *figures):
+        if self.run_started:
+            log_figures(self, *figures)
+        else:
+            self._figures.append(figures)
+
     def set_tags(self, **tags):
         if self.register_params:
             if self.run_started:
@@ -98,6 +106,8 @@ class Tracker:
             self.set_tags(**tags)
         for p in self._artifacts:
             self.log_artifacts(*p)
+        for f in self._figures:
+            self.log_figures(*f)
         return True
 
     def get_run(self, run_id: str = None):
@@ -125,7 +135,7 @@ class Tracker:
     def get_metric_history(self, metric:str):
         return self.client.get_metric_history(self.run_id, metric)
     
-    def get_best_metric(self, metric:str, maximize=True):
+    def get_best_score_for_metric(self, metric:str, maximize=True):
         metric_history = self.get_metric_history(metric)
         if maximize:
             return max([m.value for m in metric_history])

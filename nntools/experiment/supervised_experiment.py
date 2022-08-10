@@ -1,3 +1,4 @@
+import imp
 import numpy as np
 import torch
 from torch.cuda.amp import autocast
@@ -8,15 +9,17 @@ from nntools import BINARY_MODE, MULTICLASS_MODE
 from nntools.dataset import class_weighting
 from nntools.nnet import FuseLoss, SUPPORTED_LOSS
 from nntools.utils import reduce_tensor
+from nntools.report.graph import build_bar_plot
 from nntools.utils.misc import call_with_filtered_kwargs
 from .experiment import Experiment
 import optuna
+import tqdm
 
 
 class SupervisedExperiment(Experiment):
-    def __init__(self, config, run_id=None, tracked_metric='mIoU', trial=None):
+    def __init__(self, config, run_id=None, trial=None):
         super(SupervisedExperiment, self).__init__(
-            config, run_id=run_id, tracked_metric=tracked_metric, trial=trial)
+            config, run_id=run_id, trial=trial)
         if 'ignore_index' in self.c['Training']:
             self.ignore_index = self.c['Training']['ignore_index']
         else:
@@ -27,10 +30,34 @@ class SupervisedExperiment(Experiment):
         self.gt_name = 'mask'
         self.data_keys = ['image']
 
+    
+    def datasets_summary(self):
+        support = np.arange(self.n_classes)
+
+        figTrain = build_bar_plot(support, self.train_dataset.get_class_count(), 'Train dataset') 
+        self.tracker.log_figures([figTrain, 'train_data_count.png'])
+        
+        if self.validation_dataset:
+            figValid = build_bar_plot(support, self.validation_dataset.get_class_count(), 'Valid dataset') 
+            self.tracker.log_figures([figValid, 'valid_data_count.png'])
+        
+        if self.test_dataset:
+            d = self.test_dataset
+            if not isinstance(d, list):
+                d = [d]
+            for i, dataset in enumerate(d):
+                if len(d)>1:
+                    subtitle = f' {i+1}/{len(d)+1}'
+                else : subtitle = ''
+                figTest = build_bar_plot(support, dataset.get_class_count(), 'Test dataset '+subtitle) 
+                self.tracker.log_figures([figTest, f'test_data_count_{subtitle}.png'])
+         
     def start(self, run_id=None):
         if self.c['Loss'].get('weighted_loss', False) and self.class_weights is None:
             class_weights = self.get_class_weights()
             self.setup_class_weights(weights=class_weights)
+        if self.c['Manager'].get('log_dataset_summary', True):
+            self.datasets_summary()
         super(SupervisedExperiment, self).start(run_id)
 
     def get_loss(self, weights: torch.Tensor = None, rank=0) -> FuseLoss:
@@ -110,21 +137,30 @@ class SupervisedExperiment(Experiment):
         self.update_scheduler_on_epoch()
 
     def in_validation(self):
-        model = self.ctx.model
         valid_loader = self.ctx.valid_loader
+        if valid_loader is None:
+            return
+        model = self.ctx.model
 
-        if valid_loader is not None:
-            with torch.no_grad():
-                with autocast(enabled=self.c['Manager'].get('amp', False)):
-                    valid_metric = self.validate(model, valid_loader,
-                                                 self.current_iteration,
-                                                 self.loss)
+        with torch.no_grad():
+            with autocast(enabled=self.c['Manager'].get('amp', False)):
+                self.validate(model, valid_loader, self.current_iteration, self.loss)
+        
+        best_state_metric = self.get_state_metric()
+        current_metric = self.metrics[self.tracked_metric]
 
-            if self._trial:
-                self._trial.report(valid_metric, self.current_iteration)
-                if self._trial.should_prune():
-                    raise optuna.TrialPruned()
-            self.update_scheduler_on_validation(valid_metric)
+        if self._trial:
+            self._trial.report(current_metric, self.current_iteration)
+            if self._trial.should_prune():
+                raise optuna.TrialPruned()
+
+        if(current_metric >= best_state_metric[self.tracked_metric]):
+            filename = ('best_valid_iteration_%i_%s_%.3f' % (
+                self.current_iteration, self.tracked_metric,  current_metric)).replace('.', '')
+            self.save_model(model, filename=filename)
+
+        self.update_scheduler_on_validation(current_metric)
+        model.train()
 
     def forward_train(self, model, loss_function, batch):
         pred = model(*self.pass_data_keys_to_model(batch))
@@ -141,10 +177,8 @@ class SupervisedExperiment(Experiment):
                 args.append(batch[key])
         return tuple(args)
 
-    def validate(self, model, valid_loader, iteration, loss_function=None):
+    def validate(self, model, valid_loader, loss_function=None):
         model._metrics.reset()
-        gpu = self.get_gpu_from_rank(self.ctx.rank)
-        confMat = torch.zeros(self.n_classes, self.n_classes).cuda(gpu)
         losses = 0
         model.eval()
         for n, batch in enumerate(valid_loader):
@@ -154,29 +188,11 @@ class SupervisedExperiment(Experiment):
             proba = model(img)
             losses += loss_function(proba, y_true=gt).detach()
             model._metrics.update(proba, gt)
-            pred = torch.argmax(proba, 1)
-            confMat += NNmetrics.confusion_matrix(pred,
-                                                  gt, num_classes=self.n_classes)
+
         if self.multi_gpu:
-            confMat = reduce_tensor(confMat, self.world_size, mode='sum')
             losses = reduce_tensor(
                 losses, self.world_size, mode='sum') / self.world_size
         losses = losses / n
-        confMat = NNmetrics.filter_index_cm(confMat, self.ignore_index)
-        mIoU = NNmetrics.mIoU_cm(confMat)
-        stats = NNmetrics.report_cm(confMat)
-        stats['mIoU'] = mIoU
-        stats['validation_loss'] = losses.item()
-        
-        stats.update({k:v.item() for k, v in model._metrics.compute().items()})
-        self.log_metrics(step=iteration, **stats)
 
-        best_state_metric = self.get_state_metric()
-        current_metric = self.metrics[self.tracked_metric]
-        if(current_metric >= best_state_metric[self.tracked_metric]):
-            filename = ('best_valid_iteration_%i_%s_%.3f' % (
-                iteration, self.tracked_metric,  current_metric)).replace('.', '')
-            self.save_model(model, filename=filename)
-        model.train()
-
-        return current_metric
+        stats = {k: v.item() for k, v in model._metrics.compute().items()}
+        self.log_metrics(step=self.current_iteration, **stats)

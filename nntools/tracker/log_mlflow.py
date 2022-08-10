@@ -33,5 +33,12 @@ def log_artifact(tracker, *paths):
         else:
             client.log_artifact(run_id, p)
 
+def log_figures(tracker, *figures:tuple):
+    run_id = tracker.run_id
+    client = tracker.client
+    for fig, figname in figures:
+        client.log_figure(fig, figname)
+
+
 
     

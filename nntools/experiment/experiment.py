@@ -25,7 +25,7 @@ from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP, Mu
 
 from dataclasses import dataclass, fields
 from torch.cuda.amp import autocast, GradScaler
-from torch.profiler import profile, record_function, ProfilerActivity
+from torch.profiler import ProfilerActivity
 
 class Manager(ABC):
     def __init__(self, config: Config, run_id: str = None):
@@ -138,7 +138,7 @@ class Manager(ABC):
 
 
 class Experiment(Manager):
-    def __init__(self, config, run_id=None, tracked_metric='mIoU', trial=None):
+    def __init__(self, config, run_id=None, trial=None):
         super(Experiment, self).__init__(config, run_id)
 
         self.batch_size = self.config['Training']['batch_size'] // self.world_size
@@ -149,7 +149,7 @@ class Experiment(Manager):
         self.partial_optimizer = None
         self.partial_lr_scheduler = None
 
-        self.tracked_metric = tracked_metric
+        self.tracked_metric = self.config.get(['Validation'], {}).get('reference_metric', None)
         self.class_weights = None
 
         self.saved_models = {'best_valid': None, 'last': None}
@@ -224,7 +224,7 @@ class Experiment(Manager):
 
     def get_state_metric(self):
         if(self.tracked_metric):
-            return {'epoch': self.current_epoch, self.tracked_metric: self.tracker.get_best_metric(self.tracked_metric)}
+            return {'epoch': self.current_epoch, self.tracked_metric: self.tracker.get_best_score_for_metric(self.tracked_metric)}
 
     def create_optimizer(self, **config):
         solver = config['solver']
@@ -323,7 +323,6 @@ class Experiment(Manager):
                                     world_size=self.world_size)
         self.init_model()
         model = self.get_model_on_device(rank)
-
         self.ctx.rank = rank
         self.ctx.model = model
 
@@ -334,22 +333,16 @@ class Experiment(Manager):
             try:
                 self.train(model, rank)
             except KeyboardInterrupt:
-                self.keyboard_exception_raised = True
-            finally:
-                self.tracker.set_status('FAILED')
-
-            if self.keyboard_exception_raised:
                 if self.ctx.is_main_process:
                     Log.warn(
                         "Killed Process. The last model will be registered at %s" % self.saved_models)
                     self.tracker.set_status('KILLED')
+            finally:
+                self.tracker.set_status('FAILED')
 
         if self.ctx.is_main_process and (self.run_training or self.save_last):
             self.save_model(model, 'last')
             self.register_trained_model()
-
-        if self.multi_gpu:
-            dist.barrier()
 
         if self.call_end_function:
             self.ctx.model._metrics.reset()
@@ -368,7 +361,7 @@ class Experiment(Manager):
             assert self.train_dataset is not None, "Missing dataset"
             if self.validation_dataset is None:
                 Log.warn(
-                    "Missing validation set, default behaviour is to save the model once per epoch")
+                    "Missing validation set, default behaviour is to save the model once per epoch")                
 
             if self.partial_lr_scheduler is None:
                 Log.warn(
