@@ -144,7 +144,7 @@ class SupervisedExperiment(Experiment):
 
         with torch.no_grad():
             with autocast(enabled=self.c['Manager'].get('amp', False)):
-                self.validate(model, valid_loader, self.current_iteration, self.loss)
+                self.validate(model, valid_loader, self.loss)
         
         best_state_metric = self.get_state_metric()
         current_metric = self.metrics[self.tracked_metric]
