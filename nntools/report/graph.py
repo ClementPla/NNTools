@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 
 
-def build_bar_plot(x, y, title='', size=(8,6)):
-    print(x, y, title)
+def build_bar_plot(y, title='', size=(8,6)):
+    x = np.arange(len(y))
     fig, ax = plt.subplots()
     ax.grid(axis='y', which='major', zorder=0)
     std = np.std(y)
