@@ -160,7 +160,8 @@ class Experiment(Manager):
 
         self.additional_datasets = {}
         self.additional_datasets_batch_size = {}
-
+        
+        self.data_keys = ['image']
         self._trial = trial
 
     def get_model_on_device(self, rank: int) -> nn.Module:
