@@ -152,7 +152,7 @@ class SupervisedExperiment(Experiment):
         best_state_metric = self.get_state_metric()
         current_metric = self.metrics[self.tracked_metric]
 
-        if self._trial:
+        if self._trial and self.ctx.is_main_process:
             self._trial.report(current_metric, self.current_iteration)
             if self._trial.should_prune():
                 self.tracker.log_metrics(self.current_iteration, pruned=1)
