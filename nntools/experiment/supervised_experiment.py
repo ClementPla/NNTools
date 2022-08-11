@@ -28,8 +28,7 @@ class SupervisedExperiment(Experiment):
 
         self.n_classes = config['Network'].get('n_classes', -1)
         self.class_weights = None
-        self.gt_name = 'mask'
-        self.data_keys = ['image']
+        
 
     def datasets_summary(self):
         support = np.arange(self.n_classes)
@@ -225,6 +224,6 @@ class SupervisedExperiment(Experiment):
         stats = self.eval_model(model, test_loader, self.loss)
 
         test_scores = {f'Test_{k}':v for k, v in stats.items()}
-
-        self.log_metrics(step=0, **stats)
+        
+        self.log_metrics(step=0, **test_scores)
 
