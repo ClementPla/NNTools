@@ -34,7 +34,7 @@ class SegmentationExperiment(SupervisedExperiment):
         with torch.no_grad():
             for batch in valid_loader:
                 
-                preds = model(self.pass_data_keys_to_model())
+                preds = model(self.pass_data_keys_to_model(batch=batch))
                 preds = self.head_activation(preds)
                 if self.multilabel:
                     preds = preds > 0.5
