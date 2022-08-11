@@ -28,7 +28,7 @@ class SegmentationExperiment(SupervisedExperiment):
         model_name = model_setup.pop('architecture')
         model_setup.pop('synchronized_batch_norm', None)
         n_classes = model_setup.pop('n_classes', None)
-        model = smp.create_model(model_name, classes=n_classes, **model_name)
+        model = smp.create_model(model_name, classes=n_classes, **model_setup)
         self.set_model(model)
         self.model.add_metrics({'CohenKappa':CohenKappa(self.n_classes, weights='quadratic'),
                                 'mIoU':JaccardIndex(self.n_classes, multilabel=self.multilabel, ignore_index=self.ignore_score_index),
