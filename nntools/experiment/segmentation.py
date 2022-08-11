@@ -1,7 +1,5 @@
 import torch
-import random
 from torchmetrics import CohenKappa, JaccardIndex, Dice
-from nntools.utils import torch
 from nntools.experiment.supervised_experiment import SupervisedExperiment
 import segmentation_models_pytorch as smp
 
