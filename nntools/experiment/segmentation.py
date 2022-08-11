@@ -35,14 +35,14 @@ class SegmentationExperiment(SupervisedExperiment):
                                 'Dice':Dice(self.n_classes, ignore_index=self.ignore_score_index)})
     
     def validate(self, model, valid_loader, loss_function=None):
-        index = random.randint(0, len(valid_loader))
-        batch = valid_loader[index]
         with torch.no_grad():
-            preds = model(batch['image'])
-            if self.multilabel:
-                preds = preds > 0.5
-            else:
-                preds = torch.argmax(preds, 1, keepdim=True)
+            for batch in valid_loader:
+                preds = model(batch['image'])
+                if self.multilabel:
+                    preds = preds > 0.5
+                else:
+                    preds = torch.argmax(preds, 1, keepdim=True)
+                break
         
         self.visualization_images(batch['image'], batch[self.gt_name], 'input_images')
         self.visualization_images(batch['image'], preds, 'output_images')        
