@@ -18,7 +18,7 @@ import tqdm
 
 
 class SupervisedExperiment(Experiment):
-    def __init__(self, config, run_id=None, trial=None):
+    def __init__(self, config, run_id=None, trial=None, multilabel=False):
         super(SupervisedExperiment, self).__init__(
             config, run_id=run_id, trial=trial)
         if 'ignore_index' in self.c['Training']:
@@ -28,6 +28,9 @@ class SupervisedExperiment(Experiment):
 
         self.n_classes = config['Network'].get('n_classes', -1)
         self.class_weights = None
+        
+        self.multilabel = multilabel
+        self.head_activation_exists = False
         
 
     def datasets_summary(self):
@@ -183,6 +186,15 @@ class SupervisedExperiment(Experiment):
         stats = self.eval_model(model, valid_loader,
                                 loss_function=loss_function)
         self.log_metrics(step=self.current_iteration, **stats)
+    
+    def head_activation(self, preds):
+        if self.head_activation_exists:
+            return preds
+        else:
+            if self.multilabel:
+                return torch.sigmoid(preds)
+            else:
+                return torch.softmax(preds, 1)
 
     def eval_model(self, model, dataloader, loss_function=None):
         model.eval()
@@ -197,14 +209,19 @@ class SupervisedExperiment(Experiment):
                 proba = model(img)
                 if loss_function:
                     losses += loss_function(proba, y_true=gt).detach()
+                proba = self.head_activation(proba)
                 model._metrics.update(proba, gt)
+            
+            stats = {k: v.item() for k, v in model._metrics.compute().items()}
+
             if loss_function:
                 if self.multi_gpu:
                     losses = reduce_tensor(
                         losses, self.world_size, mode='sum') / self.world_size
                 losses = losses / n
+                
+                stats['validation_loss'] = losses.item()
 
-            stats = {k: v.item() for k, v in model._metrics.compute().items()}
         model.train()
         return stats
 
@@ -215,7 +232,7 @@ class SupervisedExperiment(Experiment):
         model.load(self.tracker.network_savepoint, load_most_recent=True, map_location=map_location, strict=False,
                    filtername='best_valid')
         
-        test_loader, test_sampler = self.get_dataloader(dataset, shuffle=False, batch_size=24,
+        test_loader, test_sampler = self.get_dataloader(self.test_dataset, shuffle=False, batch_size=24,
                                                         rank=rank)
         stats = self.eval_model(model, test_loader, self.loss)
 
