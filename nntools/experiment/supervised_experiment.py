@@ -1,6 +1,6 @@
-import imp
-from os import stat
 import numpy as np
+import torch.distributed as dist
+
 import torch
 from torch.cuda.amp import autocast
 from torch.nn.utils import clip_grad_norm_
@@ -148,6 +148,9 @@ class SupervisedExperiment(Experiment):
         with torch.no_grad():
             with autocast(enabled=self.c['Manager'].get('amp', False)):
                 self.validate(model, valid_loader, self.loss)
+        
+        if self.multi_gpu:
+            dist.barrier()
 
         
         current_metric = self.metrics[self.tracked_metric]
