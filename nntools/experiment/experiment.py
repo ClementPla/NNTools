@@ -445,7 +445,31 @@ class Experiment(Manager):
         self.ctx.lr_scheduler = lr_scheduler
         self.ctx.scaler = scaler
         self.ctx.optimizer = optimizer
+        if self.run_profiling: self.profile()
+                
         self.main_training_loop(model=model)
+    
+    def profile():
+        prof = torch.profiler.profile(
+        activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+        schedule=torch.profiler.schedule(wait=2, warmup=2, active=self.config['Manager']['num_workers']+1, repeat=2),
+        on_trace_ready=torch.profiler.tensorboard_trace_handler('./profile/'+self.tracker.run_id),
+        record_shapes=True,
+        profile_memory=True, with_flops=True,
+        with_stack=True)
+        prof.start()
+        with autocast(enabled=self.c['Manager']['amp']):
+            for step, batch in enumerate(self.ctx.train_loader):
+                if step >= (2 + 2 + 10) * 2:
+                    break
+                batch = self.batch_to_device(batch, rank=self.ctx.rank)
+                loss = self.forward_train(self.model, self.loss, batch)
+                self.ctx.scaler.scale(loss).backward()
+                self.ctx.scaler.step(self.ctx.optimizer)
+                self.ctx.scaler.update()
+                self.model.zero_grad()
+                prof.step()
+        prof.stop()
 
     def validate(self, model, valid_loader, iteration, loss_function=None):
         pass
@@ -457,28 +481,6 @@ class Experiment(Manager):
         pass
 
     def main_training_loop(self, model):
-        if self.run_profiling:
-            prof = torch.profiler.profile(
-            activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-            schedule=torch.profiler.schedule(wait=2, warmup=2, active=self.config['Manager']['num_workers']+1, repeat=2),
-            on_trace_ready=torch.profiler.tensorboard_trace_handler('./profile/'+self.tracker.run_id),
-            record_shapes=True,
-            profile_memory=True, with_flops=True,
-            with_stack=True)
-            prof.start()
-            with autocast(enabled=self.c['Manager']['amp']):
-                for step, batch in enumerate(self.ctx.train_loader):
-                    if step >= (2 + 2 + 10) * 2:
-                        break
-                    batch = self.batch_to_device(batch, rank=self.ctx.rank)
-                    loss = self.forward_train(self.model, self.loss, batch)
-                    self.ctx.scaler.scale(loss).backward()
-                    self.ctx.scaler.step(self.ctx.optimizer)
-                    self.model.zero_grad()
-
-                    prof.step()
-            prof.stop()
-
         total_epoch = self.config['Training'].get('epochs', -1)
         max_iterations = self.config['Training'].get('iterations', -1)
         assert (total_epoch > 0) or (max_iterations > 0), "You must define a number of training iterations or a number " \
