@@ -449,7 +449,7 @@ class Experiment(Manager):
                 
         self.main_training_loop(model=model)
     
-    def profile():
+    def profile(self):
         prof = torch.profiler.profile(
         activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
         schedule=torch.profiler.schedule(wait=2, warmup=2, active=self.config['Manager']['num_workers']+1, repeat=2),
