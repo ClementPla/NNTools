@@ -34,12 +34,12 @@ class SupervisedExperiment(Experiment):
         support = np.arange(self.n_classes)
 
         figTrain = build_bar_plot(
-            support, self.train_dataset.get_class_count(), 'Train dataset')
+            support, self.train_dataset.get_class_count(load=False), 'Train dataset')
         self.tracker.log_figures([figTrain, 'train_data_count.png'])
 
         if self.validation_dataset:
             figValid = build_bar_plot(
-                support, self.validation_dataset.get_class_count(), 'Valid dataset')
+                support, self.validation_dataset.get_class_count(load=False), 'Valid dataset')
             self.tracker.log_figures([figValid, 'valid_data_count.png'])
 
         if self.test_dataset:
