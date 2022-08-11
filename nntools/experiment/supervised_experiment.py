@@ -210,6 +210,11 @@ class SupervisedExperiment(Experiment):
                 if loss_function:
                     losses += loss_function(proba, y_true=gt).detach()
                 proba = self.head_activation(proba)
+                
+                if self.multilabel:
+                    gt = gt.transpose(1, -1).flatten(0, -2)
+                    proba = proba.transpose(1, -1).flatten(0, -2)
+                    
                 model._metrics.update(proba, gt)
             
             stats = {k: v.item() for k, v in model._metrics.compute().items()}

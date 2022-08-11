@@ -27,9 +27,7 @@ class SegmentationExperiment(SupervisedExperiment):
         n_classes = model_setup.pop('n_classes', None)
         model = smp.create_model(model_name, classes=n_classes, **model_setup)
         self.set_model(model)
-        self.model.add_metric({'CohenKappa':CohenKappa(self.n_classes, weights='quadratic', ),
-                                'mIoU':JaccardIndex(self.n_classes, multilabel=self.multilabel, 
-                                                    ignore_index=self.ignore_score_index),
+        self.model.add_metric({'CohenKappa':CohenKappa(self.n_classes),
                                 'Dice':Dice(self.n_classes, ignore_index=self.ignore_score_index)})
     
     def validate(self, model, valid_loader, loss_function=None):
