@@ -11,6 +11,7 @@ from matplotlib import cm
 
 
 def build_bar_plot(x, y, title='', size=(8,6)):
+    print(x, y, title)
     fig, ax = plt.subplots()
     ax.grid(axis='y', which='major', zorder=0)
     std = np.std(y)
