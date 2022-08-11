@@ -224,7 +224,7 @@ class Experiment(Manager):
         self.test_dataset = dataset
 
     def get_state_metric(self):
-        if(self.tracked_metric):
+        if self.tracked_metric :
             return {'epoch': self.current_epoch, self.tracked_metric: self.tracker.get_best_score_for_metric(self.tracked_metric)}
 
     def create_optimizer(self, **config):
