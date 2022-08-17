@@ -541,7 +541,7 @@ class Experiment(Manager):
         write_jpeg(images, filepath)
         self.log_artifacts(filepath)
 
-    def load_best_model(run_id=None):
+    def load_best_model(self, run_id=None):
         if not run_id:
             run_id = self.tracker.run_id
         if not self.run_started:
