@@ -541,7 +541,17 @@ class Experiment(Manager):
         write_jpeg(images, filepath)
         self.log_artifacts(filepath)
 
-
+    def load_best_model(run_id=None):
+        if not run_id:
+            run_id = self.tracker.run_id
+        if not self.run_started:
+            self.start_run(run_id)
+        
+        self.init_model()
+        
+        self.model.load(self.tracker.network_savepoint,
+                        filtername='best', load_most_recent=True, map_location='cpu')
+    
 @dataclass
 class Context:
     model = None
