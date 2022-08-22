@@ -2,7 +2,7 @@ import torch
 from torchmetrics import CohenKappa, JaccardIndex, Dice, BinnedPrecisionRecallCurve
 from nntools.experiment.supervised_experiment import SupervisedExperiment
 import segmentation_models_pytorch as smp
-
+import torchmetrics.functional as Fmetric
 
 class AUCPrecisionRecallCurve(BinnedPrecisionRecallCurve):
     def compute(self):
