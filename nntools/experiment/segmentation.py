@@ -1,8 +1,22 @@
 import torch
-from torchmetrics import CohenKappa, JaccardIndex, Dice
+from torchmetrics import CohenKappa, JaccardIndex, Dice, BinnedPrecisionRecallCurve
 from nntools.experiment.supervised_experiment import SupervisedExperiment
 import segmentation_models_pytorch as smp
 
+
+class AUCPrecisionRecallCurve(BinnedPrecisionRecallCurve):
+    def compute(self):
+        precision, recall, thresholds = super(AUCPrecisionRecallCurve, self).compute()
+        
+        if isinstance(precision, list):
+            out = {}
+            for i, (p, r) in enumerate(zip(precision, recall)):
+                out[f'PrRecAUC_Class_{i}'] = Fmetric.auc(p, r, reorder=True)
+            return out
+
+        else:
+            return Fmetric.auc(precision, recall, reorder=True)
+        
 
 
 class SegmentationExperiment(SupervisedExperiment):
@@ -28,7 +42,8 @@ class SegmentationExperiment(SupervisedExperiment):
         model = smp.create_model(model_name, classes=n_classes, **model_setup)
         self.set_model(model)
         self.model.add_metric({'CohenKappa':CohenKappa(self.n_classes),
-                                'Dice':Dice(self.n_classes, ignore_index=self.ignore_score_index)})
+                                'Dice':Dice(self.n_classes, ignore_index=self.ignore_score_index),
+                                'class_score':AUCPrecisionRecallCurve(self.n_classes)})
     
     def validate(self, model, valid_loader, loss_function=None):
         with torch.no_grad():
