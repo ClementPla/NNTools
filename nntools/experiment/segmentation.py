@@ -48,7 +48,7 @@ class SegmentationExperiment(SupervisedExperiment):
     def validate(self, model, valid_loader, loss_function=None):
         with torch.no_grad():
             for batch in valid_loader:
-                
+                batch = self.batch_to_device(batch, self.ctx.rank)
                 preds = model(*self.pass_data_keys_to_model(batch=batch))
                 preds = self.head_activation(preds)
                 if self.multilabel:
