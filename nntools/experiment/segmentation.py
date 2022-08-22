@@ -46,6 +46,7 @@ class SegmentationExperiment(SupervisedExperiment):
                                 'class_score':AUCPrecisionRecallCurve(self.n_classes)})
     
     def validate(self, model, valid_loader, loss_function=None):
+        model.eval()
         with torch.no_grad():
             for batch in valid_loader:
                 batch = self.batch_to_device(batch, self.ctx.rank)
@@ -58,5 +59,5 @@ class SegmentationExperiment(SupervisedExperiment):
                 break
         
         self.visualization_images(batch['image'], batch[self.gt_name], 'input_images')
-        self.visualization_images(batch['image'], preds, 'output_images')        
+        self.visualization_images(batch['image'], preds, 'output_images')     
         return super().validate(model, valid_loader, loss_function)
