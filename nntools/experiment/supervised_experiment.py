@@ -202,7 +202,6 @@ class SupervisedExperiment(Experiment):
                 return torch.softmax(preds, 1)
 
     def eval_model(self, model, dataloader, loss_function=None):
-        model.eval()
         model._metrics.reset()
         losses = 0
         model.eval()
