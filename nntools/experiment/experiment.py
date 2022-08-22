@@ -156,7 +156,7 @@ class Experiment(Manager):
 
         self.save_last = True
         self.run_training = True
-        self.validation_batch_size = None
+        self.validation_batch_size = self.config.get('Validation', {}).get('batch_size', None)
 
         self.additional_datasets = {}
         self.additional_datasets_batch_size = {}
