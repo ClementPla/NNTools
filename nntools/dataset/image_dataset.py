@@ -8,10 +8,10 @@ from nntools.dataset.image_tools import resize
 from nntools.tracker import Log
 from nntools.utils.io import read_image, path_leaf
 from nntools.utils.misc import to_iterable
-from .abstract_image_dataset import ImageDataset, supportedExtensions
+from .abstract_image_dataset import AbstractImageDataset, supportedExtensions
 
 
-class MultiImageDataset(ImageDataset):
+class MultiImageDataset(AbstractImageDataset):
     def __init__(self, img_url,
                  shape=None,
                  keep_size_ratio=False,
@@ -112,3 +112,20 @@ class MultiImageDataset(ImageDataset):
             inputs[k] = img
 
         return inputs
+
+
+class ImageDataset(MultiImageDataset):
+    def __init__(self, img_url,
+                 shape=None,
+                 keep_size_ratio=False,
+                 recursive_loading=True,
+                 extract_image_id_function=None,
+                 use_cache=False,
+                 filling_strategy=NN_FILL_DOWNSAMPLE):
+        super(ImageDataset, self).__init__(img_url={'image':img_url},
+                                           shape=shape,
+                                           keep_size_ratio=keep_size_ratio,
+                                           recursive_loading=recursive_loading,
+                                           extract_image_id_function=extract_image_id_function,
+                                           use_cache=use_cache,
+                                           filling_strategy=filling_strategy)

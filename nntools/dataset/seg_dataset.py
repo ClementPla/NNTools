@@ -8,10 +8,10 @@ from nntools.dataset.image_tools import resize
 from nntools.tracker import Log
 from nntools.utils.io import read_image, path_leaf
 from nntools.utils.misc import to_iterable
-from .abstract_image_dataset import ImageDataset, supportedExtensions
+from .abstract_image_dataset import AbstractImageDataset, supportedExtensions
 
 
-class SegmentationDataset(ImageDataset):
+class SegmentationDataset(AbstractImageDataset):
     def __init__(self, img_url,
                  mask_url=None,
                  shape=None,

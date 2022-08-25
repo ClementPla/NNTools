@@ -3,10 +3,10 @@ import os
 
 import numpy as np
 
-from .abstract_image_dataset import ImageDataset, supportedExtensions
+from .abstract_image_dataset import AbstractImageDataset, supportedExtensions
 
 
-class ClassificationDataset(ImageDataset):
+class ClassificationDataset(AbstractImageDataset):
     def __init__(self, img_url,
                  shape=None,
                  keep_size_ratio=False,
