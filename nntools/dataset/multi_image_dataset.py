@@ -8,7 +8,7 @@ from nntools.dataset.image_tools import resize
 from nntools.tracker import Log
 from nntools.utils.io import read_image, path_leaf
 from nntools.utils.misc import to_iterable
-from .image_dataset import ImageDataset, supportedExtensions
+from .abstract_image_dataset import ImageDataset, supportedExtensions
 
 
 class MultiImageDataset(ImageDataset):

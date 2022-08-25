@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 
-from .image_dataset import ImageDataset, supportedExtensions
+from .abstract_image_dataset import ImageDataset, supportedExtensions
 
 
 class ClassificationDataset(ImageDataset):
