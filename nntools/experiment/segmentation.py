@@ -29,6 +29,7 @@ class SegmentationExperiment(SupervisedExperiment):
         self.data_keys = ['image']
         self.ignore_score_index = ignore_score_index
         self.set_optimizer(**self.c['Optimizer'])
+        self.colors = self.c['Validation'].get('colors', None)
 
 
     def init_model(self):
@@ -55,6 +56,8 @@ class SegmentationExperiment(SupervisedExperiment):
                     preds = torch.argmax(preds, 1, keepdim=True)
                 break
 
-        self.visualization_images(batch['image'], batch[self.gt_name], 'input_images')
-        self.visualization_images(batch['image'], preds, 'output_images')
+        self.visualization_images(batch['image'], batch[self.gt_name],
+                                  filename='input_images', colors=self.colors)
+        self.visualization_images(batch['image'], preds,
+                                  filename='output_images', colors=self.colors)
         return super().validate(model, valid_loader, loss_function)
