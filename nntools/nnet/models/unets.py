@@ -5,9 +5,8 @@ https://github.com/bigmb/Unet-Segmentation-Pytorch-Nest-of-Unets/blob/master/Mod
 """
 import torch
 import torch.nn as nn
-from torch.nn import init
-
 from nntools.nnet import AbstractNet
+from torch.nn import init
 
 
 def init_weights(net, init_type='kaiming', gain=0.02):

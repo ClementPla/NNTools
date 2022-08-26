@@ -1,8 +1,6 @@
-import torch
-from torchmetrics import CohenKappa, JaccardIndex, F1Score, Accuracy
-from nntools.experiment.supervised_experiment import SupervisedExperiment
 import timm
-
+from nntools.experiment.supervised_experiment import SupervisedExperiment
+from torchmetrics import CohenKappa, JaccardIndex, F1Score, Accuracy
 
 
 class ClassificationExperiment(SupervisedExperiment):
@@ -17,8 +15,8 @@ class ClassificationExperiment(SupervisedExperiment):
         n_classes = model_setup.pop('n_classes', None)
         model = timm.create_model(model_name, num_classes=n_classes, **model_setup)
         self.set_model(model)
-        
-        self.model.add_metric({'CohenKappa':CohenKappa(self.n_classes),
-                                'Accuracy':Accuracy(num_classes=self.n_classes),
-                                'F1':F1Score(num_classes=self.n_classes),
-                                'Jaccard':JaccardIndex(num_classes=self.n_classes)})
+
+        self.model.add_metric({'CohenKappa': CohenKappa(self.n_classes),
+                               'Accuracy': Accuracy(num_classes=self.n_classes),
+                               'F1': F1Score(num_classes=self.n_classes),
+                               'Jaccard': JaccardIndex(num_classes=self.n_classes)})

@@ -60,6 +60,3 @@ def quick_load(project_folder, experiment, run_name, run_id, filename=None, filt
 
     model.load(path, load_most_recent=filename is None, filtername=filtername)
     return model
-
-
-

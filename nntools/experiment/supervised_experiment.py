@@ -1,20 +1,18 @@
 import numpy as np
-import torch.distributed as dist
-
+import optuna
 import torch
-from torch.cuda.amp import autocast
-from torch.nn.utils import clip_grad_norm_
-
-import nntools.tracker.metrics as NNmetrics
+import torch.distributed as dist
+import tqdm
 from nntools import BINARY_MODE, MULTICLASS_MODE
 from nntools.dataset import class_weighting
 from nntools.nnet import FuseLoss, SUPPORTED_LOSS
-from nntools.utils import reduce_tensor
 from nntools.report.graph import build_bar_plot
+from nntools.utils import reduce_tensor
 from nntools.utils.misc import call_with_filtered_kwargs
+from torch.cuda.amp import autocast
+from torch.nn.utils import clip_grad_norm_
+
 from .experiment import Experiment
-import optuna
-import tqdm
 
 
 class SupervisedExperiment(Experiment):
@@ -28,10 +26,9 @@ class SupervisedExperiment(Experiment):
 
         self.n_classes = config['Network'].get('n_classes', -1)
         self.class_weights = None
-        
+
         self.multilabel = multilabel
         self.head_activation_exists = False
-        
 
     def datasets_summary(self):
 
@@ -48,10 +45,10 @@ class SupervisedExperiment(Experiment):
                 d = [d]
             for i, dataset in enumerate(d):
                 if len(d) > 1:
-                    subtitle = f' {i+1}/{len(d)+1}'
+                    subtitle = f' {i + 1}/{len(d) + 1}'
                 else:
                     subtitle = ''
-                figTest = build_bar_plot(dataset.get_class_count(), 'Test dataset '+subtitle)
+                figTest = build_bar_plot(dataset.get_class_count(), 'Test dataset ' + subtitle)
                 self.tracker.log_figures(
                     [figTest, f'test_data_count_{subtitle}.png'])
 
@@ -148,11 +145,10 @@ class SupervisedExperiment(Experiment):
         with torch.no_grad():
             with autocast(enabled=self.c['Manager'].get('amp', False)):
                 self.validate(model, valid_loader, self.loss)
-        
+
         if self.multi_gpu:
             dist.barrier()
 
-        
         current_metric = self.metrics[self.tracked_metric]
         if self.ctx.is_main_process:
             best_state_metric = self.get_state_metric()
@@ -164,9 +160,9 @@ class SupervisedExperiment(Experiment):
                     self.tracker.set_status('KILLED')
                     raise optuna.TrialPruned()
 
-            if(current_metric >= best_state_metric[self.tracked_metric]):
+            if (current_metric >= best_state_metric[self.tracked_metric]):
                 filename = ('best_valid_iteration_%i_%s_%.3f' % (
-                    self.current_iteration, self.tracked_metric,  current_metric)).replace('.', '')
+                    self.current_iteration, self.tracked_metric, current_metric)).replace('.', '')
                 self.save_model(model, filename=filename)
 
         self.update_scheduler_on_validation(current_metric)
@@ -191,7 +187,7 @@ class SupervisedExperiment(Experiment):
         stats = self.eval_model(model, valid_loader,
                                 loss_function=loss_function)
         self.log_metrics(step=self.current_iteration, **stats)
-    
+
     def head_activation(self, preds):
         if self.head_activation_exists:
             return preds
@@ -214,13 +210,11 @@ class SupervisedExperiment(Experiment):
                 if loss_function:
                     losses += loss_function(proba, y_true=gt).detach()
                 proba = self.head_activation(proba)
-                
+
                 if self.multilabel:
                     gt = gt.transpose(1, -1).flatten(0, -2)
                     proba = proba.transpose(1, -1).flatten(0, -2)
-                    
                 model._metrics.update(proba, gt)
-            
             stats = {k: v.item() for k, v in model._metrics.compute().items()}
 
             if loss_function:
@@ -228,7 +222,7 @@ class SupervisedExperiment(Experiment):
                     losses = reduce_tensor(
                         losses, self.world_size, mode='sum') / self.world_size
                 losses = losses / n
-                
+
                 stats['validation_loss'] = losses.item()
 
         model.train()
@@ -240,12 +234,11 @@ class SupervisedExperiment(Experiment):
         map_location = {'cuda:%d' % 0: 'cuda:%d' % gpu}
         model.load(self.tracker.network_savepoint, load_most_recent=True, map_location=map_location, strict=False,
                    filtername='best_valid')
-        
+
         test_loader, test_sampler = self.get_dataloader(self.test_dataset, shuffle=False, batch_size=24,
                                                         rank=rank)
         stats = self.eval_model(model, test_loader, self.loss)
 
-        test_scores = {f'Test_{k}':v for k, v in stats.items()}
-        
-        self.log_metrics(step=0, **test_scores)
+        test_scores = {f'Test_{k}': v for k, v in stats.items()}
 
+        self.log_metrics(step=0, **test_scores)

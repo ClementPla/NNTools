@@ -1,8 +1,8 @@
 import os
 
 from mlflow.tracking.client import MlflowClient
-
 from nntools.utils.io import create_folder
+
 from .log_mlflow import log_metrics, log_params, log_artifact, log_figures, set_tags
 
 
@@ -17,7 +17,7 @@ class Tracker:
         self._tags = []
         self._artifacts = []
         self._figures = []
-        
+
         self.run_started = False
         self.register_params = True
         self.client = None
@@ -25,13 +25,13 @@ class Tracker:
         if tracker_uri:
             self.create_client(tracker_uri)
 
-    def add_path(self, key: str, path: str):
+    def register_path(self, key: str, path: str):
         self.save_paths[key] = path
         create_folder(path)
         self.__dict__.update(self.save_paths)
 
     def set_run_folder(self, path: str):
-        self.add_path('run_folder', path)
+        self.register_path('run_folder', path)
 
     def create_client(self, tracker_uri, artifact_uri=None):
         self.client = MlflowClient(tracker_uri)
@@ -129,20 +129,26 @@ class Tracker:
 
     def init_default_path(self):
         assert 'run_folder' in self.save_paths
-        self.add_path('network_savepoint', os.path.join(self.run_folder, 'trained_model', str(self.run_id)))
-        self.add_path('prediction_savepoint', os.path.join(self.run_folder, 'predictions', str(self.run_id)))
-        
-    def get_metric_history(self, metric:str):
+
+        self.register_path('network_savepoint', self.create_new_folder_in_run('trained_model'))
+        self.register_path('prediction_savepoint', self.create_new_folder_in_run('predictions'))
+        self.register_path('config_savepoint', self.create_new_folder_in_run('config'))
+        self.register_path('validation', self.create_new_folder_in_run('validation'))
+
+    def create_new_folder_in_run(self, folder):
+        path = os.path.join(self.run_folder, folder, str(self.run_id))
+        create_folder(path)
+        return path
+
+    def get_metric_history(self, metric: str):
         return self.client.get_metric_history(self.run_id, metric)
-    
-    def get_best_score_for_metric(self, metric:str, maximize=True):
+
+    def get_best_score_for_metric(self, metric: str, maximize=True):
         metric_history = self.get_metric_history(metric)
         if maximize:
             return max([m.value for m in metric_history])
         else:
             return min([m.value for m in metric_history])
-    
+
     def last_metrics(self):
         return self.client.get_run(self.run_id).data.metrics
-    
-    

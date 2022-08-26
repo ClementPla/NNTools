@@ -5,10 +5,9 @@ import os
 import numpy as np
 import torch
 import tqdm
+from nntools.tracker import Log
 from torch import randperm, default_generator
 from torch._utils import _accumulate
-
-from nntools.tracker import Log
 
 
 def get_segmentation_class_count(dataset, save=False, load=False):

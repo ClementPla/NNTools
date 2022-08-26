@@ -1,11 +1,11 @@
-from typing import Any, Dict, Hashable, Iterable, List, Optional, Sequence, Tuple, Union
 import datetime
 import os
+from typing import Dict, Sequence, Union
 
 import torch
+from nntools.utils.io import create_folder, get_most_recent_file
 from torch import nn
 from torchmetrics import MetricCollection, Metric
-from nntools.utils.io import create_folder, get_most_recent_file
 
 
 def check_nan(state_dict):
@@ -19,7 +19,6 @@ class AbstractNet(nn.Module):
         self._today = datetime.datetime.now().date()
         self.savepoint = None
         self.params_group = {}
-
 
         super(AbstractNet, self).__init__()
         self._metrics = MetricCollection([])

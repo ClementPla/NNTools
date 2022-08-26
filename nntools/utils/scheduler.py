@@ -8,6 +8,7 @@ def pass_args(*args):
 def block_args(*args):
     pass
 
+
 from collections import namedtuple
 
 Scheduler = namedtuple('Scheduler', ['func', 'callback'])

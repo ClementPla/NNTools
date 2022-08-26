@@ -2,15 +2,13 @@ import glob
 import math
 import os
 from abc import ABC
+from dataclasses import dataclass
 
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch.nn as nn
 from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
-from torch.cuda.amp import autocast
-from tqdm.auto import tqdm
-
 from nntools.dataset.utils import concat_datasets_if_needed
 from nntools.nnet import nnt_format
 from nntools.tracker import Log, Tracker
@@ -22,10 +20,10 @@ from nntools.utils.plotting import create_mosaic
 from nntools.utils.random import set_seed, set_non_torch_seed
 from nntools.utils.scheduler import SCHEDULERS
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP, MultiEpochsDataLoader
-
-from dataclasses import dataclass, fields
 from torch.cuda.amp import autocast, GradScaler
 from torch.profiler import ProfilerActivity
+from tqdm.auto import tqdm
+
 
 class Manager(ABC):
     def __init__(self, config: Config, run_id: str = None):
@@ -160,7 +158,7 @@ class Experiment(Manager):
 
         self.additional_datasets = {}
         self.additional_datasets_batch_size = {}
-        
+
         self.data_keys = ['image']
         self._trial = trial
 
@@ -208,8 +206,7 @@ class Experiment(Manager):
 
     def initial_tracking(self):
         self.log_params(**self.config.tracked_params)
-        save_yaml(self.config, os.path.join(
-            self.tracker.run_folder, 'config.yaml'))
+        save_yaml(self.config, os.path.join(self.tracker.config_savepoint, 'config.yaml'))
         self.log_artifacts(self.config.get_path())
 
     def set_train_dataset(self, dataset):
@@ -224,8 +221,9 @@ class Experiment(Manager):
         self.test_dataset = dataset
 
     def get_state_metric(self):
-        if self.tracked_metric :
-            return {'epoch': self.current_epoch, self.tracked_metric: self.tracker.get_best_score_for_metric(self.tracked_metric)}
+        if self.tracked_metric:
+            return {'epoch': self.current_epoch,
+                    self.tracked_metric: self.tracker.get_best_score_for_metric(self.tracked_metric)}
 
     def create_optimizer(self, **config):
         solver = config['solver']
@@ -362,7 +360,7 @@ class Experiment(Manager):
             assert self.train_dataset is not None, "Missing dataset"
             if self.validation_dataset is None:
                 Log.warn(
-                    "Missing validation set, default behaviour is to save the model once per epoch")                
+                    "Missing validation set, default behaviour is to save the model once per epoch")
 
             if self.partial_lr_scheduler is None:
                 Log.warn(
@@ -447,17 +445,18 @@ class Experiment(Manager):
         self.ctx.scaler = scaler
         self.ctx.optimizer = optimizer
         if self.run_profiling: self.profile()
-                
+
         self.main_training_loop(model=model)
-    
+
     def profile(self):
         prof = torch.profiler.profile(
-        activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-        schedule=torch.profiler.schedule(wait=2, warmup=2, active=self.config['Manager']['num_workers']+1, repeat=2),
-        on_trace_ready=torch.profiler.tensorboard_trace_handler('./profile/'+self.tracker.run_id),
-        record_shapes=True,
-        profile_memory=True, with_flops=True,
-        with_stack=True)
+            activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+            schedule=torch.profiler.schedule(wait=2, warmup=2, active=self.config['Manager']['num_workers'] + 1,
+                                             repeat=2),
+            on_trace_ready=torch.profiler.tensorboard_trace_handler('./profile/' + self.tracker.run_id),
+            record_shapes=True,
+            profile_memory=True, with_flops=True,
+            with_stack=True)
         prof.start()
         with autocast(enabled=self.c['Manager']['amp']):
             for step, batch in enumerate(self.ctx.train_loader):
@@ -513,7 +512,7 @@ class Experiment(Manager):
 
     @property
     def current_epoch(self):
-        return math.floor(self.current_iteration/self.ctx.epoch_size)
+        return math.floor(self.current_iteration / self.ctx.epoch_size)
 
     @current_iteration.setter
     def current_iteration(self, value: int):
@@ -531,13 +530,18 @@ class Experiment(Manager):
         if self.ctx.scheduler_call_on == 'on_iteration':
             self.lr_scheduler_step()
 
-    def visualization_images(self, images, masks=None, filename=None):
+    def visualization_images(self, images, masks=None,
+                             folder=None,
+                             filename=None,
+                             colors=None,
+                             alpha=0.8):
         from torchvision.io import write_jpeg
-        images = create_mosaic(images, masks)
+        images = create_mosaic(images, masks, alpha=alpha, colors=colors)
         if filename is None:
             filename = 'image'
-
-        filepath = os.path.join(self.tracker.run_folder, filename + '.jpeg')
+        if folder is None:
+            folder = self.tracker.validation
+        filepath = os.path.join(folder, filename + '.jpeg')
         write_jpeg(images, filepath)
         self.log_artifacts(filepath)
 
@@ -546,12 +550,12 @@ class Experiment(Manager):
             run_id = self.tracker.run_id
         if not self.run_started:
             self.start_run(run_id)
-        
+
         self.init_model()
-        
         self.model.load(self.tracker.network_savepoint,
                         filtername='best', load_most_recent=True, map_location='cpu')
-    
+
+
 @dataclass
 class Context:
     model = None

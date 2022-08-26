@@ -1,27 +1,29 @@
 from collections import OrderedDict
 
+import matplotlib.pyplot as plt
 import numpy as np
 from bokeh.layouts import column
 from bokeh.models import CustomJS, ColumnDataSource
 from bokeh.models import HoverTool
 from bokeh.models.widgets import RadioButtonGroup
 from bokeh.plotting import figure
-import matplotlib.pyplot as plt
 from matplotlib import cm
 
 
-def build_bar_plot(y, title='', size=(8,6)):
+def build_bar_plot(y, title='', size=(8, 6)):
     x = np.arange(len(y))
     fig, ax = plt.subplots()
     ax.grid(axis='y', which='major', zorder=0)
     std = np.std(y)
-    bar_plot = ax.bar(x, y, tick_label=x, color=cm.get_cmap('tab20', len(x))(x), log=std>1000, zorder=3)
+    bar_plot = ax.bar(x, y, tick_label=x, color=cm.get_cmap('tab20', len(x))(x), log=std > 1000, zorder=3)
+
     def autolabel(rects):
-        for idx,rect in enumerate(bar_plot):
+        for idx, rect in enumerate(bar_plot):
             height = rect.get_height()
-            ax.text(rect.get_x() + rect.get_width()/2., 1.0*height,
+            ax.text(rect.get_x() + rect.get_width() / 2., 1.0 * height,
                     y[idx],
                     ha='center', va='bottom', rotation=0)
+
     autolabel(bar_plot)
     if title:
         ax.set_title(title)

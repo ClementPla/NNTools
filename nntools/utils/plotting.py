@@ -1,10 +1,11 @@
-import numpy as np
 import math
+
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
 from matplotlib import cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from torchvision.utils import make_grid, draw_segmentation_masks
-import torch
 
 
 def create_mosaic(images, masks=None, alpha=0.8, colors=None):
@@ -30,7 +31,7 @@ def plot_images(arrays_dict, cmap_name='jet_r', classes=None, fig_size=1):
         ax = [ax]
     if col == 1:
         ax = [ax]
-    fig.set_size_inches(fig_size * 10, (10//col) * row * fig_size)
+    fig.set_size_inches(fig_size * 10, (10 // col) * row * fig_size)
 
     for i in range(row):
         for j in range(col):

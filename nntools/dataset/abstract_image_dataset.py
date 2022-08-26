@@ -8,14 +8,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import tqdm
-
+from nntools.dataset.image_tools import resize
+from nntools.tracker.logger import Log
+from nntools.utils.io import read_image
+from nntools.utils.misc import to_iterable, identity
+from nntools.utils.plotting import plot_images
 from torch.utils.data import Dataset
 
-from nntools.dataset.image_tools import resize
-from nntools.utils.io import read_image
-from nntools.utils.plotting import plot_images
-from nntools.utils.misc import to_iterable, identity
-from nntools.tracker.logger import Log
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
 supportedExtensions = supportedExtensions + [ext.upper() for ext in supportedExtensions]
 
@@ -238,9 +237,9 @@ class AbstractImageDataset(Dataset):
         if n_row is None and n_col is None:
             n_row = math.ceil(math.sqrt(n_items))
             n_col = math.ceil(n_items / n_row)
-        if n_row*n_col < n_items:
-            Log.warn("With %i columns, %i row(s), only %i items can be plotted" % (n_col, n_row, n_row*n_col))
-            n_items = n_row*n_col
+        if n_row * n_col < n_items:
+            Log.warn("With %i columns, %i row(s), only %i items can be plotted" % (n_col, n_row, n_row * n_col))
+            n_items = n_row * n_col
         pad = 50 if add_labels else 0
         cols = []
 

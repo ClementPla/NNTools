@@ -1,13 +1,14 @@
-import torch
-from torchmetrics import CohenKappa, JaccardIndex, Dice, BinnedPrecisionRecallCurve
-from nntools.experiment.supervised_experiment import SupervisedExperiment
 import segmentation_models_pytorch as smp
+import torch
 import torchmetrics.functional as Fmetric
+from nntools.experiment.supervised_experiment import SupervisedExperiment
+from torchmetrics import CohenKappa, Dice, BinnedPrecisionRecallCurve
+
 
 class AUCPrecisionRecallCurve(BinnedPrecisionRecallCurve):
     def compute(self):
         precision, recall, thresholds = super(AUCPrecisionRecallCurve, self).compute()
-        
+
         if isinstance(precision, list):
             out = {}
             for i, (p, r) in enumerate(zip(precision, recall)):
@@ -16,35 +17,31 @@ class AUCPrecisionRecallCurve(BinnedPrecisionRecallCurve):
 
         else:
             return Fmetric.auc(precision, recall, reorder=True)
-        
 
 
 class SegmentationExperiment(SupervisedExperiment):
-    def __init__(self, config, run_id=None, trial=None, 
+    def __init__(self, config, run_id=None, trial=None,
                  multilabel=False,
                  ignore_score_index=0):
         super().__init__(config, run_id, trial, multilabel=multilabel)
-        
-        
+
         self.gt_name = 'mask'
         self.data_keys = ['image']
-        
         self.ignore_score_index = ignore_score_index
         self.set_optimizer(**self.c['Optimizer'])
 
-    
+
     def init_model(self):
-        
         model_setup = self.c['Network'].copy()
         model_name = model_setup.pop('architecture')
         model_setup.pop('synchronized_batch_norm', None)
         n_classes = model_setup.pop('n_classes', None)
         model = smp.create_model(model_name, classes=n_classes, **model_setup)
         self.set_model(model)
-        self.model.add_metric({'CohenKappa':CohenKappa(self.n_classes),
-                                'Dice':Dice(self.n_classes, ignore_index=self.ignore_score_index),
-                                'class_score':AUCPrecisionRecallCurve(self.n_classes)})
-    
+        self.model.add_metric({'CohenKappa': CohenKappa(self.n_classes),
+                               'Dice': Dice(self.n_classes, ignore_index=self.ignore_score_index),
+                               'class_score': AUCPrecisionRecallCurve(self.n_classes)})
+
     def validate(self, model, valid_loader, loss_function=None):
         model.eval()
         with torch.no_grad():
@@ -57,7 +54,7 @@ class SegmentationExperiment(SupervisedExperiment):
                 else:
                     preds = torch.argmax(preds, 1, keepdim=True)
                 break
-        
+
         self.visualization_images(batch['image'], batch[self.gt_name], 'input_images')
-        self.visualization_images(batch['image'], preds, 'output_images')     
+        self.visualization_images(batch['image'], preds, 'output_images')
         return super().validate(model, valid_loader, loss_function)
