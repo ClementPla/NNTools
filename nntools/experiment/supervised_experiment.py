@@ -165,7 +165,7 @@ class SupervisedExperiment(Experiment):
                     self.current_iteration, self.tracked_metric, current_metric)).replace('.', '')
                 self.save_model(model, filename=filename)
 
-        self.update_scheduler_on_validation(current_metric)
+        self.update_scheduler_on_validation(-current_metric)
         model.train()
 
     def forward_train(self, model, loss_function, batch):

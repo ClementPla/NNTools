@@ -31,7 +31,6 @@ class SegmentationExperiment(SupervisedExperiment):
         self.set_optimizer(**self.c['Optimizer'])
         self.colors = self.c['Validation'].get('colors', None)
 
-
     def init_model(self):
         model_setup = self.c['Network'].copy()
         model_name = model_setup.pop('architecture')
