@@ -42,6 +42,11 @@ class SegmentationExperiment(SupervisedExperiment):
                                'Dice': Dice(self.n_classes, ignore_index=self.ignore_score_index),
                                'class_score': AUCPrecisionRecallCurve(self.n_classes)})
 
+    def setup_class_weights(self, weights: torch.Tensor):
+        if self.multilabel:
+            weights = weights[1:]
+        super(SegmentationExperiment, self).setup_class_weights(weights)
+
     def validate(self, model, valid_loader, loss_function=None):
         model.eval()
         with torch.no_grad():
