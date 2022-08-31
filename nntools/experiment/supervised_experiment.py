@@ -39,8 +39,21 @@ class SupervisedExperiment(Experiment):
             figValid = build_bar_plot(self.validation_dataset.get_class_count(load=False), 'Valid dataset')
             self.tracker.log_figures([figValid, 'valid_data_count.png'])
 
+        for k, v in self.additional_datasets.items():
+            d = v
+            if not isinstance(d, list):
+                d = [d]
+                for i, dataset in enumerate(d):
+                    if len(d) > 1:
+                        subtitle = f'{i + 1}/{len(d) + 1}'
+                    else:
+                        subtitle = ''
+                    figTest = build_bar_plot(dataset.get_class_count(), f'{k} ' + subtitle)
+                    self.tracker.log_figures(
+                        [figTest, f'{k}_count_{subtitle}.png'])
+
         if self.test_dataset:
-            d = self.test_dataset
+            d = self.test_datasetf
             if not isinstance(d, list):
                 d = [d]
             for i, dataset in enumerate(d):
@@ -101,19 +114,18 @@ class SupervisedExperiment(Experiment):
 
         for i, batch in (enumerate(self.ctx.train_loader)):
             self.current_iteration += 1
-            with autocast(enabled=self.c['Manager']['amp']):
-                batch = self.batch_to_device(batch, rank=self.ctx.rank)
-                loss = self.forward_train(self.model, self.loss, batch)
-                loss = loss / iters_to_accumulate
-                self.ctx.scaler.scale(loss).backward()
-                if (i + 1) % iters_to_accumulate == 0:
-                    if clip_grad:
-                        clip_grad_norm_(model.parameters(), float(clip_grad))
-                    self.ctx.scaler.step(self.ctx.optimizer)
-                    self.ctx.scaler.update()
-                    model.zero_grad()
-                    self.update_scheduler_on_iteration()
-                moving_loss.append(loss.detach().item())
+            batch = self.batch_to_device(batch, rank=self.ctx.rank)
+            loss = self.forward_train(self.model, self.loss, batch)
+            loss = loss / iters_to_accumulate
+            self.ctx.scaler.scale(loss).backward()
+            if (i + 1) % iters_to_accumulate == 0:
+                if clip_grad:
+                    clip_grad_norm_(model.parameters(), float(clip_grad))
+                self.ctx.scaler.step(self.ctx.optimizer)
+                self.ctx.scaler.update()
+                model.zero_grad()
+                self.update_scheduler_on_iteration()
+            moving_loss.append(loss.detach().item())
 
             """
             Validation step
@@ -143,8 +155,7 @@ class SupervisedExperiment(Experiment):
         model = self.ctx.model
 
         with torch.no_grad():
-            with autocast(enabled=self.c['Manager'].get('amp', False)):
-                self.validate(model, valid_loader, self.loss)
+            self.validate(model, valid_loader, self.loss)
 
         if self.multi_gpu:
             dist.barrier()
@@ -197,7 +208,7 @@ class SupervisedExperiment(Experiment):
             else:
                 return torch.softmax(preds, 1)
 
-    def eval_model(self, model, dataloader, loss_function=None):
+    def eval_model(self, model, dataloader, loss_function=None, log_loss=True):
         model._metrics.reset()
         losses = 0
         model.eval()
@@ -222,8 +233,8 @@ class SupervisedExperiment(Experiment):
                     losses = reduce_tensor(
                         losses, self.world_size, mode='sum') / self.world_size
                 losses = losses / n
-
-                stats['validation_loss'] = losses.item()
+                if log_loss:
+                    stats['validation_loss'] = losses.item()
 
         model.train()
         return stats
@@ -237,7 +248,7 @@ class SupervisedExperiment(Experiment):
 
         test_loader, test_sampler = self.get_dataloader(self.test_dataset, shuffle=False, batch_size=24,
                                                         rank=rank)
-        stats = self.eval_model(model, test_loader, self.loss)
+        stats = self.eval_model(model, test_loader, self.loss, log_loss=False)
 
         test_scores = {f'Test_{k}': v for k, v in stats.items()}
 

@@ -330,7 +330,8 @@ class Experiment(Manager):
 
         if self.run_training:
             try:
-                self.train(model, rank)
+                with autocast(enabled=self.c['Manager']['amp']):
+                    self.train(model, rank)
             except KeyboardInterrupt:
                 if self.ctx.is_main_process:
                     Log.warn(

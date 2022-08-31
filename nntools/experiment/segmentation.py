@@ -39,7 +39,7 @@ class SegmentationExperiment(SupervisedExperiment):
         model = smp.create_model(model_name, classes=n_classes, **model_setup)
         self.set_model(model)
         self.model.add_metric({'CohenKappa': CohenKappa(self.n_classes),
-                               'Dice': Dice(self.n_classes, ignore_index=self.ignore_score_index),
+                               'Dice': Dice(self.n_classes),
                                'class_score': AUCPrecisionRecallCurve(self.n_classes)})
 
     def setup_class_weights(self, weights: torch.Tensor):
