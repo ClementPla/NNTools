@@ -1,6 +1,6 @@
 import os
 import time
-
+import numpy as np
 
 def log_params(tracker, **params):
     run_id = tracker.run_id
@@ -13,6 +13,7 @@ def log_metrics(tracker, step, **metrics):
     run_id = tracker.run_id
     client = tracker.client
     for k, v in metrics.items():
+        v = np.nan_to_num(v)
         client.log_metric(run_id, k, v, int(time.time() * 1000), step=step)
 
 
