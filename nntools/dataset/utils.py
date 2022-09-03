@@ -45,6 +45,8 @@ def class_weighting(class_count, mode='balanced', ignore_index=-100, eps=1, log_
     if mode == 'balanced':
         n_classes = len(np.nonzero(class_count))
         class_weights = n_samples / (n_classes * class_count + eps)
+    elif mode == 'frequency':
+        class_weights = n_samples/class_count
 
     elif mode == 'log_prob':
         p_class = class_count / n_samples
