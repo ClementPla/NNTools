@@ -8,6 +8,68 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from torchvision.utils import make_grid, draw_segmentation_masks
 
 
+def plt_cmap(confMap, cmap_name='RdYlGn'):
+    n_classes = confMap.shape[0]
+    cmap = cm.get_cmap(cmap_name)
+    cmap_r = cm.get_cmap(cmap_name + '_r')
+
+    n_cfmap_row = confMap / confMap.sum(1, keepdims=True)
+    n_cfmap_col = confMap / confMap.sum(0, keepdims=True)
+
+    diag_cfmap = cmap(n_cfmap_row)
+
+    colors = cmap_r(n_cfmap_row)
+    for i in range(n_classes):
+        colors[i, i, :] = diag_cfmap[i, i, :]
+
+    fig, ax = plt.subplots(1, 1)
+    fig.set_size_inches((2 * n_classes, 2 * n_classes))
+    ax.imshow(colors)
+    for i in range(n_classes):
+        for j in range(n_classes):
+
+            row = np.nan_to_num(n_cfmap_row[i, j])
+            col = np.nan_to_num(n_cfmap_col[i, j])
+            if i == j:
+                color_row = cmap(row)
+                color_col = cmap(col)
+            else:
+                color_row = cmap_r(row)
+                color_col = cmap_r(col)
+
+            ax.text(j, i - 0.25, f'{col:.0%}', color=color_row,
+                    horizontalalignment='center',
+                    fontweight='black',
+                    backgroundcolor=(1.0, 1.0, 1.0, 0.5))
+
+            if confMap[i, j] > 9999:
+                ax.text(j, i, f"{confMap[i, j]:.1e}", color=color_row,
+                        horizontalalignment='center',
+                        fontweight='black',
+                        backgroundcolor=(1.0, 1.0, 1.0, 0.95))
+            else:
+                ax.text(j, i, confMap[i, j], color=color_row,
+                        horizontalalignment='center',
+                        fontweight='black',
+                        backgroundcolor=(1.0, 1.0, 1.0, 0.95))
+
+            ax.text(j, i + 0.25, f'{row:.0%}', color=color_col,
+                    horizontalalignment='center',
+                    fontweight='black',
+                    backgroundcolor=(1.0, 1.0, 1.0, 0.5))
+
+    ax.set_xticks(np.arange(0, n_classes, 1))
+    ax.set_yticks(np.arange(0, n_classes, 1))
+    # Labels for major ticks
+    ax.set_xticklabels(np.arange(1, n_classes + 1, 1))
+    ax.set_yticklabels(np.arange(1, n_classes + 1, 1))
+    ax.set_xticks(np.arange(-.5, n_classes - 1, 1), minor=True)
+    ax.set_yticks(np.arange(-.5, n_classes - 1, 1), minor=True)
+    ax.grid(which='minor', color='w', linestyle='-', linewidth=2)
+
+    return fig
+
+
 def create_mosaic(images, masks=None, alpha=0.8, colors=None):
     mosaic_imgs = make_grid(images, normalize=True, nrow=4) * 255
     mosaic_imgs = mosaic_imgs.type(torch.uint8).cpu()
