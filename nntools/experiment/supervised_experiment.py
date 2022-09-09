@@ -10,7 +10,7 @@ from nntools.report.graph import build_bar_plot
 from nntools.utils import reduce_tensor
 from nntools.utils.misc import call_with_filtered_kwargs
 from torch.nn.utils import clip_grad_norm_
-
+from torch.cuda.amp import autocast
 from .experiment import Experiment
 
 
@@ -114,16 +114,29 @@ class SupervisedExperiment(Experiment):
         for i, batch in (enumerate(self.ctx.train_loader)):
             self.current_iteration += 1
             batch = self.batch_to_device(batch, rank=self.ctx.rank)
-            loss = self.forward_train(model, self.loss, batch)
-            loss = loss / iters_to_accumulate
-            self.ctx.scaler.scale(loss).backward()
+
             if (i + 1) % iters_to_accumulate == 0:
+                loss = self.forward_train(model, self.loss, batch)
+                loss = loss / iters_to_accumulate
+                self.ctx.scaler.scale(loss).backward()
+
                 if clip_grad:
                     clip_grad_norm_(model.parameters(), float(clip_grad))
                 self.ctx.scaler.step(self.ctx.optimizer)
+                self.ctx.optimizer.zero_grad(set_to_none=True)
                 self.ctx.scaler.update()
                 model.zero_grad()
                 self.update_scheduler_on_iteration()
+            elif self.multi_gpu:
+                with model.no_sync():
+                    loss = self.forward_train(model, self.loss, batch)
+                    loss = loss / iters_to_accumulate
+                    self.ctx.scaler.scale(loss).backward()
+            else:
+                loss = self.forward_train(model, self.loss, batch)
+                loss = loss / iters_to_accumulate
+                self.ctx.scaler.scale(loss).backward()
+
             moving_loss.append(loss.detach().item())
 
             """
@@ -135,7 +148,8 @@ class SupervisedExperiment(Experiment):
                                      trainining_loss=np.mean(moving_loss))
                 moving_loss = []
                 self.save_model(model, filename='last')
-                self.in_validation()
+
+                self.in_validation(model)
 
             self.ctx.update_progress_bar()
 
@@ -147,11 +161,10 @@ class SupervisedExperiment(Experiment):
                                                                       float(np.mean(moving_loss))))
         self.update_scheduler_on_epoch()
 
-    def in_validation(self):
+    def in_validation(self, model):
         valid_loader = self.ctx.valid_loader
         if valid_loader is None:
             return
-        model = self.model
 
         with torch.no_grad():
             self.validate(model, valid_loader, self.loss)
@@ -179,12 +192,13 @@ class SupervisedExperiment(Experiment):
         model.train()
 
     def forward_train(self, model, loss_function, batch):
-        pred = model(*self.pass_data_keys_to_model(batch))
-        if isinstance(pred, tuple):
-            loss = loss_function(*pred, y_true=batch[self.gt_name])
-        else:
-            loss = loss_function(pred, y_true=batch[self.gt_name])
-        return loss
+        with autocast(enabled=self.c['Manager']['amp']):
+            pred = model(*self.pass_data_keys_to_model(batch))
+            if isinstance(pred, tuple):
+                loss = loss_function(*pred, y_true=batch[self.gt_name])
+            else:
+                loss = loss_function(pred, y_true=batch[self.gt_name])
+            return loss
 
     def pass_data_keys_to_model(self, batch):
         args = []
@@ -211,29 +225,30 @@ class SupervisedExperiment(Experiment):
         model._metrics.reset()
         losses = 0
         model.eval()
-        with torch.no_grad():
-            for n, batch in tqdm.tqdm(enumerate(dataloader), total=len(dataloader)):
-                batch = self.batch_to_device(batch, self.ctx.rank)
-                img = batch['image']
-                gt = batch[self.gt_name]
-                proba = model(img)
+        with autocast(enabled=self.c['Manager']['amp']):
+            with torch.no_grad():
+                for n, batch in tqdm.tqdm(enumerate(dataloader), total=len(dataloader)):
+                    batch = self.batch_to_device(batch, self.ctx.rank)
+                    img = batch['image']
+                    gt = batch[self.gt_name]
+                    proba = model(img)
+                    if loss_function:
+                        losses += loss_function(proba, y_true=gt).detach()
+                    proba = self.head_activation(proba)
+
+                    if self.multilabel:
+                        gt = gt.transpose(1, -1).flatten(0, -2)
+                        proba = proba.transpose(1, -1).flatten(0, -2)
+                    model._metrics.update(proba, gt)
+                stats = {k: v.item() for k, v in model._metrics.compute().items()}
+
                 if loss_function:
-                    losses += loss_function(proba, y_true=gt).detach()
-                proba = self.head_activation(proba)
-
-                if self.multilabel:
-                    gt = gt.transpose(1, -1).flatten(0, -2)
-                    proba = proba.transpose(1, -1).flatten(0, -2)
-                model._metrics.update(proba, gt)
-            stats = {k: v.item() for k, v in model._metrics.compute().items()}
-
-            if loss_function:
-                if self.multi_gpu:
-                    losses = reduce_tensor(
-                        losses, self.world_size, mode='sum') / self.world_size
-                losses = losses / n
-                if log_loss:
-                    stats['validation_loss'] = losses.item()
+                    if self.multi_gpu:
+                        losses = reduce_tensor(
+                            losses, self.world_size, mode='sum') / self.world_size
+                    losses = losses / n
+                    if log_loss:
+                        stats['validation_loss'] = losses.item()
 
         model.train()
         return stats

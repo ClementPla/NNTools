@@ -3,6 +3,7 @@ import torch
 import torchmetrics.functional as Fmetric
 from nntools.experiment.supervised_experiment import SupervisedExperiment
 from torchmetrics import CohenKappa, Dice, BinnedPrecisionRecallCurve
+from torch.cuda.amp import autocast
 
 
 class AUCPrecisionRecallCurve(BinnedPrecisionRecallCurve):
@@ -49,16 +50,17 @@ class SegmentationExperiment(SupervisedExperiment):
 
     def validate(self, model, valid_loader, loss_function=None):
         model.eval()
-        with torch.no_grad():
-            for batch in valid_loader:
-                batch = self.batch_to_device(batch, self.ctx.rank)
-                preds = model(*self.pass_data_keys_to_model(batch=batch))
-                preds = self.head_activation(preds)
-                if self.multilabel:
-                    preds = preds > 0.5
-                else:
-                    preds = torch.argmax(preds, 1, keepdim=True)
-                break
+        with autocast(enabled=self.c['Manager']['amp']):
+            with torch.no_grad():
+                for batch in valid_loader:
+                    batch = self.batch_to_device(batch, self.ctx.rank)
+                    preds = model(*self.pass_data_keys_to_model(batch=batch))
+                    preds = self.head_activation(preds)
+                    if self.multilabel:
+                        preds = preds > 0.5
+                    else:
+                        preds = torch.argmax(preds, 1, keepdim=True)
+                    break
 
         self.visualization_images(batch['image'], batch[self.gt_name],
                                   filename='input_images', colors=self.colors)

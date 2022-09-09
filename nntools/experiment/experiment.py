@@ -20,7 +20,7 @@ from nntools.utils.plotting import create_mosaic
 from nntools.utils.random import set_seed, set_non_torch_seed
 from nntools.utils.scheduler import SCHEDULERS
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP, MultiEpochsDataLoader
-from torch.cuda.amp import autocast, GradScaler
+from torch.cuda.amp import GradScaler
 from torch.profiler import ProfilerActivity
 from tqdm.auto import tqdm
 
@@ -322,15 +322,12 @@ class Experiment(Manager):
         self.init_model()
         model = self.get_model_on_device(rank)
         self.ctx.rank = rank
-        self.ctx.model = model
 
         if self.ctx.is_main_process and self.save_jit_model:
             self.save_scripted_model(model)
-
         if self.run_training:
             try:
-                with autocast(enabled=self.c['Manager']['amp']):
-                    self.train(model, rank)
+                self.train(model, rank)
             except KeyboardInterrupt:
                 if self.ctx.is_main_process:
                     Log.warn(
@@ -344,9 +341,8 @@ class Experiment(Manager):
             self.register_trained_model()
 
         if self.call_end_function:
-            self.ctx.model._metrics.reset()
-            with autocast(enabled=self.config['Manager']['amp']):
-                self.end(model)
+            model._metrics.reset()
+            self.end(model)
 
         self.clean_up()
 
@@ -444,11 +440,12 @@ class Experiment(Manager):
         self.ctx.lr_scheduler = lr_scheduler
         self.ctx.scaler = scaler
         self.ctx.optimizer = optimizer
-        if self.run_profiling: self.profile()
+        if self.run_profiling:
+            self.profile(model)
 
         self.main_training_loop(model=model)
 
-    def profile(self):
+    def profile(self, model):
         prof = torch.profiler.profile(
             activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
             schedule=torch.profiler.schedule(wait=2, warmup=2, active=self.config['Manager']['num_workers'] + 1,
@@ -458,21 +455,17 @@ class Experiment(Manager):
             profile_memory=True, with_flops=True,
             with_stack=True)
         prof.start()
-        with autocast(enabled=self.c['Manager']['amp']):
-            for step, batch in enumerate(self.ctx.train_loader):
-                if step >= (2 + 2 + 10) * 2:
-                    break
-                batch = self.batch_to_device(batch, rank=self.ctx.rank)
-                loss = self.forward_train(self.model, self.loss, batch)
-                self.ctx.scaler.scale(loss).backward()
-                self.ctx.scaler.step(self.ctx.optimizer)
-                self.ctx.scaler.update()
-                self.model.zero_grad()
-                prof.step()
+        for step, batch in enumerate(self.ctx.train_loader):
+            if step >= (2 + 2 + 10) * 2:
+                break
+            batch = self.batch_to_device(batch, rank=self.ctx.rank)
+            loss = self.forward_train(model, self.loss, batch)
+            self.ctx.scaler.scale(loss).backward()
+            self.ctx.scaler.step(self.ctx.optimizer)
+            self.ctx.scaler.update()
+            model.zero_grad()
+            prof.step()
         prof.stop()
-
-    def validate(self, model, valid_loader, iteration, loss_function=None):
-        pass
 
     def end(self, model):
         pass
