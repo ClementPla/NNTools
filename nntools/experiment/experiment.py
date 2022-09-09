@@ -184,7 +184,6 @@ class Experiment(Manager):
     def set_model(self, model: nn.Module) -> nn.Module:
         model = nnt_format(model)
         self.model = model
-        return model
 
     def init_model(self):
         pass
@@ -559,7 +558,6 @@ class Experiment(Manager):
 
 @dataclass
 class Context:
-    model = None
     train_loader = None
     train_sampler = None
     valid_loader = None

@@ -9,7 +9,6 @@ from nntools.nnet import FuseLoss, SUPPORTED_LOSS
 from nntools.report.graph import build_bar_plot
 from nntools.utils import reduce_tensor
 from nntools.utils.misc import call_with_filtered_kwargs
-from torch.cuda.amp import autocast
 from torch.nn.utils import clip_grad_norm_
 
 from .experiment import Experiment
@@ -115,7 +114,7 @@ class SupervisedExperiment(Experiment):
         for i, batch in (enumerate(self.ctx.train_loader)):
             self.current_iteration += 1
             batch = self.batch_to_device(batch, rank=self.ctx.rank)
-            loss = self.forward_train(self.model, self.loss, batch)
+            loss = self.forward_train(model, self.loss, batch)
             loss = loss / iters_to_accumulate
             self.ctx.scaler.scale(loss).backward()
             if (i + 1) % iters_to_accumulate == 0:
@@ -152,7 +151,7 @@ class SupervisedExperiment(Experiment):
         valid_loader = self.ctx.valid_loader
         if valid_loader is None:
             return
-        model = self.ctx.model
+        model = self.model
 
         with torch.no_grad():
             self.validate(model, valid_loader, self.loss)
