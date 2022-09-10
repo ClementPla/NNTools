@@ -28,6 +28,7 @@ class SupervisedExperiment(Experiment):
 
         self.multilabel = multilabel
         self.head_activation_exists = False
+        self.n_validation_step = 0
 
     def datasets_summary(self):
 
@@ -112,7 +113,6 @@ class SupervisedExperiment(Experiment):
         moving_loss = []
 
         for i, batch in (enumerate(self.ctx.train_loader)):
-            self.current_iteration += 1
             batch = self.batch_to_device(batch, rank=self.ctx.rank)
 
             if (i + 1) % iters_to_accumulate == 0:
@@ -149,7 +149,10 @@ class SupervisedExperiment(Experiment):
                 moving_loss = []
                 self.save_model(model, filename='last')
 
+                self.n_validation_step += 1
                 self.in_validation(model)
+
+            self.current_iteration += 1
 
             self.ctx.update_progress_bar()
 
@@ -177,7 +180,7 @@ class SupervisedExperiment(Experiment):
             best_state_metric = self.get_state_metric()
 
             if self._trial:
-                self._trial.report(current_metric, self.current_iteration)
+                self._trial.report(current_metric, int(self.current_epoch))
                 if self._trial.should_prune():
                     self.tracker.log_metrics(self.current_iteration, pruned=1)
                     self.tracker.set_status('KILLED')
