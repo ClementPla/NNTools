@@ -185,7 +185,6 @@ class SupervisedExperiment(Experiment):
                     self.tracker.log_metrics(self.current_iteration, pruned=1)
                     self.tracker.set_status('KILLED')
                     raise optuna.TrialPruned()
-
             if (current_metric >= best_state_metric[self.tracked_metric]):
                 filename = ('best_valid_iteration_%i_%s_%.3f' % (
                     self.current_iteration, self.tracked_metric, current_metric)).replace('.', '')
