@@ -1,2 +1,2 @@
-from .utils import quick_load
+from .utils import jit_load
 from .utils.const import *
