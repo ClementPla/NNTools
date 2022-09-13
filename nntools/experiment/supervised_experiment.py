@@ -32,11 +32,11 @@ class SupervisedExperiment(Experiment):
 
     def datasets_summary(self):
 
-        figTrain = build_bar_plot(self.train_dataset.get_class_count(load=False), 'Train dataset')
+        figTrain = build_bar_plot(self.train_dataset.get_class_count(load=True), 'Train dataset')
         self.tracker.log_figures([figTrain, 'train_data_count.png'])
 
         if self.validation_dataset:
-            figValid = build_bar_plot(self.validation_dataset.get_class_count(load=False), 'Valid dataset')
+            figValid = build_bar_plot(self.validation_dataset.get_class_count(load=True), 'Valid dataset')
             self.tracker.log_figures([figValid, 'valid_data_count.png'])
 
         for k, v in self.additional_datasets.items():
@@ -48,7 +48,7 @@ class SupervisedExperiment(Experiment):
                         subtitle = f'{i + 1}/{len(d) + 1}'
                     else:
                         subtitle = ''
-                    figTest = build_bar_plot(dataset.get_class_count(), f'{k} ' + subtitle)
+                    figTest = build_bar_plot(dataset.get_class_count(load=True), f'{k} ' + subtitle)
                     self.tracker.log_figures(
                         [figTest, f'{k}_count_{subtitle}.png'])
 
@@ -61,7 +61,7 @@ class SupervisedExperiment(Experiment):
                     subtitle = f' {i + 1}/{len(d) + 1}'
                 else:
                     subtitle = ''
-                figTest = build_bar_plot(dataset.get_class_count(), 'Test dataset ' + subtitle)
+                figTest = build_bar_plot(dataset.get_class_count(load=True), 'Test dataset ' + subtitle)
                 self.tracker.log_figures(
                     [figTest, f'test_data_count_{subtitle}.png'])
 
