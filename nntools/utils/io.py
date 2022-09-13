@@ -45,7 +45,7 @@ def get_most_recent_file(dirpath, filtername=None):
         return files[-1]
 
 
-def quick_load(project_folder, experiment, run_name, run_id, filename=None, filtername='best'):
+def jit_load(project_folder, experiment, run_name, run_id, filename=None, filtername='best'):
     import torch
     folder_path = os.path.join(project_folder, experiment, run_name, 'trained_model', run_id)
     script_path = os.path.join(folder_path, 'model_scripted.pth')

@@ -53,7 +53,7 @@ class SupervisedExperiment(Experiment):
                         [figTest, f'{k}_count_{subtitle}.png'])
 
         if self.test_dataset:
-            d = self.test_datasetf
+            d = self.test_dataset
             if not isinstance(d, list):
                 d = [d]
             for i, dataset in enumerate(d):
@@ -100,7 +100,7 @@ class SupervisedExperiment(Experiment):
         if self.c['Manager']['amp']:
             self.class_weights = weights.half()
         else:
-            self.class_weights = weights
+            self.class_weights = weights.float()
 
     def train(self, model, rank=0):
         loss_function = self.get_loss(self.class_weights, rank=rank)
