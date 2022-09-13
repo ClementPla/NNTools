@@ -1,5 +1,5 @@
 from .config import Config
-from .io import create_folder, jit_load
+from .io import create_folder
 
 try:
     from .torch import reduce_tensor
