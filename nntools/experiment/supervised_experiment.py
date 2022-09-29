@@ -63,7 +63,7 @@ class SupervisedExperiment(Experiment):
                     subtitle = ''
                 figTest = build_bar_plot(dataset.get_class_count(load=True), 'Test dataset ' + subtitle)
                 self.tracker.log_figures(
-                    [figTest, f'test_data_count_{subtitle}.png'])
+                    [figTest, f'Test_data_count_{subtitle}.png'])
 
     def start(self, run_id=None):
         if self.c['Loss'].get('weighted_loss', False) and self.class_weights is None:
@@ -256,6 +256,8 @@ class SupervisedExperiment(Experiment):
         return stats
 
     def end(self, model):
+        loss_function = self.get_loss(self.class_weights, rank=rank)
+        self.loss = loss_function
         rank = self.ctx.rank
         gpu = self.get_gpu_from_rank(rank)
         map_location = {'cuda:%d' % 0: 'cuda:%d' % gpu}
