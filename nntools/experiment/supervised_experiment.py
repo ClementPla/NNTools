@@ -179,16 +179,19 @@ class SupervisedExperiment(Experiment):
         if self.ctx.is_main_process:
             best_state_metric = self.get_state_metric()
 
-            if self._trial:
-                self._trial.report(current_metric, int(self.current_epoch))
-                if self._trial.should_prune():
-                    self.tracker.log_metrics(self.current_iteration, pruned=1)
-                    self.tracker.set_status('KILLED')
-                    raise optuna.TrialPruned()
+
             if (current_metric >= best_state_metric[self.tracked_metric]):
                 filename = ('best_valid_iteration_%i_%s_%.3f' % (
                     self.current_iteration, self.tracked_metric, current_metric)).replace('.', '')
                 self.save_model(model, filename=filename)
+
+        if self._trial:
+            self._trial.report(current_metric, int(self.current_epoch))
+            if self._trial.should_prune():
+                if self.ctx.is_main_process:
+                    self.tracker.log_metrics(self.current_iteration, pruned=1)
+                    self.tracker.set_status('KILLED')
+                raise optuna.TrialPruned()
 
         self.update_scheduler_on_validation(-current_metric)
         model.train()
