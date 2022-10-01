@@ -331,9 +331,9 @@ class Experiment(Manager):
 
         if self._trial and self.multi_gpu:
             if self.ctx.is_main_process:
-                self._trial = TorchDistributedTrial(self._trial)
+                self._trial = TorchDistributedTrial(self._trial, self.ctx.rank)
             else:
-                self._trial = TorchDistributedTrial(None)
+                self._trial = TorchDistributedTrial(None, self.ctx.rank)
 
         if self.ctx.is_main_process and self.save_jit_model:
             self.save_scripted_model(model)
