@@ -186,7 +186,8 @@ class SupervisedExperiment(Experiment):
                 self.save_model(model, filename=filename)
 
         if self._trial:
-            self._trial.report(current_metric, int(self.current_epoch))
+            if self.ctx.is_main_process:
+                self._trial.report(current_metric, int(self.current_epoch))
             if self._trial.should_prune():
                 if self.ctx.is_main_process:
                     self.tracker.log_metrics(self.current_iteration, pruned=1)
