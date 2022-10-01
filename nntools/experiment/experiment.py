@@ -258,12 +258,16 @@ class Experiment(Manager):
     def get_dataloader(self, dataset, shuffle=True,
                        batch_size=None,
                        num_workers=None,
-                       drop_last=False, persistent_workers=True, rank=0):
+                       drop_last=False,
+                       persistent_workers=False,
+                       rank=0):
 
         num_workers = self.config['Manager']['num_workers'] if num_workers is None else num_workers
+        persistent_workers = persistent_workers | self.config['Manager'].get('persistent_workers', False)
 
         exp_dataloader = self.config['Manager'].get(
             'experimental_dataloader', False)
+
         c_shuffle = self.config['Dataset'].get('shuffle', True)
         shuffle = shuffle & c_shuffle
 
@@ -280,14 +284,15 @@ class Experiment(Manager):
                                                      pin_memory=True, shuffle=shuffle if sampler is None else False,
                                                      sampler=sampler,
                                                      worker_init_fn=set_non_torch_seed, drop_last=drop_last,
-                                                     persistent_workers=persistent_workers if num_workers else False)
+                                                     persistent_workers=persistent_workers)
         else:
             dataloader = MultiEpochsDataLoader(dataset, batch_size=batch_size,
                                                num_workers=num_workers,
-                                               pin_memory=True, shuffle=shuffle if sampler is None else False,
+                                               pin_memory=True,
+                                               shuffle=shuffle if sampler is None else False,
                                                sampler=sampler,
                                                worker_init_fn=set_non_torch_seed, drop_last=drop_last,
-                                               persistent_workers=persistent_workers if num_workers else False)
+                                               persistent_workers=persistent_workers)
 
         return dataloader, sampler
 
