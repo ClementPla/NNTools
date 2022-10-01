@@ -114,8 +114,9 @@ class SupervisedExperiment(Experiment):
 
         for i, batch in (enumerate(self.ctx.train_loader)):
             batch = self.batch_to_device(batch, rank=self.ctx.rank)
+            will_validate = self.current_iteration % self.c['Validation']['log_interval'] == 0
 
-            if (i + 1) % iters_to_accumulate == 0:
+            if ((i + 1) % iters_to_accumulate == 0) or will_validate:
                 loss = self.forward_train(model, self.loss, batch)
                 loss = loss / iters_to_accumulate
                 self.ctx.scaler.scale(loss).backward()
@@ -142,7 +143,7 @@ class SupervisedExperiment(Experiment):
             """
             Validation step
             """
-            if self.current_iteration % self.c['Validation']['log_interval'] == 0:
+            if will_validate:
                 if moving_loss:
                     self.log_metrics(self.current_iteration,
                                      trainining_loss=np.mean(moving_loss))
@@ -178,8 +179,6 @@ class SupervisedExperiment(Experiment):
         current_metric = self.metrics[self.tracked_metric]
         if self.ctx.is_main_process:
             best_state_metric = self.get_state_metric()
-
-
             if (current_metric >= best_state_metric[self.tracked_metric]):
                 filename = ('best_valid_iteration_%i_%s_%.3f' % (
                     self.current_iteration, self.tracked_metric, current_metric)).replace('.', '')
