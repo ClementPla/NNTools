@@ -191,7 +191,7 @@ class SupervisedExperiment(Experiment):
                 if self.ctx.is_main_process:
                     self.tracker.log_metrics(self.current_iteration, pruned=1)
                     self.tracker.set_status('KILLED')
-                raise optuna.TrialPruned()
+                    raise optuna.TrialPruned()
 
         self.update_scheduler_on_validation(-current_metric)
         model.train()
