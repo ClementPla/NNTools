@@ -23,6 +23,7 @@ from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP, Mu
 from torch.cuda.amp import GradScaler
 from torch.profiler import ProfilerActivity
 from tqdm.auto import tqdm
+from optuna.integration.pytorch_distributed import TorchDistributedTrial
 
 
 class Manager(ABC):
@@ -327,6 +328,12 @@ class Experiment(Manager):
         self.init_model()
         model = self.get_model_on_device(rank)
         self.ctx.rank = rank
+
+        if self._trial and self.multi_gpu:
+            if self.ctx.is_main_process:
+                self._trial = TorchDistributedTrial(self._trial)
+            else:
+                self._trial = TorchDistributedTrial(None)
 
         if self.ctx.is_main_process and self.save_jit_model:
             self.save_scripted_model(model)
