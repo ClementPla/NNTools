@@ -92,7 +92,8 @@ class Manager(ABC):
     def log_metrics(self, step, **metrics):
         metrics = {k: tensor2num(v) for k, v in metrics.items()}
 
-        for k, v in metrics.items():
+        for k in list(metrics.keys()):
+            v = metrics[k]
             if isinstance(v, np.ndarray):
                 fig = plt_cmap(v)
                 self.tracker.log_figures((fig, k+'.png'))
