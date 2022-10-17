@@ -95,7 +95,7 @@ class Manager(ABC):
         for k, v in metrics.items():
             if isinstance(v, np.ndarray):
                 fig = plt_cmap(v)
-                self.tracker.log_figures((k, fig))
+                self.tracker.log_figures((fig, k+'.png'))
                 del metrics[k]
 
         if self.ctx.is_main_process:
