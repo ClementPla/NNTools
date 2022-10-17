@@ -1,5 +1,6 @@
 import inspect
 from functools import partial
+import numbers
 
 
 def to_iterable(param, iterable_type=list):
@@ -26,3 +27,13 @@ def call_with_filtered_kwargs(func, dict_args):
 
 def identity(x):
     return x
+
+
+def tensor2num(x):
+
+    if isinstance(x, numbers.Number):
+        return x
+    if x.dim() == 0:
+        return x.item()
+    else:
+        return x.detach().cpu().numpy()

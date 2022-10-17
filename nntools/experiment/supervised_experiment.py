@@ -245,7 +245,7 @@ class SupervisedExperiment(Experiment):
                         gt = gt.transpose(1, -1).flatten(0, -2)
                         proba = proba.transpose(1, -1).flatten(0, -2)
                     model._metrics.update(proba, gt)
-                stats = {k: v.item() for k, v in model._metrics.compute().items()}
+                stats = {k: v for k, v in model._metrics.compute().items()}
 
                 if loss_function:
                     if self.multi_gpu:
@@ -259,9 +259,9 @@ class SupervisedExperiment(Experiment):
         return stats
 
     def end(self, model):
+        rank = self.ctx.rank
         loss_function = self.get_loss(self.class_weights, rank=rank)
         self.loss = loss_function
-        rank = self.ctx.rank
         gpu = self.get_gpu_from_rank(rank)
         map_location = {'cuda:%d' % 0: 'cuda:%d' % gpu}
         model.load(self.tracker.network_savepoint, load_most_recent=True, map_location=map_location, strict=False,

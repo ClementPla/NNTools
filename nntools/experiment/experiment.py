@@ -8,15 +8,16 @@ import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch.nn as nn
+import numpy as np
 from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
 from nntools.dataset.utils import concat_datasets_if_needed
 from nntools.nnet import nnt_format
 from nntools.tracker import Log, Tracker
 from nntools.utils import Config
 from nntools.utils.io import save_yaml
-from nntools.utils.misc import partial_fill_kwargs
+from nntools.utils.misc import partial_fill_kwargs, tensor2num
 from nntools.utils.optims import OPTIMS
-from nntools.utils.plotting import create_mosaic
+from nntools.utils.plotting import create_mosaic, plt_cmap
 from nntools.utils.random import set_seed, set_non_torch_seed
 from nntools.utils.scheduler import SCHEDULERS
 from nntools.utils.torch import DistributedDataParallelWithAttributes as DDP, MultiEpochsDataLoader
@@ -89,6 +90,14 @@ class Manager(ABC):
         return self.gpu[rank]
 
     def log_metrics(self, step, **metrics):
+        metrics = {k: tensor2num(v) for k, v in metrics.items()}
+
+        for k, v in metrics.items():
+            if isinstance(v, np.ndarray):
+                fig = plt_cmap(v)
+                self.tracker.log_figures(*(k, fig))
+                del metrics[k]
+
         if self.ctx.is_main_process:
             self.tracker.log_metrics(step, **metrics)
 
