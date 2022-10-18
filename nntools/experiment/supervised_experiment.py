@@ -230,30 +230,30 @@ class SupervisedExperiment(Experiment):
         model._metrics.reset()
         losses = 0
         model.eval()
-        with autocast(enabled=self.c['Manager']['amp']):
-            with torch.no_grad():
-                for n, batch in tqdm.tqdm(enumerate(dataloader), total=len(dataloader)):
-                    batch = self.batch_to_device(batch, self.ctx.rank)
-                    img = batch['image']
-                    gt = batch[self.gt_name]
+        with torch.no_grad():
+            for n, batch in tqdm.tqdm(enumerate(dataloader), total=len(dataloader)):
+                batch = self.batch_to_device(batch, self.ctx.rank)
+                img = batch['image']
+                gt = batch[self.gt_name]
+                with autocast(enabled=self.c['Manager']['amp']):
                     proba = model(img)
-                    if loss_function:
-                        losses += loss_function(proba, y_true=gt).detach()
-                    proba = self.head_activation(proba)
-
-                    if self.multilabel:
-                        gt = gt.transpose(1, -1).flatten(0, -2)
-                        proba = proba.transpose(1, -1).flatten(0, -2)
-                    model._metrics.update(proba, gt)
-                stats = {k: v for k, v in model._metrics.compute().items()}
-
                 if loss_function:
-                    if self.multi_gpu:
-                        losses = reduce_tensor(
-                            losses, self.world_size, mode='sum') / self.world_size
-                    losses = losses / n
-                    if log_loss:
-                        stats['validation_loss'] = losses.item()
+                    losses += loss_function(proba, y_true=gt).detach()
+                proba = self.head_activation(proba)
+
+                if self.multilabel:
+                    gt = gt.transpose(1, -1).flatten(0, -2)
+                    proba = proba.transpose(1, -1).flatten(0, -2)
+                model._metrics.update(proba, gt)
+            stats = {k: v for k, v in model._metrics.compute().items()}
+
+            if loss_function:
+                if self.multi_gpu:
+                    losses = reduce_tensor(
+                        losses, self.world_size, mode='sum') / self.world_size
+                losses = losses / n
+                if log_loss:
+                    stats['validation_loss'] = losses.item()
 
         model.train()
         return stats
