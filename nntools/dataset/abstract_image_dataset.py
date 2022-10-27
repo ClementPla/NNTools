@@ -10,10 +10,11 @@ import torch
 import tqdm
 from nntools.dataset.image_tools import resize
 from nntools.tracker.logger import Log
-from nntools.utils.io import read_image
+from nntools.utils.io import read_image, path_leaf
 from nntools.utils.misc import to_iterable, identity
 from nntools.utils.plotting import plot_images
 from torch.utils.data import Dataset
+
 
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
 supportedExtensions = supportedExtensions + [ext.upper() for ext in supportedExtensions]
@@ -68,6 +69,10 @@ class AbstractImageDataset(Dataset):
     @property
     def real_length(self):
         return len(self.img_filepath['image'])
+
+    @property
+    def filenames(self):
+        return {k: [path_leaf(f) for f in v] for k, v in self.img_filepath.items()}
 
     def list_files(self, recursive):
         pass
