@@ -75,7 +75,7 @@ class Tracker:
                 self._tags.append(tags)
 
     def list_existing_runs(self):
-        return self.client.list_run_infos(self.exp_id)
+        return self.client.search_runs(self.exp_id)
 
     def check_is_run_exists(self, run_id):
         list_runs = self.list_existing_runs()
