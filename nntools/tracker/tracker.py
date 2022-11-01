@@ -79,7 +79,7 @@ class Tracker:
 
     def check_is_run_exists(self, run_id):
         list_runs = self.list_existing_runs()
-        return any([r.run_id == run_id for r in list_runs])
+        return any([r.info.run_id == run_id for r in list_runs])
 
     def check_run_status(self, run_id):
 
