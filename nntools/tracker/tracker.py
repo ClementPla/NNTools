@@ -63,6 +63,7 @@ class Tracker:
     def log_figures(self, *figures):
         if self.run_started:
             log_figures(self, *figures)
+
         else:
             self._figures.append(figures)
 
