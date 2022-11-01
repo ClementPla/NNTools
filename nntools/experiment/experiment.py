@@ -66,7 +66,7 @@ class Manager(ABC):
         Log.warn('Initializing tracker')
         if run_id is None and self.tracker.run_id is None:
             self.continue_training = False
-            self.tracker.create_run()
+            self.tracker.create_run(run_name=self.config['Manager']['run'])
         else:
             self.tracker.set_run_id(run_id)
             self.tracker.initialize_run()

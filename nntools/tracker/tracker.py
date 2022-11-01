@@ -87,10 +87,10 @@ class Tracker:
             return 'ABSENT'
         return self.get_run(run_id).info.status
 
-    def create_run(self, tags=None):
+    def create_run(self, tags=None, run_name=None):
         if tags is None:
             tags = {}
-        run = self.client.create_run(experiment_id=self.exp_id, tags=tags)
+        run = self.client.create_run(experiment_id=self.exp_id, tags=tags, run_name=run_name)
         self.run_id = run.info.run_id
         self.run_started = True
         self.initialize_run()
