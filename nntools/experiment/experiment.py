@@ -119,7 +119,7 @@ class Manager(ABC):
     def find_similar_run(self):
         list_runs = self.tracker.list_existing_runs()
         for r in list_runs:
-            run = self.tracker.get_run(r.run_id)
+            run = self.tracker.get_run(r.info.run_id)
             run_name = run.data.tags[MLFLOW_RUN_NAME]
             if run_name == self.config['Manager']['run']:
                 return r.run_id
