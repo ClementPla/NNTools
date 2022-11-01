@@ -122,7 +122,7 @@ class Manager(ABC):
             run = self.tracker.get_run(r.info.run_id)
             run_name = run.data.tags[MLFLOW_RUN_NAME]
             if run_name == self.config['Manager']['run']:
-                return r.run_id
+                return r.info.run_id
         return False
 
     @property
