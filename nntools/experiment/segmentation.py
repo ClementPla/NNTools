@@ -50,8 +50,8 @@ class SegmentationExperiment(SupervisedExperiment):
 
     def validate(self, model, valid_loader, loss_function=None):
         model.eval()
-        with autocast(enabled=self.c['Manager']['amp']):
-            with torch.no_grad():
+        with torch.no_grad():
+            with autocast(enabled=self.c['Manager']['amp']):
                 for batch in valid_loader:
                     batch = self.batch_to_device(batch, self.ctx.rank)
                     preds = model(*self.pass_data_keys_to_model(batch=batch))
@@ -63,7 +63,7 @@ class SegmentationExperiment(SupervisedExperiment):
                     break
 
         self.visualization_images(batch['image'], batch[self.gt_name],
-                                  filename='input_images', colors=self.colors)
+                                  filename=f'input_images_{self.ctx.rank}', colors=self.colors)
         self.visualization_images(batch['image'], preds,
-                                  filename='output_images', colors=self.colors)
+                                  filename=f'output_images_{self.ctx.rank}', colors=self.colors)
         return super().validate(model, valid_loader, loss_function)
