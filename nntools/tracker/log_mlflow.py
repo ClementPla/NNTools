@@ -1,7 +1,7 @@
 import os
 import time
 import numpy as np
-
+import matplotlib.pyplot as plt
 def log_params(tracker, **params):
     run_id = tracker.run_id
     client = tracker.client
@@ -40,4 +40,4 @@ def log_figures(tracker, *figures: tuple):
     client = tracker.client
     for fig, figname in figures:
         client.log_figure(run_id, fig, figname)
-        fig.close()
+    plt.close('all')
