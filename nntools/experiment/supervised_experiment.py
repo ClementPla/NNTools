@@ -39,18 +39,22 @@ class SupervisedExperiment(Experiment):
             figValid = build_bar_plot(self.validation_dataset.get_class_count(load=True), 'Valid dataset')
             self.tracker.log_figures([figValid, 'valid_data_count.png'])
 
-        for k, v in self.additional_datasets.items():
-            d = v
-            if not isinstance(d, list):
-                d = [d]
-                for i, dataset in enumerate(d):
-                    if len(d) > 1:
-                        subtitle = f'{i + 1}/{len(d) + 1}'
-                    else:
-                        subtitle = ''
-                    figTest = build_bar_plot(dataset.get_class_count(load=True), f'{k} ' + subtitle)
-                    self.tracker.log_figures(
-                        [figTest, f'{k}_count_{subtitle}.png'])
+            for k, v in self.additional_datasets.items():
+                try:
+                    d = v
+                    if not isinstance(d, list):
+                        d = [d]
+                        for i, dataset in enumerate(d):
+                            if len(d) > 1:
+                                subtitle = f'{i + 1}/{len(d) + 1}'
+                            else:
+                                subtitle = ''
+                            figTest = build_bar_plot(dataset.get_class_count(load=True), f'{k} ' + subtitle)
+                            self.tracker.log_figures(
+                                [figTest, f'{k}_count_{subtitle}.png'])
+                except TypeError:
+                    print(f"Dataset {k} doesn't seem to have a groundtruth")
+                    pass
 
         if self.test_dataset:
             d = self.test_dataset
