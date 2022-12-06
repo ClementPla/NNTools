@@ -2,7 +2,7 @@ import segmentation_models_pytorch as smp
 import torch
 import torchmetrics.functional as Fmetric
 from nntools.experiment.supervised_experiment import SupervisedExperiment
-from torchmetrics import CohenKappa, Dice, PrecisionRecallCurve
+from torchmetrics import JaccardIndex, Dice, PrecisionRecallCurve
 from torch.cuda.amp import autocast
 
 
@@ -39,9 +39,12 @@ class SegmentationExperiment(SupervisedExperiment):
         n_classes = model_setup.pop('n_classes', None)
         model = smp.create_model(model_name, classes=n_classes, **model_setup)
         self.set_model(model)
-        self.model.add_metric({'CohenKappa': CohenKappa(self.n_classes),
-                               'Dice': Dice(self.n_classes),
-                               'class_score': AUCPrecisionRecallCurve(self.n_classes)})
+
+
+
+        self.model.add_metric({'Dice': Dice(num_classes=self.n_classes, task=task),
+                               'mIoU': JaccardIndex(num_classes=self.n_classes, task=task),
+                               'class_score': AUCPrecisionRecallCurve(num_classes=self.n_classes, task=task)})
 
     def setup_class_weights(self, weights: torch.Tensor):
         if self.multilabel:
