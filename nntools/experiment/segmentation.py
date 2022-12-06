@@ -2,11 +2,11 @@ import segmentation_models_pytorch as smp
 import torch
 import torchmetrics.functional as Fmetric
 from nntools.experiment.supervised_experiment import SupervisedExperiment
-from torchmetrics import CohenKappa, Dice, BinnedPrecisionRecallCurve
+from torchmetrics import CohenKappa, Dice, PrecisionRecallCurve
 from torch.cuda.amp import autocast
 
 
-class AUCPrecisionRecallCurve(BinnedPrecisionRecallCurve):
+class AUCPrecisionRecallCurve(PrecisionRecallCurve):
     def compute(self):
         precision, recall, thresholds = super(AUCPrecisionRecallCurve, self).compute()
 
