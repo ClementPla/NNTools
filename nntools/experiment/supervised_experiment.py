@@ -230,10 +230,12 @@ class SupervisedExperiment(Experiment):
             else:
                 return torch.softmax(preds, 1)
 
-    def eval_model(self, model, dataloader, loss_function=None, log_loss=True):
+    def eval_model(self, model, dataloader, loss_function=None, log_loss=True, return_arrays=False):
         model._metrics.reset()
         losses = 0
         model.eval()
+        gts_array = []
+        probas_array = []
         with torch.no_grad():
             for n, batch in tqdm.tqdm(enumerate(dataloader), total=len(dataloader)):
                 batch = self.batch_to_device(batch, self.ctx.rank)
@@ -248,6 +250,10 @@ class SupervisedExperiment(Experiment):
                 if self.multilabel:
                     gt = gt.transpose(1, -1).flatten(0, -2)
                     proba = proba.transpose(1, -1).flatten(0, -2)
+
+                if return_arrays:
+                    gts_array.append(gt.cpu())
+                    probas_array.append(proba)
                 model._metrics.update(proba, gt)
             stats = {k: v for k, v in model._metrics.compute().items()}
 
@@ -260,7 +266,10 @@ class SupervisedExperiment(Experiment):
                     stats['validation_loss'] = losses.item()
 
         model.train()
-        return stats
+        if return_arrays:
+            return stats, (gts_array, probas_array)
+        else:
+            return stats
 
     def end(self, model):
         rank = self.ctx.rank
