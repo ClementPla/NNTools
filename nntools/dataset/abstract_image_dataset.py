@@ -40,6 +40,8 @@ class AbstractImageDataset(Dataset):
             self.path_img = to_iterable(img_url)
         self.composer = None
         self.keep_size_ratio = keep_size_ratio
+        if isinstance(shape, int):
+            shape = (shape, shape)
         self.shape = tuple(shape)
         self.recursive_loading = recursive_loading
 

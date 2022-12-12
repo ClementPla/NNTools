@@ -27,6 +27,30 @@ class MultiImageDataset(AbstractImageDataset):
                                                 extract_image_id_function=extract_image_id_function,
                                                 use_cache=use_cache)
 
+    def match_images_number_per_folder(self, filenames_per_folder):
+
+        list_lengths = [len(img_filenames) for img_filenames in filenames_per_folder.values()]
+        if self.filling_strategy == NN_FILL_DOWNSAMPLE:
+            Log.warn("Downsampling the dataset to size %i" % min(list_lengths))
+            smallest_list = sorted(filenames_per_folder.values(), key=lambda x: len(x))[0]
+
+            for k in self.img_filepath.keys():
+                self.img_filepath[k] = np.asarray(
+                    [img for img, filename in zip(self.img_filepath[k], filenames_per_folder[k]) if filename in
+                     smallest_list])
+        elif self.filling_strategy == NN_FILL_UPSAMPLE:
+            Log.warn("Upsampling missing labels to fit the dataset's size (%i)" % max(list_lengths))
+
+            largest_list = sorted(filenames_per_folder.values(), key=lambda x: len(x))[-1]
+            for k in self.img_filepath.keys():
+                root_k = []
+                for img_name in largest_list:
+                    if img_name in filenames_per_folder[k]:
+                        root_k.append(self.img_filepath[k][filenames_per_folder[k].index(img_name)])
+                    else:
+                        root_k.append(MISSING_DATA_FLAG)
+                self.img_filepath[k] = np.asarray(root_k)
+
     def list_files(self, recursive):
         self.img_filepath = {k: [] for k in self.root_path.keys()}
 
@@ -52,42 +76,9 @@ class MultiImageDataset(AbstractImageDataset):
         if not all_equal:
             Log.warn("Mismatch between the size of the different input folders (smaller %i, longer %i)" % (min(
                 list_lengths), max(list_lengths)))
+            self.match_images_number_per_folder(imgs_filenames)
 
-            list_common_file = []
-            for k, img_filenames in imgs_filenames.items():
-                list_common_file += img_filenames
-
-            intersection = set(list_common_file)
-
-            if self.filling_strategy == NN_FILL_DOWNSAMPLE:
-                Log.warn("Downsampling the dataset to size %i" % min(list_lengths))
-
-                for k in self.img_filepath.keys():
-                    self.img_filepath[k] = np.asarray(
-                        [img for img, filename in zip(self.img_filepath[k], imgs_filenames[k]) if filename in
-                         intersection])
-            elif self.filling_strategy == NN_FILL_UPSAMPLE:
-                Log.warn("Upsampling missing labels to fit the dataset's size (%i)" % max(list_lengths))
-                max_size = 0
-                for k, list_file in imgs_filenames.items():
-                    if len(list_file) > max_size:
-                        max_size = len(list_file)
-                        largest_list = list_file
-                for k in self.img_filepath.keys():
-                    root_k = []
-                    for img_name in largest_list:
-                        if img_name in imgs_filenames[k]:
-                            root_k.append(self.img_filepath[k][imgs_filenames[k].index(img_name)])
-                        else:
-                            root_k.append(MISSING_DATA_FLAG)
-                    self.img_filepath[k] = np.asarray(root_k)
-
-        if self.extract_image_id_function is None and self.filling_strategy == NN_FILL_DOWNSAMPLE:
-            for k in self.img_filepath.keys():
-                img_argsort = np.argsort(self.img_filepath[k])
-                self.img_filepath[k] = self.img_filepath[k][img_argsort]
-
-        elif self.filling_strategy == NN_FILL_DOWNSAMPLE:
+        if self.filling_strategy == NN_FILL_DOWNSAMPLE:
             for k in self.img_filepath.keys():
                 img_argsort = np.argsort([self.extract_image_id_function(x) for x in imgs_filenames[k]])
                 self.img_filepath[k] = self.img_filepath[k][img_argsort]
