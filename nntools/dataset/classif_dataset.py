@@ -1,6 +1,7 @@
 import glob
 import os
 
+import cv2
 import numpy as np
 
 from .abstract_image_dataset import AbstractImageDataset, supportedExtensions
@@ -18,7 +19,8 @@ class ClassificationDataset(AbstractImageDataset):
                  file_column='image',
                  gt_column='label',
                  extract_image_id_function=None,
-                 use_cache=False):
+                 use_cache=False,
+                 flag=cv2.IMREAD_COLOR):
         self.map_class = map_class
         self.label_present = label_present
         self.label_per_folder = label_per_folder if csv_filepath is None else False
@@ -28,7 +30,8 @@ class ClassificationDataset(AbstractImageDataset):
             gt_column = [gt_column]
         self.gt_column = gt_column
         super(ClassificationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading,
-                                                    extract_image_id_function, use_cache)
+                                                    extract_image_id_function, use_cache,
+                                                    flag=flag)
 
     def list_files(self, recursive):
         for extension in supportedExtensions:

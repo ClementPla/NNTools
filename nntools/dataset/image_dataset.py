@@ -18,14 +18,14 @@ class MultiImageDataset(AbstractImageDataset):
                  recursive_loading=True,
                  extract_image_id_function=None,
                  use_cache=False,
-                 filling_strategy=NN_FILL_DOWNSAMPLE):
+                 filling_strategy=NN_FILL_DOWNSAMPLE, flag=cv2.IMREAD_COLOR):
 
         self.root_path = {k: to_iterable(path) for k, path in img_url.items()}
         self.filling_strategy = filling_strategy
         super(MultiImageDataset, self).__init__(shape=shape, keep_size_ratio=keep_size_ratio,
                                                 recursive_loading=recursive_loading,
                                                 extract_image_id_function=extract_image_id_function,
-                                                use_cache=use_cache)
+                                                use_cache=use_cache, flag=flag)
 
     def match_images_number_per_folder(self, filenames_per_folder):
 

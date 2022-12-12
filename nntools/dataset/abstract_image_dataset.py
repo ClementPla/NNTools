@@ -28,7 +28,8 @@ class AbstractImageDataset(Dataset):
                  keep_size_ratio=False,
                  recursive_loading=True,
                  extract_image_id_function=None,
-                 use_cache=False):
+                 use_cache=False,
+                 flag=cv2.IMREAD_COLOR):
 
         super(AbstractImageDataset, self).__init__()
 
@@ -64,6 +65,7 @@ class AbstractImageDataset(Dataset):
         self.return_tag = False
 
         self.ignore_keys = []
+        self.flag = flag
 
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
@@ -84,7 +86,7 @@ class AbstractImageDataset(Dataset):
 
     def load_image(self, item):
         filepath = self.img_filepath['image'][item]
-        img = read_image(filepath)
+        img = read_image(filepath, self.flag)
         if self.auto_resize:
             img = resize(image=img, shape=self.shape,
                          keep_size_ratio=self.keep_size_ratio)

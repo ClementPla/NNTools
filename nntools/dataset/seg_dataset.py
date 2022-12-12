@@ -20,7 +20,7 @@ class SegmentationDataset(AbstractImageDataset):
                  n_classes=None,
                  extract_image_id_function=None,
                  use_cache=False,
-                 filling_strategy=NN_FILL_UPSAMPLE):
+                 filling_strategy=NN_FILL_UPSAMPLE, flag=cv2.IMREAD_COLOR):
 
         if mask_url is None or mask_url == '':
             self.path_masks = None
@@ -35,7 +35,7 @@ class SegmentationDataset(AbstractImageDataset):
 
         super(SegmentationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading,
                                                   extract_image_id_function,
-                                                  use_cache)
+                                                  use_cache, flag=flag)
 
     def get_class_count(self, save=False, load=False):
         from .utils import get_segmentation_class_count
