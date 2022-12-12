@@ -70,12 +70,12 @@ class ClassificationDataset(AbstractImageDataset):
                 self.gts[k] = np.asarray(value)
 
             if self.map_class is None:
-                self.map_class = {unique_labels[i]: i for i in np.arange(len(unique_labels))}
+                self.map_class = {i: unique_labels[i] for i in np.arange(len(unique_labels))}
 
             if len(self.gt_column) == 1:
                 col_label = self.gt_column[0]
                 for k, v in self.map_class.items():
-                    self.gts[col_label][self.gts[col_label] == k] = v
+                    self.gts[col_label][self.gts[col_label] == v] = k
                 self.gts[col_label] = self.gts[col_label].astype(int)
 
     def get_class_count(self, load=True, save=True):
