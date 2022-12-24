@@ -99,7 +99,7 @@ class MultiImageDataset(AbstractImageDataset):
                 img = read_image(filepath)
                 if self.auto_resize:
                     img = resize(image=img, shape=self.shape, keep_size_ratio=self.keep_size_ratio,
-                                 flag=cv2.INTER_NEAREST)
+                                 flag=cv2.INTER_CUBIC)
             inputs[k] = img
 
         return inputs
