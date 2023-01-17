@@ -75,12 +75,14 @@ class AbstractNet(nn.Module):
     #     model_scripted.save(path)
 
     def load(self, path, ignore_nan=False, load_most_recent=False, strict=False, map_location=None, filtername=None,
-             allow_size_mismatch=True):
+             allow_size_mismatch=True,
+             verbose=True):
         if map_location is None:
             map_location = torch.device('cpu')
         if load_most_recent:
             path = get_most_recent_file(path, filtername)
-        print("Loading model from ", path)
+        if verbose:
+            print("Loading model from ", path)
 
         state_dict = torch.load(path, map_location=map_location)['model_state_dict']
         if allow_size_mismatch and not strict:
