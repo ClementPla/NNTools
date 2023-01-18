@@ -104,12 +104,11 @@ class AbstractImageDataset(Dataset):
                     if self.auto_pad:
                         img_shape = img.shape[:2]
                         if img_shape != self.shape:
-                            print(self.shape, img_shape) # TODO: debug
                             dif_h = self.shape[0] - img_shape[0]
                             dif_w = self.shape[1] - img_shape[1]
                             pad_h, c_h = divmod(dif_h, 2)
                             pad_w, c_w = divmod(dif_w, 2)
-                            img = np.pad(img, [(pad_h, pad_h+c_h), (pad_w, pad_w+c_w)])
+                            img = np.pad(img, [(pad_h, pad_h+c_h), (pad_w, pad_w+c_w), (0,0)])
 
             inputs[k] = img
 
