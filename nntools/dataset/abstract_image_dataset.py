@@ -66,6 +66,10 @@ class AbstractImageDataset(Dataset):
 
         self.ignore_keys = []
         self.flag = flag
+        self.cache_initialized = False
+        self.cache_filled = False
+        if self.use_cache:
+            self.init_cache()
 
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
@@ -120,6 +124,7 @@ class AbstractImageDataset(Dataset):
                 shared_array[0] = arr
                 shared_arrays[key] = shared_array
         self.shared_arrays = shared_arrays
+        self.cache_initialized = True
 
     def cache(self):
         self.use_cache = False
@@ -132,10 +137,18 @@ class AbstractImageDataset(Dataset):
         self.use_cache = True
 
     def load_array(self, item):
-        if self.use_cache:
-            return self.read_sharred_array(item)
-        else:
+        if not self.use_cache:
             return self.load_image(item)
+        else:
+            if not self.cache_initialized:
+                self.init_cache()
+            if not self.cache_filled:
+                arrays = self.load_image(item)
+                for k, array in arrays.items():
+                    self.shared_arrays[k][item] = array
+                return arrays
+
+            return {k: v[item] for k, v in self.shared_arrays.items()}
 
     def columns(self):
         return (self.img_filepath.keys(), self.gts.keys())
