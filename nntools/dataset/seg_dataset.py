@@ -136,7 +136,7 @@ class SegmentationDataset(AbstractImageDataset):
                         dif_w = self.shape[1] - img_shape[1]
                         pad_h, c_h = divmod(dif_h, 2)
                         pad_w, c_w = divmod(dif_w, 2)
-                        mask = np.pad(mask, [(pad_h, pad_h + c_h), (pad_w, pad_w + c_w), (0, 0)])
+                        mask = np.pad(mask, [(pad_h, pad_h + c_h), (pad_w, pad_w + c_w)])
 
                 inputs[k] = mask
 
