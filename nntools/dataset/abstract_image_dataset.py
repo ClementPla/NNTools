@@ -15,6 +15,7 @@ from nntools.utils.misc import to_iterable, identity
 from nntools.utils.plotting import plot_images
 from torch.utils.data import Dataset
 
+from nntools import NN_FILL_UPSAMPLE, NN_FILL_DOWNSAMPLE, MISSING_DATA_FLAG
 
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
 supportedExtensions = supportedExtensions + [ext.upper() for ext in supportedExtensions]
@@ -29,6 +30,7 @@ class AbstractImageDataset(Dataset):
                  recursive_loading=True,
                  extract_image_id_function=None,
                  use_cache=False,
+                 auto_pad=True,
                  flag=cv2.IMREAD_COLOR):
 
         super(AbstractImageDataset, self).__init__()
@@ -53,6 +55,7 @@ class AbstractImageDataset(Dataset):
         self.auto_resize = True
         self.return_indices = False
         self.list_files(recursive_loading)
+        self.auto_pad = auto_pad
 
         self.use_cache = use_cache
         self.cmap_name = 'jet_r'
@@ -88,12 +91,28 @@ class AbstractImageDataset(Dataset):
         return {k: self.shared_arrays[k][item] for k in self.shared_arrays}
 
     def load_image(self, item):
-        filepath = self.img_filepath['image'][item]
-        img = read_image(filepath, self.flag)
-        if self.auto_resize:
-            img = resize(image=img, shape=self.shape,
-                         keep_size_ratio=self.keep_size_ratio)
-        return {'image': img}
+        inputs = {}
+        for k, file_list in self.img_filepath.items():
+            filepath = file_list[item]
+            if filepath == MISSING_DATA_FLAG and self.filling_strategy == NN_FILL_UPSAMPLE:
+                img = np.zeros(self.shape, dtype=np.uint8)
+            else:
+                img = read_image(filepath)
+                if self.auto_resize:
+                    img = resize(image=img, shape=self.shape, keep_size_ratio=self.keep_size_ratio,
+                                 flag=cv2.INTER_CUBIC)
+                if self.auto_pad:
+                    img_shape = img.shape[:2]
+                    if img_shape != self.shape:
+                        dif_h = img_shape[0]-self.shape[0]
+                        dif_w = img_shape[1]-self.shape[1]
+                        pad_h, c_h = divmod(dif_h, 2)
+                        pad_w, c_w = divmod(dif_w, 2)
+                        img = np.pad(img, [(pad_h, pad_h+c_h), (pad_w, pad_w+c_w)])
+
+            inputs[k] = img
+
+        return inputs
 
     def multiply_size(self, factor):
         assert factor > 1

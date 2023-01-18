@@ -20,6 +20,7 @@ class ClassificationDataset(AbstractImageDataset):
                  gt_column='label',
                  extract_image_id_function=None,
                  use_cache=False,
+                 auto_pad=True,
                  flag=cv2.IMREAD_COLOR):
         self.map_class = map_class
         self.label_present = label_present
@@ -31,7 +32,8 @@ class ClassificationDataset(AbstractImageDataset):
         self.gt_column = gt_column
         super(ClassificationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading,
                                                     extract_image_id_function, use_cache,
-                                                    flag=flag)
+                                                    flag=flag,
+                                                    auto_pad=auto_pad)
 
     def list_files(self, recursive):
         for extension in supportedExtensions:

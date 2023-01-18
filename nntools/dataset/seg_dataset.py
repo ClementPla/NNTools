@@ -20,6 +20,7 @@ class SegmentationDataset(AbstractImageDataset):
                  n_classes=None,
                  extract_image_id_function=None,
                  use_cache=False,
+                 auto_pad=True,
                  filling_strategy=NN_FILL_UPSAMPLE, flag=cv2.IMREAD_COLOR):
 
         if mask_url is None or mask_url == '':
@@ -35,7 +36,9 @@ class SegmentationDataset(AbstractImageDataset):
 
         super(SegmentationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading,
                                                   extract_image_id_function,
-                                                  use_cache, flag=flag)
+                                                  auto_pad=auto_pad,
+                                                  use_cache=use_cache,
+                                                  flag=flag)
 
     def get_class_count(self, save=False, load=False):
         from .utils import get_segmentation_class_count
@@ -125,6 +128,16 @@ class SegmentationDataset(AbstractImageDataset):
                 if self.auto_resize:
                     mask = resize(image=mask, shape=self.shape, keep_size_ratio=self.keep_size_ratio,
                                   flag=cv2.INTER_NEAREST_EXACT)
+
+                if self.auto_pad:
+                    img_shape = mask.shape[:2]
+                    if img_shape != self.shape:
+                        dif_h = img_shape[0]-self.shape[0]
+                        dif_w = img_shape[1]-self.shape[1]
+                        pad_h, c_h = divmod(dif_h, 2)
+                        pad_w, c_w = divmod(dif_w, 2)
+                        mask = np.pad(mask, [(pad_h, pad_h+c_h), (pad_w, pad_w+c_w)])
+
                 inputs[k] = mask
 
         return inputs

@@ -18,14 +18,18 @@ class MultiImageDataset(AbstractImageDataset):
                  recursive_loading=True,
                  extract_image_id_function=None,
                  use_cache=False,
-                 filling_strategy=NN_FILL_DOWNSAMPLE, flag=cv2.IMREAD_COLOR):
+                 filling_strategy=NN_FILL_DOWNSAMPLE, flag=cv2.IMREAD_COLOR,
+                 auto_pad=True,
+                 **kwargs):
 
         self.root_path = {k: to_iterable(path) for k, path in img_url.items()}
         self.filling_strategy = filling_strategy
         super(MultiImageDataset, self).__init__(shape=shape, keep_size_ratio=keep_size_ratio,
                                                 recursive_loading=recursive_loading,
                                                 extract_image_id_function=extract_image_id_function,
-                                                use_cache=use_cache, flag=flag)
+                                                use_cache=use_cache, flag=flag,
+                                                auto_pad=True,
+                                                **kwargs)
 
     def match_images_number_per_folder(self, filenames_per_folder):
 
@@ -89,20 +93,7 @@ class MultiImageDataset(AbstractImageDataset):
         elif self.filling_strategy == NN_FILL_UPSAMPLE:
             return max([len(filepaths) for filepaths in self.img_filepath.values()])
 
-    def load_image(self, item):
-        inputs = {}
-        for k, file_list in self.img_filepath.items():
-            filepath = file_list[item]
-            if filepath == MISSING_DATA_FLAG and self.filling_strategy == NN_FILL_UPSAMPLE:
-                img = np.zeros(self.shape, dtype=np.uint8)
-            else:
-                img = read_image(filepath)
-                if self.auto_resize:
-                    img = resize(image=img, shape=self.shape, keep_size_ratio=self.keep_size_ratio,
-                                 flag=cv2.INTER_CUBIC)
-            inputs[k] = img
 
-        return inputs
 
 
 class ImageDataset(MultiImageDataset):
@@ -112,6 +103,7 @@ class ImageDataset(MultiImageDataset):
                  recursive_loading=True,
                  extract_image_id_function=None,
                  use_cache=False,
+                 auto_pad=True,
                  filling_strategy=NN_FILL_DOWNSAMPLE):
         super(ImageDataset, self).__init__(img_url={'image': img_url},
                                            shape=shape,
@@ -119,4 +111,5 @@ class ImageDataset(MultiImageDataset):
                                            recursive_loading=recursive_loading,
                                            extract_image_id_function=extract_image_id_function,
                                            use_cache=use_cache,
+                                           auto_pad=True,
                                            filling_strategy=filling_strategy)
