@@ -28,10 +28,10 @@ def resize(image, keep_size_ratio=True, shape=(512, 512), flag=cv2.INTER_LINEAR)
     else:
         shape = tuple(shape)
     if keep_size_ratio:
-        h, w = image.shape[:2]
-        max_size = np.max((h, w))
-        scale = max(shape) / max_size
-        shape = (int(scale * w), int(scale * h))
-
-    image = cv2.resize(image, dsize=shape, interpolation=flag)
+        dims = image.shape[:2]
+        argmax = int(np.argmax(dims))
+        f = dims[argmax] / shape[argmax]
+        image = cv2.resize(image, None, fx=f, fy=f, interpolation=flag)
+    else:
+        image = cv2.resize(image, dsize=shape, interpolation=flag)
     return image
