@@ -100,7 +100,6 @@ class AbstractImageDataset(Dataset):
         self.multiplicative_size_factor = factor
 
     def init_cache(self):
-        self.use_cache = False
         arrays = self.load_array(0)  # Taking the first element
         shared_arrays = {}
         nb_samples = len(self)
@@ -124,16 +123,6 @@ class AbstractImageDataset(Dataset):
                 shared_arrays[key] = shared_array
         self.shared_arrays = shared_arrays
         self.cache_initialized = True
-
-    # def cache(self):
-    #     self.use_cache = False
-    #     self.init_cache()
-    #     print('Caching dataset...')
-    #     for item in tqdm.tqdm(range(1, len(self))):
-    #         arrays = self.load_array(item)
-    #         for k, arr in arrays.items():
-    #             self.shared_arrays[k][item] = arr
-    #     self.use_cache = True
 
     def load_array(self, item):
         if not self.use_cache:
