@@ -104,6 +104,7 @@ class AbstractImageDataset(Dataset):
                     if self.auto_pad:
                         img_shape = img.shape[:2]
                         if img_shape != self.shape:
+                            print(self.shape, img_shape) # TODO: debug
                             dif_h = self.shape[0] - img_shape[0]
                             dif_w = self.shape[1] - img_shape[1]
                             pad_h, c_h = divmod(dif_h, 2)
