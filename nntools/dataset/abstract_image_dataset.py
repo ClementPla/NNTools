@@ -105,7 +105,7 @@ class AbstractImageDataset(Dataset):
         nb_samples = len(self)
         for key, arr in arrays.items():
             if not isinstance(arr, np.ndarray):
-                shared_arrays[key] = arr
+                shared_arrays[key] = np.ndarray(nb_samples, dtype=type(arr))
                 continue
             if arr.ndim == 2:
                 h, w = arr.shape
@@ -119,7 +119,6 @@ class AbstractImageDataset(Dataset):
                     shared_array = shared_array.reshape(nb_samples, h, w, c)
                 else:
                     shared_array = shared_array.reshape(nb_samples, h, w)
-                shared_array[0] = arr
                 shared_arrays[key] = shared_array
         self.shared_arrays = shared_arrays
         self.cache_initialized = True
