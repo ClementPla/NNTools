@@ -100,7 +100,7 @@ class AbstractImageDataset(Dataset):
         self.multiplicative_size_factor = factor
 
     def init_cache(self):
-        arrays = self.load_array(0)  # Taking the first element
+        arrays = self.load_image(0)  # Taking the first element
         shared_arrays = {}
         nb_samples = len(self)
         for key, arr in arrays.items():
