@@ -141,6 +141,7 @@ class AbstractImageDataset(Dataset):
                 shared_arrays[key] = shared_array
         self.shared_arrays = shared_arrays
         self.cache_initialized = True
+        self.cache_filled = False
 
     def load_array(self, item):
         if not self.use_cache:
