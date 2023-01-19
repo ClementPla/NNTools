@@ -1,7 +1,7 @@
 import albumentations as A
 
+from nntools import NN_FILL_UPSAMPLE
 import nntools.dataset as D
-
 
 @D.nntools_wrapper
 def merge_masks(image, mask, lesion):
@@ -15,18 +15,12 @@ if __name__ == '__main__':
 
     inputs_masks = {'mask': masks, 'lesion': masks}
 
-    dataset = D.SegmentationDataset(imgs, inputs_masks, (512, 512), filling_strategy=D.NN_FILL_UPSAMPLE)
+    dataset = D.SegmentationDataset(imgs, inputs_masks, (512, 764),
+                                    keep_size_ratio=True,
+                                    filling_strategy=NN_FILL_UPSAMPLE)
     composer = D.Composition()
     composer << A.Compose([A.HorizontalFlip(p=1.0)], additional_targets={'lesion': 'mask'})
     composer
     dataset.set_composition(composer)
-    print(len(dataset))
-    dataset.plot(0)
-
-    inputs = {'image': '/home/clement/Images/', 'pair': '/home/clement/Images/'}
-    dataset = D.MultiImageDataset(inputs, (512, 512))
-
-    print(len(dataset))
-
     dataset.plot(0)
     print(dataset[0]['image'].shape)

@@ -32,5 +32,5 @@ def resize(image, keep_size_ratio=True, shape=(512, 512), flag=cv2.INTER_LINEAR)
         f = np.min([d2/d1 for d1, d2 in zip(dims, shape)])
         shape = (int(f*dims[0]), int(f*dims[1]))
 
-    image = cv2.resize(image, dsize=shape, interpolation=flag)
+    image = cv2.resize(image, dsize=shape[::-1], interpolation=flag)
     return image
