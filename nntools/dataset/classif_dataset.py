@@ -3,6 +3,7 @@ import os
 
 import cv2
 import numpy as np
+import pandas
 
 from .abstract_image_dataset import AbstractImageDataset, supportedExtensions
 
@@ -49,7 +50,6 @@ class ClassificationDataset(AbstractImageDataset):
                 for f in self.img_filepath['image']:
                     self.gts['label'].append(os.path.basename(os.path.dirname(f)))
             if self.csv_filepath:
-                import pandas
                 csv = pandas.read_csv(self.csv_filepath)
                 img_names = [os.path.basename(p) for p in self.img_filepath['image']]
                 img_names = [self.extract_image_id_function(_) for _ in img_names]
@@ -81,7 +81,8 @@ class ClassificationDataset(AbstractImageDataset):
                 self.gts[col_label] = self.gts[col_label].astype(int)
 
     def get_class_count(self, load=True, save=True):
-        # Todo add loading and saving of class counts
+        # Todo Add loading and saving of class counts
+        # Todo Add support for more than one target class
         if len(self.gt_column) > 1:
             raise NotImplementedError('Getting the class count for more than one target is not implemented')
 

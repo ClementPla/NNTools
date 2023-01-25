@@ -15,7 +15,7 @@ if __name__ == '__main__':
 
     inputs_masks = {'mask': masks, 'lesion': masks}
 
-    dataset = D.SegmentationDataset(imgs, inputs_masks, (512, 764),
+    dataset = D.SegmentationDataset(imgs, inputs_masks, (1024, 764),
                                     keep_size_ratio=True,
                                     filling_strategy=NN_FILL_UPSAMPLE)
     composer = D.Composition()
@@ -24,3 +24,4 @@ if __name__ == '__main__':
     dataset.set_composition(composer)
     dataset.plot(0)
     print(dataset[0]['image'].shape)
+    print(dataset[0]['mask'].shape)

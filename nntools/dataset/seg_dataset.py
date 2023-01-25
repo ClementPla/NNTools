@@ -3,7 +3,7 @@ import glob
 import cv2
 import numpy as np
 from nntools import NN_FILL_DOWNSAMPLE, NN_FILL_UPSAMPLE, MISSING_DATA_FLAG
-from nntools.dataset.image_tools import resize
+from nntools.dataset.image_tools import resize, pad
 from nntools.tracker import Log
 from nntools.utils.io import read_image, path_leaf
 from nntools.utils.misc import to_iterable
@@ -125,19 +125,7 @@ class SegmentationDataset(AbstractImageDataset):
                     mask = np.zeros(actual_shape[:-1], dtype=np.uint8)
                 else:
                     mask = read_image(filepath, cv2.IMREAD_GRAYSCALE)
-                if self.auto_resize:
-                    mask = resize(image=mask, shape=self.shape, keep_size_ratio=self.keep_size_ratio,
-                                  flag=cv2.INTER_NEAREST_EXACT)
-
-                if self.auto_pad:
-                    img_shape = mask.shape[:2]
-                    if img_shape != self.shape:
-                        dif_h = self.shape[0] - img_shape[0]
-                        dif_w = self.shape[1] - img_shape[1]
-                        pad_h, c_h = divmod(dif_h, 2)
-                        pad_w, c_w = divmod(dif_w, 2)
-                        mask = np.pad(mask, [(pad_h, pad_h + c_h), (pad_w, pad_w + c_w)])
-
+                mask = self.resize_and_pad(mask, interpolation=cv2.INTER_NEAREST_EXACT)
                 inputs[k] = mask
 
         return inputs

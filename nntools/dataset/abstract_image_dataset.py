@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import tqdm
-from nntools.dataset.image_tools import resize
+from nntools.dataset.image_tools import resize, pad
 from nntools.tracker.logger import Log
 from nntools.utils.io import read_image, path_leaf
 from nntools.utils.misc import to_iterable, identity
@@ -70,6 +70,7 @@ class AbstractImageDataset(Dataset):
         self.cache_initialized = False
         self.cache_filled = False
 
+        self.interpolation_flag = cv2.INTER_LINEAR
         if self.use_cache:
             self.init_cache()
 
@@ -98,21 +99,20 @@ class AbstractImageDataset(Dataset):
                 img = np.zeros(self.shape, dtype=np.uint8)
             else:
                 img = read_image(filepath)
-                if self.auto_resize:
-                    img = resize(image=img, shape=self.shape, keep_size_ratio=self.keep_size_ratio,
-                                 flag=cv2.INTER_CUBIC)
-                    if self.auto_pad:
-                        img_shape = img.shape[:2]
-                        if img_shape != self.shape:
-                            dif_h = self.shape[0] - img_shape[0]
-                            dif_w = self.shape[1] - img_shape[1]
-                            pad_h, c_h = divmod(dif_h, 2)
-                            pad_w, c_w = divmod(dif_w, 2)
-                            img = np.pad(img, [(pad_h, pad_h+c_h), (pad_w, pad_w+c_w), (0,0)])
+                img = self.resize_and_pad(image=img, interpolation=self.interpolation_flag)
 
             inputs[k] = img
 
         return inputs
+
+    def resize_and_pad(self, image, interpolation=cv2.INTER_CUBIC):
+        if self.auto_resize:
+            image = resize(image=image, shape=self.shape,
+                           keep_size_ratio=self.keep_size_ratio,
+                           flag=interpolation)
+        if self.auto_pad:
+            image = pad(image=image, shape=self.shape)
+        return image
 
     def multiply_size(self, factor):
         assert factor > 1
