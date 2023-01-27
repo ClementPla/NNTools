@@ -23,6 +23,17 @@ supportedExtensions = supportedExtensions + [ext.upper() for ext in supportedExt
 plt.rcParams['image.cmap'] = 'gray'
 
 
+def convert_dict_to_plottable(dict_arrays):
+    plotted_arrays = {}
+    for k, v in dict_arrays.items():
+        if isinstance(v, torch.Tensor):
+            v = v.numpy()
+            if v.ndim == 3:
+                v = v.transpose((1, 2, 0))
+        plotted_arrays[k] = v
+    return plotted_arrays
+
+
 class AbstractImageDataset(Dataset):
     def __init__(self, img_url=None,
                  shape=None,
@@ -193,7 +204,8 @@ class AbstractImageDataset(Dataset):
         for k, files in self.gts.items():
             self.gts[k] = files[indices]
 
-    def __getitem__(self, index, torch_cast=True, transpose_img=True, return_indices=True,
+    def __getitem__(self, index,
+                    return_indices=True,
                     return_tag=True):
         if abs(index) >= len(self):
             raise StopIteration
@@ -206,17 +218,6 @@ class AbstractImageDataset(Dataset):
             outputs = self.composer(**inputs)
         else:
             outputs = inputs
-
-        for k, item in outputs.items():
-            if not isinstance(item, np.ndarray):
-                item = np.asarray(item)
-            if item.ndim == 3 and transpose_img:
-                item = self.transpose_img(item)  # HWN to NHW
-            if torch_cast:
-                item = torch.from_numpy(item.copy())
-                if isinstance(item, torch.ByteTensor):
-                    item = item.long()
-            outputs[k] = item
 
         if self.return_indices and return_indices:
             outputs['index'] = index
@@ -245,7 +246,8 @@ class AbstractImageDataset(Dataset):
         self.ignore_keys = []
 
     def plot(self, item, classes=None, fig_size=1):
-        arrays = self.__getitem__(item, torch_cast=False, transpose_img=False, return_indices=False)
+        arrays = self.__getitem__(item, return_indices=False)
+        arrays = convert_dict_to_plottable(arrays)
         plot_images(arrays, self.cmap_name, classes=classes, fig_size=fig_size)
 
     def get_mosaic(self, n_items=9, shuffle=False, indexes=None, resolution=(512, 512), show=False, fig_size=1,
@@ -258,7 +260,8 @@ class AbstractImageDataset(Dataset):
             else:
                 indexes = np.arange(n_items)
 
-        ref_dict = self.__getitem__(0, torch_cast=False, transpose_img=False, return_indices=False, return_tag=False)
+        ref_dict = self.__getitem__(0, return_indices=False, return_tag=False)
+        ref_dict = convert_dict_to_plottable(ref_dict)
         count_images = 0
         for k, v in ref_dict.items():
             if isinstance(v, np.ndarray) and not np.isscalar(v):
@@ -282,8 +285,9 @@ class AbstractImageDataset(Dataset):
                         row.append(tmp)
                     continue
                 index = indexes[i]
-                data = self.__getitem__(index, torch_cast=False, transpose_img=False, return_indices=False,
+                data = self.__getitem__(index, return_indices=False,
                                         return_tag=False)
+                data = convert_dict_to_plottable(data)
 
                 for k, v in data.items():
                     if v.ndim == 3 and v.shape[-1] != 3:
