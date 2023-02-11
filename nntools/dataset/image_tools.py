@@ -1,6 +1,7 @@
 import functools
 import inspect
 
+import albumentations as A
 import cv2
 import numpy as np
 
@@ -45,3 +46,5 @@ def pad(image, shape, border_type=cv2.BORDER_CONSTANT):
         pad_w, c_w = divmod(dif_w, 2)
         image = cv2.copyMakeBorder(image, pad_h, pad_h + c_h, pad_w, pad_w+c_w, border_type)
     return image
+
+

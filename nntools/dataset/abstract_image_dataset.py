@@ -126,7 +126,6 @@ class AbstractImageDataset(Dataset):
         return image
 
     def multiply_size(self, factor):
-        assert factor > 1
         self.multiplicative_size_factor = factor
 
     def init_cache(self):
