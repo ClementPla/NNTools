@@ -20,6 +20,7 @@ def register_loss(key, value):
 
 class FuseLoss(nn.Module):
     def __init__(self, losses=None, fusion='mean', mode=MULTICLASS_MODE):
+        super().__init__()
 
         self.mode = mode
         self.fusion = fusion
