@@ -18,7 +18,7 @@ def register_loss(key, value):
     SUPPORTED_LOSS[key] = value
 
 
-class FuseLoss:
+class FuseLoss(nn.Module):
     def __init__(self, losses=None, fusion='mean', mode=MULTICLASS_MODE):
 
         self.mode = mode
@@ -28,7 +28,7 @@ class FuseLoss:
 
         if not isinstance(losses, list):
             losses = [losses]
-        self.losses = losses
+        self.losses = nn.ModuleList(losses)
 
     def __call__(self, *y_pred, y_true):
         list_losses = []
