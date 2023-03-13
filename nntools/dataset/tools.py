@@ -33,5 +33,8 @@ class Composition:
             output += '%i_' % i + str(o) + ' STATUS: ' + ('Active' if i not in self.deactivated else 'Inactive') + ' \n'
         return output
 
+    def __repr__(self):
+        return str(self)
+
     def __len__(self):
         return len(self.ops)
