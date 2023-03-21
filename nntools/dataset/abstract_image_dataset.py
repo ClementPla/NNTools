@@ -198,11 +198,13 @@ class AbstractImageDataset(Dataset):
 
     @composer.setter
     def composer(self, comp:Composition):
+
         _cache_bullet = False
         for i, op in enumerate(comp.ops):
             if isinstance(op, CacheBullet):
                 _cache_bullet = True
                 break
+        print('Debugging', _cache_bullet, i)
         if _cache_bullet:
             self._precache_composer = Composition()
             self._precache_composer.ops = comp.ops[:i]
