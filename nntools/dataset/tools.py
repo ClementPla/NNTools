@@ -23,6 +23,8 @@ class Composition:
         for i, op in enumerate(self.ops):
             if i in self.deactivated:
                 continue
+            if (isinstance(op, CacheBullet)):
+                continue
             kwargs = op(**kwargs)
         return kwargs
 
