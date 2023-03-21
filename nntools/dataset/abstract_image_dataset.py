@@ -147,6 +147,7 @@ class AbstractImageDataset(Dataset):
                 c = 1
             else:
                 h, w, c = arr.shape
+            print(f'Initializing shared array {key} with size: {nb_samples}x{c}x{h}x{w}')
             shared_array_base = mp.Array(ctypes.c_uint8, nb_samples * c * h * w, lock=True)
             with shared_array_base.get_lock():
                 shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
