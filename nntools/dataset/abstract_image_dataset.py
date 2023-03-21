@@ -14,7 +14,7 @@ from nntools.utils.io import read_image, path_leaf
 from nntools.utils.misc import to_iterable, identity
 from nntools.utils.plotting import plot_images
 from torch.utils.data import Dataset
-
+from .tools import Composition, CacheBullet
 from nntools import NN_FILL_UPSAMPLE, NN_FILL_DOWNSAMPLE, MISSING_DATA_FLAG
 
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
@@ -52,7 +52,8 @@ class AbstractImageDataset(Dataset):
             self.extract_image_id_function = extract_image_id_function
         if img_url is not None:
             self.path_img = to_iterable(img_url)
-        self.composer = None
+        self._precache_composer = None
+        self._composer = None
         self.keep_size_ratio = keep_size_ratio
         if isinstance(shape, int):
             shape = (shape, shape)
@@ -82,8 +83,6 @@ class AbstractImageDataset(Dataset):
         self._cache_filled = False
 
         self.interpolation_flag = cv2.INTER_LINEAR
-        if self.use_cache:
-            self.init_cache()
 
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
@@ -113,8 +112,13 @@ class AbstractImageDataset(Dataset):
                 img = self.resize_and_pad(image=img, interpolation=self.interpolation_flag)
 
             inputs[k] = img
+            return inputs
 
-        return inputs
+    def precompose_data(self, data):
+        if self._precache_composer:
+            return self._precache_composer(**data)
+        else:
+            return data
 
     def resize_and_pad(self, image, interpolation=cv2.INTER_CUBIC):
         if self.auto_resize:
@@ -128,8 +132,10 @@ class AbstractImageDataset(Dataset):
     def multiply_size(self, factor):
         self.multiplicative_size_factor = factor
 
+
     def init_cache(self):
         arrays = self.load_image(0)  # Taking the first element
+        arrays = self.precompose_data(arrays)
         shared_arrays = {}
         nb_samples = len(self)
         for key, arr in arrays.items():
@@ -155,12 +161,14 @@ class AbstractImageDataset(Dataset):
 
     def load_array(self, item):
         if not self.use_cache:
-            return self.load_image(item)
+            data = self.load_image(item)
+            return self.precompose_data(data)
         else:
             if not self.cache_initialized:
                 self.init_cache()
             if not self._cache_filled:
                 arrays = self.load_image(item)
+                arrays = self.precompose_data(arrays)
                 for k, array in arrays.items():
                     self.shared_arrays[k][item] = array
                 return arrays
@@ -184,8 +192,26 @@ class AbstractImageDataset(Dataset):
         else:
             return os.path.basename(filepaths)
 
-    def set_composition(self, composer):
-        self.composer = composer
+    @property
+    def composer(self):
+        return self._composer
+
+    @composer.setter
+    def composer(self, comp:Composition):
+        _cache_bullet = False
+        for i, op in enumerate(comp.ops):
+            if isinstance(op, CacheBullet):
+                _cache_bullet = True
+                break
+        if _cache_bullet:
+            self._precache_composer = Composition()
+            self._precache_composer.ops = comp.ops[:i]
+            self._precache_composer.deactivated = comp.deactivated[:i]
+            self._composer = Composition()
+            self._composer.ops = comp.ops[i:]
+            self._composer.deactivated = _composer.deactivated[i:]
+        else:
+            self._composer = comp
 
     def get_class_count(self, load=True, save=True):
         pass
