@@ -9,7 +9,7 @@ class Composition:
     def __init__(self):
         self.ops = []
         self.deactivated = []
-
+        self._index_bullet = 0
     def add(self, *funcs):
         for f in funcs:
             self.ops.append(f)
@@ -31,6 +31,40 @@ class Composition:
 
     def __lshift__(self, other):
         return self.add(other)
+
+    def precache_call(self, **kwargs):
+        if not self.has_bullet_cache:
+            return kwargs
+        else:
+            for i, op in enumerate(self.ops):
+                if i in self.deactivated:
+                    continue
+                if (isinstance(op, CacheBullet)):
+                    return kwargs
+                kwargs = op(**kwargs)
+
+            return kwargs
+
+    def postcache_call(self, **kwargs):
+        if not self.has_bullet_cache:
+            return self(**kwargs)
+        else:
+            for i, op in enumerate(self.ops):
+                if i<=self._index_bullet:
+                    if i in self.deactivated:
+                        continue
+                    if (isinstance(op, CacheBullet)):
+                        return kwargs
+                    kwargs = op(**kwargs)
+            return kwargs
+    @property
+    def has_bullet_cache(self):
+        for i, op in enumerate(self.ops):
+            if isinstance(op, CacheBullet):
+                self._index_bullet = i
+                return True
+        self._index_bullet = 0
+        return False
 
     def __str__(self):
         output = ''

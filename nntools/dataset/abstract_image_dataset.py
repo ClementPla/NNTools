@@ -115,8 +115,8 @@ class AbstractImageDataset(Dataset):
             return inputs
 
     def precompose_data(self, data):
-        if self._precache_composer:
-            return self._precache_composer(**data)
+        if self.composer:
+            return self.composer.precache_call(**data)
         else:
             return data
 
@@ -198,22 +198,7 @@ class AbstractImageDataset(Dataset):
 
     @composer.setter
     def composer(self, comp:Composition):
-
-        _cache_bullet = False
-        for i, op in enumerate(comp.ops):
-            if isinstance(op, CacheBullet):
-                _cache_bullet = True
-                break
-        print('Debugging', _cache_bullet, i)
-        if _cache_bullet:
-            self._precache_composer = Composition()
-            self._precache_composer.ops = comp.ops[:i]
-            self._precache_composer.deactivated = comp.deactivated[:i]
-            self._composer = Composition()
-            self._composer.ops = comp.ops[i:]
-            self._composer.deactivated = _composer.deactivated[i:]
-        else:
-            self._composer = comp
+        self._composer = comp
 
     def get_class_count(self, load=True, save=True):
         pass
@@ -242,7 +227,7 @@ class AbstractImageDataset(Dataset):
         inputs = self.load_array(index)
 
         if self.composer:
-            outputs = self.composer(**inputs)
+            outputs = self.composer.postcache_call(**inputs)
         else:
             outputs = inputs
 
