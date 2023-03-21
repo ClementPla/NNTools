@@ -6,14 +6,13 @@ class CacheBullet:
         return kwargs
 
 class Composition:
-    def __init__(self, **config):
-        self.config = config
+    def __init__(self):
         self.ops = []
         self.deactivated = []
 
     def add(self, *funcs):
         for f in funcs:
-            self.ops.append(partial_fill_kwargs(f, self.config))
+            self.ops.append(f)
         return self
 
     def deactivate_op(self, index):
