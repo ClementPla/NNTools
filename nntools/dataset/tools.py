@@ -1,7 +1,9 @@
 from nntools.utils.misc import partial_fill_kwargs
 
 class CacheBullet:
-    pass
+
+    def __call__(self, **kwargs):
+        return kwargs
 
 class Composition:
     def __init__(self, **config):
