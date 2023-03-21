@@ -79,7 +79,7 @@ class AbstractImageDataset(Dataset):
         self.ignore_keys = []
         self.flag = flag
         self.cache_initialized = False
-        self.cache_filled = False
+        self._cache_filled = False
 
         self.interpolation_flag = cv2.INTER_LINEAR
         if self.use_cache:
@@ -151,7 +151,7 @@ class AbstractImageDataset(Dataset):
                 shared_arrays[key] = shared_array
         self.shared_arrays = shared_arrays
         self.cache_initialized = True
-        self.cache_filled = False
+        self._cache_filled = False
 
     def load_array(self, item):
         if not self.use_cache:
@@ -159,13 +159,13 @@ class AbstractImageDataset(Dataset):
         else:
             if not self.cache_initialized:
                 self.init_cache()
-            if not self.cache_filled:
+            if not self._cache_filled:
                 arrays = self.load_image(item)
                 for k, array in arrays.items():
                     self.shared_arrays[k][item] = array
                 return arrays
-
-            return {k: v[item] for k, v in self.shared_arrays.items()}
+            else:
+                return {k: v[item] for k, v in self.shared_arrays.items()}
 
     def columns(self):
         return (self.img_filepath.keys(), self.gts.keys())
@@ -240,6 +240,15 @@ class AbstractImageDataset(Dataset):
 
     def set_ignore_key(self, key):
         self.ignore_keys.append(key)
+
+    @property
+    def cache_filled(self):
+        return self._cache_filled
+
+    @cache_filled.setter
+    def cache_filled(self, cache_filled):
+        print('Cache is marked as filled')
+        self._cache_filled = cache_filled
 
     def clean_filter(self):
         self.ignore_keys = []
