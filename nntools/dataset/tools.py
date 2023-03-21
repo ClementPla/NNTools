@@ -39,10 +39,9 @@ class Composition:
             for i, op in enumerate(self.ops):
                 if i in self.deactivated:
                     continue
-                if (isinstance(op, CacheBullet)):
-                    return kwargs
+                if i>=self._index_bullet:
+                    break
                 kwargs = op(**kwargs)
-
             return kwargs
 
     def postcache_call(self, **kwargs):
@@ -50,11 +49,9 @@ class Composition:
             return self(**kwargs)
         else:
             for i, op in enumerate(self.ops):
-                if i<=self._index_bullet:
-                    if i in self.deactivated:
-                        continue
-                    if (isinstance(op, CacheBullet)):
-                        return kwargs
+                if i<=self._index_bullet or i in self.deactivated:
+                    continue
+                else:
                     kwargs = op(**kwargs)
             return kwargs
     @property
