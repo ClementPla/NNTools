@@ -42,7 +42,7 @@ class AbstractImageDataset(Dataset):
                  extract_image_id_function=None,
                  use_cache=False,
                  auto_pad=True,
-                 flag=cv2.IMREAD_COLOR):
+                 flag=cv2.IMREAD_UNCHANGED):
 
         super(AbstractImageDataset, self).__init__()
 
@@ -108,7 +108,7 @@ class AbstractImageDataset(Dataset):
             if filepath == MISSING_DATA_FLAG and self.filling_strategy == NN_FILL_UPSAMPLE:
                 img = np.zeros(self.shape, dtype=np.uint8)
             else:
-                img = read_image(filepath)
+                img = read_image(filepath, flag=self.flag)
                 img = self.resize_and_pad(image=img, interpolation=self.interpolation_flag)
 
             inputs[k] = img
@@ -137,7 +137,7 @@ class AbstractImageDataset(Dataset):
         arrays = self.load_image(0)  # Taking the first element
         arrays = self.precompose_data(arrays)
         shared_arrays = {}
-        nb_samples = len(self)
+        nb_samples = self.real_length
         for key, arr in arrays.items():
             if not isinstance(arr, np.ndarray):
                 shared_arrays[key] = np.ndarray(nb_samples, dtype=type(arr))
