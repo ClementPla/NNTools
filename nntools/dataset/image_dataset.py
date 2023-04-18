@@ -104,7 +104,7 @@ class ImageDataset(MultiImageDataset):
                  extract_image_id_function=None,
                  use_cache=False,
                  auto_pad=True,
-                 filling_strategy=NN_FILL_DOWNSAMPLE):
+                 filling_strategy=NN_FILL_DOWNSAMPLE, flag=cv2.IMREAD_COLOR):
         super(ImageDataset, self).__init__(img_url={'image': img_url},
                                            shape=shape,
                                            keep_size_ratio=keep_size_ratio,
@@ -112,4 +112,5 @@ class ImageDataset(MultiImageDataset):
                                            extract_image_id_function=extract_image_id_function,
                                            use_cache=use_cache,
                                            auto_pad=True,
-                                           filling_strategy=filling_strategy)
+                                           filling_strategy=filling_strategy,
+                                           flag=flag)
