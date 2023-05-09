@@ -95,6 +95,10 @@ class AbstractImageDataset(Dataset):
     def filenames(self):
         return {k: [path_leaf(f) for f in v] for k, v in self.img_filepath.items()}
 
+    @property
+    def gt_filenames(self):
+        return {k: [path_leaf(f) for f in v] for k, v in self.gts.items()}
+
     def list_files(self, recursive):
         pass
 
@@ -218,8 +222,8 @@ class AbstractImageDataset(Dataset):
             self.gts[k] = files[indices]
 
     def __getitem__(self, index,
-                    return_indices=True,
-                    return_tag=True):
+                    return_indices=False,
+                    return_tag=False):
         if abs(index) >= len(self):
             raise StopIteration
         if index >= self.real_length:
@@ -232,10 +236,10 @@ class AbstractImageDataset(Dataset):
         else:
             outputs = inputs
 
-        if self.return_indices and return_indices:
+        if self.return_indices or return_indices:
             outputs['index'] = index
 
-        if self.tag and (self.return_tag and return_tag):
+        if self.tag and (self.return_tag or return_tag):
             if isinstance(self.tag, dict):
                 for k, v in self.tag.items():
                     outputs[k] = v

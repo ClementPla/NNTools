@@ -1,14 +1,14 @@
 import bisect
 import copy
 import os
-
+from typing import List
 import numpy as np
 import torch
 import tqdm
 from nntools.tracker import Log
 from torch import randperm, default_generator
 from torch._utils import _accumulate
-
+from .abstract_image_dataset import AbstractImageDataset
 
 def get_segmentation_class_count(dataset, save=False, load=False):
     sample = dataset[0]
@@ -58,6 +58,51 @@ def class_weighting(class_count, mode='balanced', ignore_index=-100, eps=1, log_
         class_weights[ignore_index] = 0
 
     return class_weights.astype(np.float32)
+
+def check_dataleaks(*datasets: List[AbstractImageDataset], raise_exception=True):
+    is_okay = True
+    cols = {'files':[],
+            'gts':[]}
+    unfold_datasets = []
+    for d in datasets:
+        if isinstance(d, ConcatDataset):
+            unfold_datasets += d.datasets
+        else:
+            unfold_datasets.append(d)
+
+    for d in unfold_datasets:
+        file_cols, gts_cols = d.columns()
+        cols['files'].append(list(file_cols))
+        cols['gts'].append(list(gts_cols))
+
+    cols['files'] = list(set.intersection(*map(set, cols['files'])))  # Find intersection of columns
+    cols['gts'] = list(set.intersection(*map(set, cols['gts'])))
+
+    for f_col in cols['files']:
+        filenames = []
+        for d in unfold_datasets:
+            filenames.append(d.filenames[f_col])
+        join_file = list(set.intersection(*map(set, filenames)))
+        if len(join_file) > 0:
+            is_okay = False
+            if raise_exception:
+                raise ValueError('Found common images between datasets')
+
+    for f_col in cols['gts']:
+        filenames = []
+        for d in unfold_datasets:
+            filenames.append(d.gt_filenames[f_col])
+        join_gt = list(set.intersection(*map(set, filenames)))
+        if len(join_gt) > 0:
+            is_okay = False
+            if raise_exception:
+                raise ValueError('Found common groundtruth between datasets')
+
+    if not is_okay:
+        return is_okay, join_file, join_gt
+    return is_okay
+
+
 
 
 def random_split(dataset, lengths, generator=default_generator):
@@ -123,6 +168,7 @@ class ConcatDataset(torch.utils.data.ConcatDataset):
         else:
             for d in self.datasets:
                 d.__setattr__(key, value)
+
 
 
 def concat_datasets_if_needed(datasets):

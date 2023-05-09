@@ -26,19 +26,23 @@ def fundus_autocrop(image):
             'mask': mask[y_range[0]:y_range[1], x_range[0]:x_range[1]].astype(np.float32)}
 
 if __name__ == '__main__':
+    from nntools.dataset.utils import check_dataleaks, concat_datasets_if_needed, random_split
     imgs = '/home/clement/Documents/phd/DR/MessidorAnnotation/img/images/'
     masks = '/home/clement/Documents/phd/DR/MessidorAnnotation/labelId/'
     test = '/home/clement/Documents/phd/DR/MessidorAnnotation/Test/'
 
     inputs_masks = {'mask': masks, 'lesion': masks}
 
-    dataset = D.SegmentationDataset(imgs, inputs_masks, (1024, 764),
+    datasetA = D.SegmentationDataset(imgs, inputs_masks, (1024, 764),
                                     keep_size_ratio=True,
                                     filling_strategy=NN_FILL_UPSAMPLE)
-    composer = D.Composition()
-    composer << A.Compose([A.HorizontalFlip(p=1.0)], additional_targets={'lesion': 'mask'})
-    composer << fundus_autocrop
-    dataset.set_composition(composer)
-    dataset.plot(0)
-    print(dataset[0]['image'].shape)
-    print(dataset[0]['mask'].shape)
+    datasetB = D.SegmentationDataset(imgs, inputs_masks, (1024, 764),
+                                    keep_size_ratio=True,
+                                    filling_strategy=NN_FILL_UPSAMPLE)
+
+    n_images = len(datasetA)
+
+
+    dA, dB = random_split(datasetA, [n_images//4, n_images-n_images//4])
+    check_dataleaks(dA, dB)
+    print(len(dA), len(dB))
