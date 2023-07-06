@@ -1,7 +1,6 @@
 import functools
 import inspect
 
-import albumentations as A
 import cv2
 import numpy as np
 

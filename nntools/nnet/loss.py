@@ -1,16 +1,7 @@
-import segmentation_models_pytorch.losses as smp_l
 import torch.nn as nn
 
 from nntools import MULTICLASS_MODE
 
-SUPPORTED_LOSS = {'CrossEntropy': nn.CrossEntropyLoss,
-                  'Dice': smp_l.DiceLoss,
-                  'Focal': smp_l.FocalLoss,
-                  'Jaccard': smp_l.JaccardLoss,
-                  'SoftBinaryCrossEntropy': smp_l.SoftBCEWithLogitsLoss,
-                  'SoftCrossEntropy': smp_l.SoftCrossEntropyLoss,
-                  'Lovasz': smp_l.LovaszLoss,
-                  'NLL': nn.NLLLoss}
 
 
 def register_loss(key, value):
