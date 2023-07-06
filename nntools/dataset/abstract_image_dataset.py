@@ -7,6 +7,7 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import logging
 from nntools.dataset.image_tools import resize, pad
 from nntools.tracker.logger import Log
 from nntools.utils.io import read_image, path_leaf
@@ -150,7 +151,7 @@ class AbstractImageDataset(Dataset):
                 c = 1
             else:
                 h, w, c = arr.shape
-            print(f'Initializing shared array {key} with size: {nb_samples}x{c}x{h}x{w}')
+            logging.info(f'Initializing shared array {key} with size: {nb_samples}x{c}x{h}x{w}')
             shared_array_base = mp.Array(ctypes.c_uint8, nb_samples * c * h * w)
             with shared_array_base.get_lock():
                 shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
@@ -263,7 +264,7 @@ class AbstractImageDataset(Dataset):
 
     @cache_filled.setter
     def cache_filled(self, cache_filled):
-        print('Cache is marked as filled')
+        logging.info('Cache is marked as filled')
         self._cache_filled = cache_filled
 
     def clean_filter(self):

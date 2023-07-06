@@ -115,15 +115,3 @@ def recursive_dict_replacement(org_dict):
             org_dict[k] = new_dict
 
 
-if __name__ == '__main__':
-    from icecream import ic
-
-    path = '../../tests/c_file_test.yaml'
-    c = Config(path)
-    c['Loss']['type'] = 'A'
-    # pprint.pprint(c, compact=False)
-    # print(c)
-    # ic(c.)
-
-    pprint.pprint(c.tracked_params, compact=False)
-    ic(c)

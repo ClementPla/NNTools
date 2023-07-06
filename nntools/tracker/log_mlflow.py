@@ -2,6 +2,7 @@ import os
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import logging
 def log_params(tracker, **params):
     run_id = tracker.run_id
     client = tracker.client
@@ -30,7 +31,7 @@ def log_artifact(tracker, *paths):
     for p in paths:
         b = os.path.getsize(p)
         if b > 10e6:
-            print("File %s won't be stored as an artifact (oversize limit)" % p)
+            logging.warn("File %s won't be stored as an artifact (oversize limit)" % p)
         else:
             client.log_artifact(run_id, p)
 
