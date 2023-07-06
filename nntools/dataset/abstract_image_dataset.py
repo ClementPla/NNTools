@@ -7,7 +7,6 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import tqdm
 from nntools.dataset.image_tools import resize, pad
 from nntools.tracker.logger import Log
 from nntools.utils.io import read_image, path_leaf
