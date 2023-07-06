@@ -35,7 +35,7 @@ dataset = D.SegmentationDataset(folder, shape=(1024, 1024), mask_url=masks_url, 
 
 ```
 
-## Composition Logic for preprocessing on the fly
+## Composition logic for preprocessing on the fly
 
 ```python
 import albumentations as A
