@@ -35,3 +35,22 @@ dataset = D.SegmentationDataset(folder, shape=(1024, 1024), mask_url=masks_url, 
 
 ```
 
+## Composition Logic for preprocessing on the fly
+
+```python
+import albumentations as A
+
+@D.nntools_wrapper
+def merge_labels_to_multiclass(Class1, Class2):
+    mask = np.zeros_like(Vessels)
+    mask[Class1 == 1] = 1
+    mask[Class2 == 1] = 2
+    return {'mask':mask}
+
+
+composer = D.Composition()
+composer.add(merge_labels_to_multiclass)
+data_aug = A.Compose([A.ElasticTransform(p=1, alpha=120, sigma=120 * 0.05, alpha_affine=120 * 0.03)]) 
+composer.add(data_aug) 
+dataset.composer = composer
+```
