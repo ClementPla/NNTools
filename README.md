@@ -15,7 +15,23 @@ NNTools provides the `dataset` module to automatically create datasets (as subcl
 
 ```python
 import nntools.dataset as D
+folder = ...
+dataset = D.ImageDataset(folder, shape=(1024, 1024), keep_size_ratio=True, recursive_loading=True)
 
+folders = {'image':folder1, 'preprocessing':folder2}
+dataset = D.MultiImageDataset(folders, shape=(1024, 1024), keep_size_ratio=True, recursive_loading=True)
+
+
+label_filepath = 'label.csv' # or label.xls
+dataset = D.ClassificationDataset(folder, shape=(1024, 1024), 
+                                  label_filepath=label_filepath,
+                                  file_column='name', gt_column='retinopathy',
+                                  keep_size_ratio=True, recursive_loading=True)
+
+mask1 = 'mask1/'
+mask2 = 'mask2/'
+masks_url = {'Class1':mask1, 'Class2':mask2}
+dataset = D.SegmentationDataset(folder, shape=(1024, 1024), mask_url=masks_url, keep_size_ratio=True, recursive_loading=True)
 
 ```
 
