@@ -14,5 +14,5 @@ setup(
     install_requires=[
         'torch','numpy','matplotlib','tqdm','pyyaml','pandas', 'torchvision', 'opencv-python',
         'segmentation_models_pytorch', 'bokeh', 'pprint'],
-    description='Small library built to facilitate the training of neural network with Pytorch. '
+    description='Small library built to facilitate the:q training of neural network with Pytorch. '
 )
