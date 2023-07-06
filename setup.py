@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='NNTools',
-    version='0.1',
+    version='0.1.1',
     packages=['nntools', 'nntools.nnet', 'nntools.utils', 'nntools.dataset', 'nntools.utils',
               'nntools.tracker'],
     url='https://github.com/ClementPla/NNTools',
