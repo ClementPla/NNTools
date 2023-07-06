@@ -34,7 +34,7 @@ class SegmentationDataset(AbstractImageDataset):
         self.n_classes = n_classes
         self.filling_strategy = filling_strategy
 
-        super(SegmentationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading,
+        super().__init__(img_url, shape, keep_size_ratio, recursive_loading,
                                                   extract_image_id_function,
                                                   auto_pad=auto_pad,
                                                   use_cache=use_cache,
@@ -126,7 +126,7 @@ class SegmentationDataset(AbstractImageDataset):
                 else:
                     mask = read_image(filepath, cv2.IMREAD_GRAYSCALE)
                 mask = self.resize_and_pad(mask, interpolation=cv2.INTER_NEAREST_EXACT)
-                inputs[k] = mask
+                inputs[k] = (mask>0).astype(np.uint8)
 
         return inputs
 

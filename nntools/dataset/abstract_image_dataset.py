@@ -43,7 +43,7 @@ class AbstractImageDataset(Dataset):
                  auto_pad=True,
                  flag=cv2.IMREAD_UNCHANGED):
 
-        super(AbstractImageDataset, self).__init__()
+        super().__init__()
 
         if extract_image_id_function is None:
             self.extract_image_id_function = identity
@@ -115,7 +115,7 @@ class AbstractImageDataset(Dataset):
                 img = self.resize_and_pad(image=img, interpolation=self.interpolation_flag)
 
             inputs[k] = img
-            return inputs
+        return inputs
 
     def precompose_data(self, data):
         if self.composer:
@@ -229,7 +229,6 @@ class AbstractImageDataset(Dataset):
             index = int(index % self.real_length)
 
         inputs = self.load_array(index)
-
         if self.composer:
             outputs = self.composer.postcache_call(**inputs)
         else:
@@ -366,6 +365,8 @@ class AbstractImageDataset(Dataset):
             fig, ax = plt.subplots(1, 1)
             ax.imshow(mosaic)
             fig.set_size_inches(fig_size * 5 * count_images * n_col, 5 * n_row * fig_size)
+            plt.axis('off')
+            plt.tight_layout()
             fig.show()
         if save:
             assert isinstance(save, str)

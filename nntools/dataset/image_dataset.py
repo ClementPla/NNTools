@@ -24,11 +24,11 @@ class MultiImageDataset(AbstractImageDataset):
 
         self.root_path = {k: to_iterable(path) for k, path in img_url.items()}
         self.filling_strategy = filling_strategy
-        super(MultiImageDataset, self).__init__(shape=shape, keep_size_ratio=keep_size_ratio,
+        super().__init__(shape=shape, keep_size_ratio=keep_size_ratio,
                                                 recursive_loading=recursive_loading,
                                                 extract_image_id_function=extract_image_id_function,
                                                 use_cache=use_cache, flag=flag,
-                                                auto_pad=True,
+                                                auto_pad=auto_pad,
                                                 **kwargs)
 
     def match_images_number_per_folder(self, filenames_per_folder):
@@ -105,12 +105,10 @@ class ImageDataset(MultiImageDataset):
                  use_cache=False,
                  auto_pad=True,
                  filling_strategy=NN_FILL_DOWNSAMPLE, flag=cv2.IMREAD_COLOR):
-        super(ImageDataset, self).__init__(img_url={'image': img_url},
-                                           shape=shape,
-                                           keep_size_ratio=keep_size_ratio,
-                                           recursive_loading=recursive_loading,
-                                           extract_image_id_function=extract_image_id_function,
-                                           use_cache=use_cache,
-                                           auto_pad=True,
-                                           filling_strategy=filling_strategy,
-                                           flag=flag)
+        super().__init__(img_url={'image': img_url},
+                         shape=shape, keep_size_ratio=keep_size_ratio,
+                         recursive_loading=recursive_loading, 
+                         extract_image_id_function=extract_image_id_function,
+                         use_cache=use_cache, auto_pad=True,
+                         filling_strategy=filling_strategy,
+                         flag=flag)

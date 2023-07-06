@@ -1,1 +1,1 @@
-from .graph import *
+from .plots import *

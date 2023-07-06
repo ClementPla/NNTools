@@ -16,7 +16,7 @@ class ClassificationDataset(AbstractImageDataset):
                  map_class=None,
                  label_present=True,
                  label_per_folder=True,
-                 csv_filepath=None,
+                 label_filepath=None,
                  file_column='image',
                  gt_column='label',
                  extract_image_id_function=None,
@@ -25,13 +25,13 @@ class ClassificationDataset(AbstractImageDataset):
                  flag=cv2.IMREAD_COLOR):
         self.map_class = map_class
         self.label_present = label_present
-        self.label_per_folder = label_per_folder if csv_filepath is None else False
-        self.csv_filepath = csv_filepath
+        self.label_per_folder = label_per_folder if label_filepath is None else False
+        self.label_filepath = label_filepath
         self.file_column = file_column
         if not isinstance(gt_column, list):
             gt_column = [gt_column]
         self.gt_column = gt_column
-        super(ClassificationDataset, self).__init__(img_url, shape, keep_size_ratio, recursive_loading,
+        super().__init__(img_url, shape, keep_size_ratio, recursive_loading,
                                                     extract_image_id_function, use_cache,
                                                     flag=flag,
                                                     auto_pad=auto_pad)
@@ -49,16 +49,20 @@ class ClassificationDataset(AbstractImageDataset):
                 self.gts['label'] = []
                 for f in self.img_filepath['image']:
                     self.gts['label'].append(os.path.basename(os.path.dirname(f)))
-            if self.csv_filepath:
-                csv = pandas.read_csv(self.csv_filepath)
+            if self.label_filepath:
+                if self.label_filepath.endswith('.csv'):
+                    df_labels = pandas.read_csv(self.label_filepath)
+                elif self.label_filepath.endswith('.xls'):
+                    df_labels = pandas.read_excel(self.label_filepath)
+                    
                 img_names = [os.path.basename(p) for p in self.img_filepath['image']]
                 img_names = [self.extract_image_id_function(_) for _ in img_names]
                 argsort = np.argsort(img_names)
 
                 self.img_filepath['image'] = self.img_filepath['image'][argsort]
-                csv.sort_values(self.file_column, inplace=True)
+                df_labels.sort_values(self.file_column, inplace=True)
                 for col in self.gt_column:
-                    csv_gts = np.asarray(csv[col])
+                    csv_gts = np.asarray(df_labels[col])
                     self.gts[col] = csv_gts
 
             if len(self.gt_column) == 1:

@@ -13,3 +13,9 @@ Therefore, NNTools has been skinned off. It is now mostly a set of classes/funct
 
 NNTools provides the `dataset` module to automatically create datasets (as subclasses of Pytorch's [Dataset](https://pytorch.org/tutorials/beginner/basics/data_tutorial.html))
 
+```python
+import nntools.dataset as D
+
+
+```
+
