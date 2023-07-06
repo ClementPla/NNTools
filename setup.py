@@ -13,6 +13,6 @@ setup(
     author_email='clement.playout@polymtl.ca',
     install_requires=[
         'torch','numpy','matplotlib','tqdm','pyyaml','pandas', 'torchvision', 'opencv-python',
-        'segmentation_models_pytorch', 'bokeh', 'pprint'],
+        'segmentation_models_pytorch', 'bokeh'],
     description='Small library built to facilitate the:q training of neural network with Pytorch. '
 )
