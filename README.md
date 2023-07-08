@@ -54,3 +54,37 @@ data_aug = A.Compose([A.ElasticTransform(p=1, alpha=120, sigma=120 * 0.05, alpha
 composer.add(data_aug) 
 dataset.composer = composer
 ```
+
+## Configuration
+
+Write your configuration in a usual [Yaml format](https://yaml.org/)
+
+`config.yaml`
+```yaml
+experiment:
+    name: MyExperiment
+    author: Myself
+model:
+    architecture: resnet
+    layers: 5
+training:
+    lr: 0.0001
+    optimizer:
+        type: sgd
+        momentum: 0.001
+    
+
+^tracking:
+    url: localhost:4200
+    
+```
+It can then be opened and used like a regular dict in your Python script:
+```python
+
+from nntools.utils import Config
+conf = Config('config.yaml')
+
+# conf['model']['architecture']=='resnet'
+```
+
+

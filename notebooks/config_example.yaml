@@ -1,0 +1,23 @@
+experiment:
+  name: MyExperiment
+
+model:
+  name: MyCustomModel
+  architecture:
+    name: resnet18
+    layers:
+      n: 18
+      residual: True
+
+optimizer:
+  name: Adam
+  lr: 0.001
+  others_params*:
+    weight_decay: 0.0001
+    momentum: 0.9
+
+^train:
+  epochs: 10
+  batch_size: 32
+  shuffle: True
+  num_workers: 4
