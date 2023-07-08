@@ -79,6 +79,7 @@ training:
     
 ```
 It can then be opened and used like a regular dict in your Python script:
+
 ```python
 
 from nntools.utils import Config
@@ -86,5 +87,8 @@ conf = Config('config.yaml')
 
 # conf['model']['architecture']=='resnet'
 ```
+The `Config` class provides two small utilities functions:
 
+    1. `config.tracked_params` will return all the parameters in a uploadable format.
+    2. The format of the tracked params can be adjusted using `*` and `^` markers. Check the [example notebook](notebooks/Config.ipynb).
 
