@@ -1,6 +1,7 @@
 import cv2
-import nntools.dataset as D
 import numpy as np
+
+import nntools.dataset as D
 from nntools import NN_FILL_UPSAMPLE
 
 

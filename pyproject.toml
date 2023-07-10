@@ -53,5 +53,8 @@ fixable = ["I", "RUF100", "TCH"]
 fix = true
 ignore = ["E731"]  # Ignore `E731` (`lambda` expression)
 
+[tool.ruff.isort]
+known-first-party = ["nntools"]
+
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["I002"]
