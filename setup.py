@@ -4,6 +4,7 @@ setup(
     name = 'NNTools',
     version = '0.1.0',
     packages = ['nntools'],
+    package_dir={'nntools': 'src/nntools'},
     url='https://github.com/ClementPla/NNTools',
     license='MIT',
     author='Clement Playout',
