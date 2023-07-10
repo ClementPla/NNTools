@@ -33,6 +33,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["black[jupyter]", "ruff"]
 notebooks = ["ipykernel"]
+tracker = ["mlflow"]
 
 [project.urls]
 "Homepage" = "https://github.com/ClementPla/NNTools/"
