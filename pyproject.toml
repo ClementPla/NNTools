@@ -1,0 +1,56 @@
+[project]
+name = "nntools"
+version = "0.1.0"
+description = "Light library built to facilitate the training of neural networks with PyTorch."
+readme = "README.md"
+authors = [
+    {name = "Clément Playout", email = "clement.playout@polymtl.ca"}
+]
+license = {file = "LICENSE"}
+keywords = [
+    "PyTorch",
+    "Neural Network",
+    "CNN",
+    "Deep Learning",
+    "Training",
+    "Dataset",
+    "Image",
+    "Configuration",
+]
+dependencies = [
+    "torch",
+    "numpy",
+    "matplotlib",
+    "tqdm",
+    "pyyaml",
+    "pandas",
+    "torchvision",
+    "opencv-python-headless",
+    "segmentation_models_pytorch",
+    "bokeh",
+]
+
+[project.optional-dependencies]
+dev = ["black[jupyter]", "ruff"]
+notebooks = ["ipykernel"]
+
+[project.urls]
+"Homepage" = "https://github.com/ClementPla/NNTools/"
+"Bug Tracker" = "https://github.com/ClementPla/NNTools/issues"
+
+[build-system]
+requires = ["setuptools>=64.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 120
+
+[tool.ruff]
+line-length = 120
+select = ["E", "F", "I", "RUF", "TCH"]
+fixable = ["I", "RUF100", "TCH"]
+fix = true
+ignore = ["E731"]  # Ignore `E731` (`lambda` expression)
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["I002"]
