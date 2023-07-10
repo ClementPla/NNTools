@@ -1,14 +1,14 @@
-
 class CacheBullet:
-
     def __call__(self, **kwargs):
         return kwargs
+
 
 class Composition:
     def __init__(self):
         self.ops = []
         self.deactivated = []
         self._index_bullet = 0
+
     def add(self, *funcs):
         for f in funcs:
             self.ops.append(f)
@@ -23,7 +23,7 @@ class Composition:
         for i, op in enumerate(self.ops):
             if i in self.deactivated:
                 continue
-            if (isinstance(op, CacheBullet)):
+            if isinstance(op, CacheBullet):
                 continue
             kwargs = op(**kwargs)
         return kwargs
@@ -38,7 +38,7 @@ class Composition:
             for i, op in enumerate(self.ops):
                 if i in self.deactivated:
                     continue
-                if i>=self._index_bullet:
+                if i >= self._index_bullet:
                     break
                 kwargs = op(**kwargs)
             return kwargs
@@ -48,11 +48,12 @@ class Composition:
             return self(**kwargs)
         else:
             for i, op in enumerate(self.ops):
-                if i<=self._index_bullet or i in self.deactivated:
+                if i <= self._index_bullet or i in self.deactivated:
                     continue
                 else:
                     kwargs = op(**kwargs)
             return kwargs
+
     @property
     def has_bullet_cache(self):
         for i, op in enumerate(self.ops):
@@ -63,9 +64,9 @@ class Composition:
         return False
 
     def __str__(self):
-        output = ''
+        output = ""
         for i, o in enumerate(self.ops):
-            output += '%i_' % i + str(o) + ' STATUS: ' + ('Active' if i not in self.deactivated else 'Inactive') + ' \n'
+            output += "%i_" % i + str(o) + " STATUS: " + ("Active" if i not in self.deactivated else "Inactive") + " \n"
         return output
 
     def __repr__(self):

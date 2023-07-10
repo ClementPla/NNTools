@@ -1,1 +1,1 @@
-from .utils.const import *
+from .utils.const import *  # noqa: F403

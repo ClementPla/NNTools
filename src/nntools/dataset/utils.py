@@ -2,28 +2,32 @@ import bisect
 import copy
 import os
 from typing import List
+
 import numpy as np
 import torch
 import tqdm
-from nntools.tracker import Log
-from torch import randperm, default_generator
+from torch import default_generator, randperm
 from torch._utils import _accumulate
+
+from nntools.tracker import Log
+
 from .abstract_image_dataset import AbstractImageDataset
+
 
 def get_segmentation_class_count(dataset, save=False, load=False):
     sample = dataset[0]
-    if 'mask' not in sample.keys():
+    if "mask" not in sample.keys():
         raise NotImplementedError
 
     path = dataset.path_img[0]
-    filepath = os.path.join(path, 'classes_count.npy')
+    filepath = os.path.join(path, "classes_count.npy")
 
     if os.path.isfile(filepath) and load:
         return np.load(filepath)
     classes_counts = np.zeros(1024, dtype=int)  # Arbitrary large number (nb classes unknown at this point)
 
     for sample in tqdm.tqdm(dataset):
-        mask = sample['mask'].numpy()
+        mask = sample["mask"].numpy()
         if mask.ndim == 3:  # Multilabel -> Multiclass
             arr_tmp = np.argmax(mask, axis=0) + 1
             arr_tmp[mask.max(axis=0) == 0] = 0
@@ -31,24 +35,24 @@ def get_segmentation_class_count(dataset, save=False, load=False):
         u, counts = np.unique(mask, return_counts=True)
         classes_counts[u] += counts
 
-    classes_counts = classes_counts[:np.max(np.nonzero(classes_counts)) + 1]
+    classes_counts = classes_counts[: np.max(np.nonzero(classes_counts)) + 1]
     if save:
         np.save(filepath, classes_counts)
-        Log.warn('Weights stored in ' + filepath)
+        Log.warn("Weights stored in " + filepath)
     return classes_counts
 
 
-def class_weighting(class_count, mode='balanced', ignore_index=-100, eps=1, log_smoothing=1.01, center_mean=0):
-    assert mode in ['balanced', 'log_prob', 'frequency']
+def class_weighting(class_count, mode="balanced", ignore_index=-100, eps=1, log_smoothing=1.01, center_mean=0):
+    assert mode in ["balanced", "log_prob", "frequency"]
     n_samples = sum([c for i, c in enumerate(class_count) if i != ignore_index])
 
-    if mode == 'balanced':
+    if mode == "balanced":
         n_classes = len(np.nonzero(class_count))
         class_weights = n_samples / (n_classes * class_count + eps)
-    elif mode == 'frequency':
-        class_weights = n_samples/class_count
+    elif mode == "frequency":
+        class_weights = n_samples / class_count
 
-    elif mode == 'log_prob':
+    elif mode == "log_prob":
         p_class = class_count / n_samples
         class_weights = (1 / np.log(log_smoothing + p_class)).astype(np.float32)
 
@@ -59,10 +63,10 @@ def class_weighting(class_count, mode='balanced', ignore_index=-100, eps=1, log_
 
     return class_weights.astype(np.float32)
 
+
 def check_dataleaks(*datasets: List[AbstractImageDataset], raise_exception=True):
     is_okay = True
-    cols = {'files':[],
-            'gts':[]}
+    cols = {"files": [], "gts": []}
     unfold_datasets = []
     for d in datasets:
         if isinstance(d, ConcatDataset):
@@ -72,13 +76,13 @@ def check_dataleaks(*datasets: List[AbstractImageDataset], raise_exception=True)
 
     for d in unfold_datasets:
         file_cols, gts_cols = d.columns()
-        cols['files'].append(list(file_cols))
-        cols['gts'].append(list(gts_cols))
+        cols["files"].append(list(file_cols))
+        cols["gts"].append(list(gts_cols))
 
-    cols['files'] = list(set.intersection(*map(set, cols['files'])))  # Find intersection of columns
-    cols['gts'] = list(set.intersection(*map(set, cols['gts'])))
+    cols["files"] = list(set.intersection(*map(set, cols["files"])))  # Find intersection of columns
+    cols["gts"] = list(set.intersection(*map(set, cols["gts"])))
 
-    for f_col in cols['files']:
+    for f_col in cols["files"]:
         filenames = []
         for d in unfold_datasets:
             filenames.append(d.filenames[f_col])
@@ -86,9 +90,9 @@ def check_dataleaks(*datasets: List[AbstractImageDataset], raise_exception=True)
         if len(join_file) > 0:
             is_okay = False
             if raise_exception:
-                raise ValueError('Found common images between datasets')
+                raise ValueError("Found common images between datasets")
 
-    for f_col in cols['gts']:
+    for f_col in cols["gts"]:
         filenames = []
         for d in unfold_datasets:
             filenames.append(d.gt_filenames[f_col])
@@ -96,13 +100,11 @@ def check_dataleaks(*datasets: List[AbstractImageDataset], raise_exception=True)
         if len(join_gt) > 0:
             is_okay = False
             if raise_exception:
-                raise ValueError('Found common groundtruth between datasets')
+                raise ValueError("Found common groundtruth between datasets")
 
     if not is_okay:
         return is_okay, join_file, join_gt
     return is_okay
-
-
 
 
 def random_split(dataset, lengths, generator=default_generator):
@@ -113,14 +115,13 @@ def random_split(dataset, lengths, generator=default_generator):
     datasets = []
     for offset, length in zip(_accumulate(lengths), lengths):
         d = copy.deepcopy(dataset)
-        indx = indices[offset - length: offset]
+        indx = indices[offset - length : offset]
         d.subset(indx)
         datasets.append(d)
     return tuple(datasets)
 
 
 class ConcatDataset(torch.utils.data.ConcatDataset):
-
     def __init__(self, *args, **kwargs):
         self.post_init = False
         super(ConcatDataset, self).__init__(*args, **kwargs)
@@ -161,14 +162,13 @@ class ConcatDataset(torch.utils.data.ConcatDataset):
             d.init_cache()
 
     def __setattr__(self, key, value):
-        if key == 'post_init':
+        if key == "post_init":
             super(ConcatDataset, self).__setattr__(key, value)
         if hasattr(self, key) or not self.post_init:
             super(ConcatDataset, self).__setattr__(key, value)
         else:
             for d in self.datasets:
                 d.__setattr__(key, value)
-
 
 
 def concat_datasets_if_needed(datasets):

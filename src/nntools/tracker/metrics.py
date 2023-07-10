@@ -3,8 +3,7 @@ import torch
 import torch.nn.functional as F
 
 
-def confusion_matrix(pred, gt, num_classes=-1,
-                     multilabel=False, *args):
+def confusion_matrix(pred, gt, num_classes=-1, multilabel=False, *args):
     """
     :param pred: Tensor of any of the following shape containing hard predictions (integer or bool): NxHxW,
     Nx(W*W) (multi
@@ -58,11 +57,13 @@ def micro_score(confMat, epsilon=1e-7):
     precision_m = TP.sum() / (TP.sum() + FP.sum() + epsilon)
     accuracy_m = (TP.sum() + TN.sum()) / (P.sum() + N.sum() + epsilon)
     f1_m = (2 * TP.sum()) / (2 * TP.sum() + FP.sum() + FN.sum() + epsilon)
-    return {'sensitivity_micro': sensitivity_m.item(),
-            'specificity_micro': specificity_m.item(),
-            'precision_micro': precision_m.item(),
-            'accuracy_micro': accuracy_m.item(),
-            'f1_micro': f1_m.item()}
+    return {
+        "sensitivity_micro": sensitivity_m.item(),
+        "specificity_micro": specificity_m.item(),
+        "precision_micro": precision_m.item(),
+        "accuracy_micro": accuracy_m.item(),
+        "f1_micro": f1_m.item(),
+    }
 
 
 def macro_score(confMat, epsilon=1e-7):
@@ -72,11 +73,13 @@ def macro_score(confMat, epsilon=1e-7):
     precision = TP / (TP + FP + epsilon)
     accuracy = (TP + TN) / (P + N + epsilon)
     f1 = 2 * TP / (2 * TP + FP + FN + epsilon)
-    return {'sensitivity_macro': sensitivity.mean().item(),
-            'specificity_macro': specificity.mean().item(),
-            'precision_macro': precision.mean().item(),
-            'accuracy_macro': accuracy.mean().item(),
-            'f1_macro': f1.mean().item()}
+    return {
+        "sensitivity_macro": sensitivity.mean().item(),
+        "specificity_macro": specificity.mean().item(),
+        "precision_macro": precision.mean().item(),
+        "accuracy_macro": accuracy.mean().item(),
+        "f1_macro": f1.mean().item(),
+    }
 
 
 def extract_confMat_values(confMat):
@@ -97,8 +100,9 @@ def extract_confMat_values(confMat):
         FN = P - TP
         TN = all - TP - FP - FN
     else:
-        ValueError("Confusion matrix can only have 2 (multiclass) or 3 (multilabels) dimension. Got shape ",
-                   confMat.shape)
+        ValueError(
+            "Confusion matrix can only have 2 (multiclass) or 3 (multilabels) dimension. Got shape ", confMat.shape
+        )
     return TP, TN, P, N, FP, FN
 
 

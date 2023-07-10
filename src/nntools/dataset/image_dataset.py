@@ -2,37 +2,43 @@ import glob
 
 import cv2
 import numpy as np
-from nntools import NN_FILL_UPSAMPLE, NN_FILL_DOWNSAMPLE, MISSING_DATA_FLAG
-from nntools.dataset.image_tools import resize
+
+from nntools import MISSING_DATA_FLAG, NN_FILL_DOWNSAMPLE, NN_FILL_UPSAMPLE
 from nntools.tracker import Log
-from nntools.utils.io import read_image, path_leaf
+from nntools.utils.io import path_leaf
 from nntools.utils.misc import to_iterable
 
 from .abstract_image_dataset import AbstractImageDataset, supportedExtensions
 
 
 class MultiImageDataset(AbstractImageDataset):
-    def __init__(self, img_url,
-                 shape=None,
-                 keep_size_ratio=False,
-                 recursive_loading=True,
-                 extract_image_id_function=None,
-                 use_cache=False,
-                 filling_strategy=NN_FILL_DOWNSAMPLE, flag=cv2.IMREAD_COLOR,
-                 auto_pad=True,
-                 **kwargs):
-
+    def __init__(
+        self,
+        img_url,
+        shape=None,
+        keep_size_ratio=False,
+        recursive_loading=True,
+        extract_image_id_function=None,
+        use_cache=False,
+        filling_strategy=NN_FILL_DOWNSAMPLE,
+        flag=cv2.IMREAD_COLOR,
+        auto_pad=True,
+        **kwargs
+    ):
         self.root_path = {k: to_iterable(path) for k, path in img_url.items()}
         self.filling_strategy = filling_strategy
-        super().__init__(shape=shape, keep_size_ratio=keep_size_ratio,
-                                                recursive_loading=recursive_loading,
-                                                extract_image_id_function=extract_image_id_function,
-                                                use_cache=use_cache, flag=flag,
-                                                auto_pad=auto_pad,
-                                                **kwargs)
+        super().__init__(
+            shape=shape,
+            keep_size_ratio=keep_size_ratio,
+            recursive_loading=recursive_loading,
+            extract_image_id_function=extract_image_id_function,
+            use_cache=use_cache,
+            flag=flag,
+            auto_pad=auto_pad,
+            **kwargs
+        )
 
     def match_images_number_per_folder(self, filenames_per_folder):
-
         list_lengths = [len(img_filenames) for img_filenames in filenames_per_folder.values()]
         if self.filling_strategy == NN_FILL_DOWNSAMPLE:
             Log.warn("Downsampling the dataset to size %i" % min(list_lengths))
@@ -40,8 +46,12 @@ class MultiImageDataset(AbstractImageDataset):
 
             for k in self.img_filepath.keys():
                 self.img_filepath[k] = np.asarray(
-                    [img for img, filename in zip(self.img_filepath[k], filenames_per_folder[k]) if filename in
-                     smallest_list])
+                    [
+                        img
+                        for img, filename in zip(self.img_filepath[k], filenames_per_folder[k])
+                        if filename in smallest_list
+                    ]
+                )
         elif self.filling_strategy == NN_FILL_UPSAMPLE:
             Log.warn("Upsampling missing labels to fit the dataset's size (%i)" % max(list_lengths))
 
@@ -72,14 +82,16 @@ class MultiImageDataset(AbstractImageDataset):
         """
         imgs_filenames = {}
         for k, files_list in self.img_filepath.items():
-            imgs_filenames[k] = [path_leaf(file).split('.')[0] for file in files_list]
+            imgs_filenames[k] = [path_leaf(file).split(".")[0] for file in files_list]
 
         list_lengths = [len(img_filenames) for img_filenames in imgs_filenames.values()]
 
         all_equal = all(elem == list_lengths[0] for elem in list_lengths)
         if not all_equal:
-            Log.warn("Mismatch between the size of the different input folders (smaller %i, longer %i)" % (min(
-                list_lengths), max(list_lengths)))
+            Log.warn(
+                "Mismatch between the size of the different input folders (smaller %i, longer %i)"
+                % (min(list_lengths), max(list_lengths))
+            )
             self.match_images_number_per_folder(imgs_filenames)
 
         if self.filling_strategy == NN_FILL_DOWNSAMPLE:
@@ -94,21 +106,27 @@ class MultiImageDataset(AbstractImageDataset):
             return max([len(filepaths) for filepaths in self.img_filepath.values()])
 
 
-
-
 class ImageDataset(MultiImageDataset):
-    def __init__(self, img_url,
-                 shape=None,
-                 keep_size_ratio=False,
-                 recursive_loading=True,
-                 extract_image_id_function=None,
-                 use_cache=False,
-                 auto_pad=True,
-                 filling_strategy=NN_FILL_DOWNSAMPLE, flag=cv2.IMREAD_COLOR):
-        super().__init__(img_url={'image': img_url},
-                         shape=shape, keep_size_ratio=keep_size_ratio,
-                         recursive_loading=recursive_loading, 
-                         extract_image_id_function=extract_image_id_function,
-                         use_cache=use_cache, auto_pad=True,
-                         filling_strategy=filling_strategy,
-                         flag=flag)
+    def __init__(
+        self,
+        img_url,
+        shape=None,
+        keep_size_ratio=False,
+        recursive_loading=True,
+        extract_image_id_function=None,
+        use_cache=False,
+        auto_pad=True,
+        filling_strategy=NN_FILL_DOWNSAMPLE,
+        flag=cv2.IMREAD_COLOR,
+    ):
+        super().__init__(
+            img_url={"image": img_url},
+            shape=shape,
+            keep_size_ratio=keep_size_ratio,
+            recursive_loading=recursive_loading,
+            extract_image_id_function=extract_image_id_function,
+            use_cache=use_cache,
+            auto_pad=True,
+            filling_strategy=filling_strategy,
+            flag=flag,
+        )

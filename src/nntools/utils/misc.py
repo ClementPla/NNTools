@@ -1,6 +1,6 @@
 import inspect
-from functools import partial
 import numbers
+from functools import partial
 
 
 def to_iterable(param, iterable_type=list):
@@ -30,7 +30,6 @@ def identity(x):
 
 
 def tensor2num(x):
-
     if isinstance(x, numbers.Number):
         return x
     if x.dim() == 0:

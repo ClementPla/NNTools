@@ -1,9 +1,11 @@
 import os
+from typing import Optional
 
 from mlflow.tracking.client import MlflowClient
+
 from nntools.utils.io import create_folder
 
-from .log_mlflow import log_metrics, log_params, log_artifact, log_figures, set_tags
+from .log_mlflow import log_artifact, log_figures, log_metrics, log_params, set_tags
 
 
 class Tracker:
@@ -31,7 +33,7 @@ class Tracker:
         self.__dict__.update(self.save_paths)
 
     def set_run_folder(self, path: str):
-        self.register_path('run_folder', path)
+        self.register_path("run_folder", path)
 
     def create_client(self, tracker_uri, artifact_uri=None):
         self.client = MlflowClient(tracker_uri)
@@ -82,9 +84,8 @@ class Tracker:
         return any([r.info.run_id == run_id for r in list_runs])
 
     def check_run_status(self, run_id):
-
         if not self.check_is_run_exists(run_id=run_id):
-            return 'ABSENT'
+            return "ABSENT"
         return self.get_run(run_id).info.status
 
     def create_run(self, tags=None, run_name=None):
@@ -111,7 +112,7 @@ class Tracker:
             self.log_figures(*f)
         return True
 
-    def get_run(self, run_id: str = None):
+    def get_run(self, run_id: str = Optional[None]):
         if run_id is None:
             run_id = self.run_id
         return self.client.get_run(run_id)
@@ -129,12 +130,12 @@ class Tracker:
             self.current_iteration = max(self.current_iteration, his[-1].step)
 
     def init_default_path(self):
-        assert 'run_folder' in self.save_paths
+        assert "run_folder" in self.save_paths
 
-        self.register_path('network_savepoint', self.create_new_folder_in_run('trained_model'))
-        self.register_path('prediction_savepoint', self.create_new_folder_in_run('predictions'))
-        self.register_path('config_savepoint', self.create_new_folder_in_run('config'))
-        self.register_path('validation', self.create_new_folder_in_run('validation'))
+        self.register_path("network_savepoint", self.create_new_folder_in_run("trained_model"))
+        self.register_path("prediction_savepoint", self.create_new_folder_in_run("predictions"))
+        self.register_path("config_savepoint", self.create_new_folder_in_run("config"))
+        self.register_path("validation", self.create_new_folder_in_run("validation"))
 
     def create_new_folder_in_run(self, folder):
         path = os.path.join(self.run_folder, folder, str(self.run_id))

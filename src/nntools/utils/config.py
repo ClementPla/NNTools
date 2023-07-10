@@ -4,8 +4,8 @@ from collections import OrderedDict
 
 from nntools.utils.io import load_yaml
 
-TAG_COMPRESS = '*'
-TAG_IGNORE = '^'
+TAG_COMPRESS = "*"
+TAG_IGNORE = "^"
 
 
 class DictParsed(dict):
@@ -41,7 +41,7 @@ class DictParsed(dict):
             self.keys_with_tags[new_key] = tags
         super(DictParsed, self).__setitem__(new_key, value)
 
-    def tracked_params(self, parent='', level=0):
+    def tracked_params(self, parent="", level=0):
         tracked_params = OrderedDict()
         for k, v in self.items():
             tags = self.keys_with_tags.get(k, (False, False))
@@ -50,7 +50,7 @@ class DictParsed(dict):
             current_key = "%s%s" % (parent, k)
             if isinstance(v, DictParsed):
                 if not tags[1] or (level == 0):
-                    tmp_t_params = v.tracked_params(current_key + '/', level + 1)
+                    tmp_t_params = v.tracked_params(current_key + "/", level + 1)
                     tracked_params.update(tmp_t_params)
                 else:
                     tracked_params[current_key] = v.filtered_dict()
@@ -113,5 +113,3 @@ def recursive_dict_replacement(org_dict):
             new_dict = DictParsed()
             new_dict.update(v)
             org_dict[k] = new_dict
-
-

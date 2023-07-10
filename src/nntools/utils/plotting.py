@@ -5,13 +5,13 @@ import numpy as np
 import torch
 from matplotlib import cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from torchvision.utils import make_grid, draw_segmentation_masks
+from torchvision.utils import draw_segmentation_masks, make_grid
 
 
-def plt_cmap(confMap, cmap_name='RdYlGn'):
+def plt_cmap(confMap, cmap_name="RdYlGn"):
     n_classes = confMap.shape[0]
     cmap = cm.get_cmap(cmap_name)
-    cmap_r = cm.get_cmap(cmap_name + '_r')
+    cmap_r = cm.get_cmap(cmap_name + "_r")
 
     n_cfmap_row = confMap / confMap.sum(1, keepdims=True)
     n_cfmap_col = confMap / confMap.sum(0, keepdims=True)
@@ -27,7 +27,6 @@ def plt_cmap(confMap, cmap_name='RdYlGn'):
     ax.imshow(colors)
     for i in range(n_classes):
         for j in range(n_classes):
-
             row = np.nan_to_num(n_cfmap_row[i, j])
             col = np.nan_to_num(n_cfmap_col[i, j])
             if i == j:
@@ -37,35 +36,55 @@ def plt_cmap(confMap, cmap_name='RdYlGn'):
                 color_row = cmap_r(row)
                 color_col = cmap_r(col)
 
-            ax.text(j, i - 0.25, f'{col:.0%}', color=color_row,
-                    horizontalalignment='center',
-                    fontweight='black',
-                    backgroundcolor=(1.0, 1.0, 1.0, 0.5))
+            ax.text(
+                j,
+                i - 0.25,
+                f"{col:.0%}",
+                color=color_row,
+                horizontalalignment="center",
+                fontweight="black",
+                backgroundcolor=(1.0, 1.0, 1.0, 0.5),
+            )
 
             if confMap[i, j] > 9999:
-                ax.text(j, i, f"{confMap[i, j]:.1e}", color=color_row,
-                        horizontalalignment='center',
-                        fontweight='black',
-                        backgroundcolor=(1.0, 1.0, 1.0, 0.95))
+                ax.text(
+                    j,
+                    i,
+                    f"{confMap[i, j]:.1e}",
+                    color=color_row,
+                    horizontalalignment="center",
+                    fontweight="black",
+                    backgroundcolor=(1.0, 1.0, 1.0, 0.95),
+                )
             else:
-                ax.text(j, i, confMap[i, j], color=color_row,
-                        horizontalalignment='center',
-                        fontweight='black',
-                        backgroundcolor=(1.0, 1.0, 1.0, 0.95))
+                ax.text(
+                    j,
+                    i,
+                    confMap[i, j],
+                    color=color_row,
+                    horizontalalignment="center",
+                    fontweight="black",
+                    backgroundcolor=(1.0, 1.0, 1.0, 0.95),
+                )
 
-            ax.text(j, i + 0.25, f'{row:.0%}', color=color_col,
-                    horizontalalignment='center',
-                    fontweight='black',
-                    backgroundcolor=(1.0, 1.0, 1.0, 0.5))
+            ax.text(
+                j,
+                i + 0.25,
+                f"{row:.0%}",
+                color=color_col,
+                horizontalalignment="center",
+                fontweight="black",
+                backgroundcolor=(1.0, 1.0, 1.0, 0.5),
+            )
 
     ax.set_xticks(np.arange(0, n_classes, 1))
     ax.set_yticks(np.arange(0, n_classes, 1))
     # Labels for major ticks
     ax.set_xticklabels(np.arange(1, n_classes + 1, 1))
     ax.set_yticklabels(np.arange(1, n_classes + 1, 1))
-    ax.set_xticks(np.arange(-.5, n_classes - 1, 1), minor=True)
-    ax.set_yticks(np.arange(-.5, n_classes - 1, 1), minor=True)
-    ax.grid(which='minor', color='w', linestyle='-', linewidth=2)
+    ax.set_xticks(np.arange(-0.5, n_classes - 1, 1), minor=True)
+    ax.set_yticks(np.arange(-0.5, n_classes - 1, 1), minor=True)
+    ax.grid(which="minor", color="w", linestyle="-", linewidth=2)
 
     return fig
 
@@ -80,7 +99,7 @@ def create_mosaic(images, masks=None, alpha=0.8, colors=None):
     return mosaic_imgs
 
 
-def plot_images(arrays_dict, cmap_name='jet_r', classes=None, fig_size=1):
+def plot_images(arrays_dict, cmap_name="jet_r", classes=None, fig_size=1):
     arrays = [(k, v) for k, v in arrays_dict.items() if isinstance(v, np.ndarray)]
     nb_plots = len(arrays)
     if nb_plots == 1:
@@ -100,7 +119,7 @@ def plot_images(arrays_dict, cmap_name='jet_r', classes=None, fig_size=1):
             ax[i][j].set_axis_off()
 
             if j + i * col >= len(arrays):
-                ax[i][j].imshow(np.zeros_like(np.squeeze(arr)), interpolation='none')
+                ax[i][j].imshow(np.zeros_like(np.squeeze(arr)), interpolation="none")  # noqa: F821
             else:
                 name, arr = arrays[j + i * col]
 
@@ -111,16 +130,16 @@ def plot_images(arrays_dict, cmap_name='jet_r', classes=None, fig_size=1):
                     arr = arr_tmp
                 if arr.ndim == 3:
                     arr = (arr - np.min(arr)) / (np.max(arr) - np.min(arr))
-                    ax[i][j].imshow(np.squeeze(arr), cmap='gray', interpolation='none')
+                    ax[i][j].imshow(np.squeeze(arr), cmap="gray", interpolation="none")
                 elif arr.ndim == 2:
                     n_classes = np.max(arr) + 1
                     if n_classes == 1:
                         n_classes = 2
                     cmap = cm.get_cmap(cmap_name, n_classes)
-                    ax[i][j].imshow(np.squeeze(arr), cmap=cmap, interpolation='none')
+                    ax[i][j].imshow(np.squeeze(arr), cmap=cmap, interpolation="none")
                     divider = make_axes_locatable(ax[i][j])
-                    cax = divider.append_axes('right', size='5%', pad=0.05)
-                    cax.imshow(np.expand_dims(np.arange(n_classes), 0).transpose((1, 0)), aspect='auto', cmap=cmap)
+                    cax = divider.append_axes("right", size="5%", pad=0.05)
+                    cax.imshow(np.expand_dims(np.arange(n_classes), 0).transpose((1, 0)), aspect="auto", cmap=cmap)
                     cax.yaxis.set_label_position("right")
                     cax.yaxis.tick_right()
                     if classes is not None:

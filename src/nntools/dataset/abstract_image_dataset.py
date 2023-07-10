@@ -1,4 +1,5 @@
 import ctypes
+import logging
 import math
 import multiprocessing as mp
 import os
@@ -7,20 +8,21 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import logging
-from nntools.dataset.image_tools import resize, pad
-from nntools.tracker.logger import Log
-from nntools.utils.io import read_image, path_leaf
-from nntools.utils.misc import to_iterable, identity
-from nntools.utils.plotting import plot_images
 from torch.utils.data import Dataset
-from .tools import Composition, CacheBullet
-from nntools import NN_FILL_UPSAMPLE, NN_FILL_DOWNSAMPLE, MISSING_DATA_FLAG
+
+from nntools import MISSING_DATA_FLAG, NN_FILL_UPSAMPLE
+from nntools.dataset.image_tools import pad, resize
+from nntools.tracker.logger import Log
+from nntools.utils.io import path_leaf, read_image
+from nntools.utils.misc import identity, to_iterable
+from nntools.utils.plotting import plot_images
+
+from .tools import Composition
 
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
 supportedExtensions = supportedExtensions + [ext.upper() for ext in supportedExtensions]
 
-plt.rcParams['image.cmap'] = 'gray'
+plt.rcParams["image.cmap"] = "gray"
 
 
 def convert_dict_to_plottable(dict_arrays):
@@ -35,15 +37,17 @@ def convert_dict_to_plottable(dict_arrays):
 
 
 class AbstractImageDataset(Dataset):
-    def __init__(self, img_url=None,
-                 shape=None,
-                 keep_size_ratio=False,
-                 recursive_loading=True,
-                 extract_image_id_function=None,
-                 use_cache=False,
-                 auto_pad=True,
-                 flag=cv2.IMREAD_UNCHANGED):
-
+    def __init__(
+        self,
+        img_url=None,
+        shape=None,
+        keep_size_ratio=False,
+        recursive_loading=True,
+        extract_image_id_function=None,
+        use_cache=False,
+        auto_pad=True,
+        flag=cv2.IMREAD_UNCHANGED,
+    ):
         super().__init__()
 
         if extract_image_id_function is None:
@@ -60,7 +64,7 @@ class AbstractImageDataset(Dataset):
         self.shape = tuple(shape)
         self.recursive_loading = recursive_loading
 
-        self.img_filepath = {'image': []}
+        self.img_filepath = {"image": []}
         self.gts = {}
         self.shared_arrays = {}
 
@@ -70,7 +74,7 @@ class AbstractImageDataset(Dataset):
         self.auto_pad = auto_pad
 
         self.use_cache = use_cache
-        self.cmap_name = 'jet_r'
+        self.cmap_name = "jet_r"
 
         self.multiplicative_size_factor = 1
 
@@ -89,7 +93,7 @@ class AbstractImageDataset(Dataset):
 
     @property
     def real_length(self):
-        return len(self.img_filepath['image'])
+        return len(self.img_filepath["image"])
 
     @property
     def filenames(self):
@@ -126,16 +130,13 @@ class AbstractImageDataset(Dataset):
 
     def resize_and_pad(self, image, interpolation=cv2.INTER_CUBIC):
         if self.auto_resize:
-            image = resize(image=image, shape=self.shape,
-                           keep_size_ratio=self.keep_size_ratio,
-                           flag=interpolation)
+            image = resize(image=image, shape=self.shape, keep_size_ratio=self.keep_size_ratio, flag=interpolation)
         if self.auto_pad:
             image = pad(image=image, shape=self.shape)
         return image
 
     def multiply_size(self, factor):
         self.multiplicative_size_factor = factor
-
 
     def init_cache(self):
         arrays = self.load_image(0)  # Taking the first element
@@ -151,7 +152,7 @@ class AbstractImageDataset(Dataset):
                 c = 1
             else:
                 h, w, c = arr.shape
-            logging.info(f'Initializing shared array {key} with size: {nb_samples}x{c}x{h}x{w}')
+            logging.info(f"Initializing shared array {key} with size: {nb_samples}x{c}x{h}x{w}")
             shared_array_base = mp.Array(ctypes.c_uint8, nb_samples * c * h * w)
             with shared_array_base.get_lock():
                 shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
@@ -189,7 +190,7 @@ class AbstractImageDataset(Dataset):
             if old_key in d.keys():
                 d[new_key] = d.pop(old_key)
 
-    def filename(self, items, col='image'):
+    def filename(self, items, col="image"):
         items = np.asarray(items)
         filepaths = self.img_filepath[col][items]
         if isinstance(filepaths, list) or isinstance(filepaths, np.ndarray):
@@ -202,7 +203,7 @@ class AbstractImageDataset(Dataset):
         return self._composer
 
     @composer.setter
-    def composer(self, comp:Composition):
+    def composer(self, comp: Composition):
         self._composer = comp
 
     def get_class_count(self, load=True, save=True):
@@ -221,9 +222,7 @@ class AbstractImageDataset(Dataset):
         for k, files in self.gts.items():
             self.gts[k] = files[indices]
 
-    def __getitem__(self, index,
-                    return_indices=False,
-                    return_tag=False):
+    def __getitem__(self, index, return_indices=False, return_tag=False):
         if abs(index) >= len(self):
             raise StopIteration
         if index >= self.real_length:
@@ -236,7 +235,7 @@ class AbstractImageDataset(Dataset):
             outputs = inputs
 
         if self.return_indices or return_indices:
-            outputs['index'] = index
+            outputs["index"] = index
 
         if self.tag and (self.return_tag or return_tag):
             if isinstance(self.tag, dict):
@@ -264,7 +263,7 @@ class AbstractImageDataset(Dataset):
 
     @cache_filled.setter
     def cache_filled(self, cache_filled):
-        logging.info('Cache is marked as filled')
+        logging.info("Cache is marked as filled")
         self._cache_filled = cache_filled
 
     def clean_filter(self):
@@ -275,10 +274,20 @@ class AbstractImageDataset(Dataset):
         arrays = convert_dict_to_plottable(arrays)
         plot_images(arrays, self.cmap_name, classes=classes, fig_size=fig_size)
 
-    def get_mosaic(self, n_items=9, shuffle=False, indexes=None, resolution=(512, 512), show=False, fig_size=1,
-                   save=None, add_labels=False,
-                   n_row=None, n_col=None, n_classes=None):
-
+    def get_mosaic(
+        self,
+        n_items=9,
+        shuffle=False,
+        indexes=None,
+        resolution=(512, 512),
+        show=False,
+        fig_size=1,
+        save=None,
+        add_labels=False,
+        n_row=None,
+        n_col=None,
+        n_classes=None,
+    ):
         if indexes is None:
             if shuffle:
                 indexes = np.random.randint(0, len(self), n_items)
@@ -310,8 +319,7 @@ class AbstractImageDataset(Dataset):
                         row.append(tmp)
                     continue
                 index = indexes[i]
-                data = self.__getitem__(index, return_indices=False,
-                                        return_tag=False)
+                data = self.__getitem__(index, return_indices=False, return_tag=False)
                 data = convert_dict_to_plottable(data)
 
                 for k, v in data.items():
@@ -336,7 +344,7 @@ class AbstractImageDataset(Dataset):
                         elif k in self.img_filepath:
                             text = self.img_filepath[k][index]
                         else:
-                            text = ''
+                            text = ""
                         text = os.path.basename(text)
                         font = cv2.FONT_HERSHEY_PLAIN
                         fontScale = 1.75
@@ -348,12 +356,7 @@ class AbstractImageDataset(Dataset):
                         textY = (textsize[1] + pad) // 2
 
                         bottomLeftCornerOfText = textX, textY
-                        cv2.putText(v, text,
-                                    bottomLeftCornerOfText,
-                                    font,
-                                    fontScale,
-                                    fontColor,
-                                    lineType)
+                        cv2.putText(v, text, bottomLeftCornerOfText, font, fontScale, fontColor, lineType)
                     if v.shape:
                         row.append(v)
 
@@ -366,7 +369,7 @@ class AbstractImageDataset(Dataset):
             fig, ax = plt.subplots(1, 1)
             ax.imshow(mosaic)
             fig.set_size_inches(fig_size * 5 * count_images * n_col, 5 * n_row * fig_size)
-            plt.axis('off')
+            plt.axis("off")
             plt.tight_layout()
             fig.show()
         if save:

@@ -2,31 +2,35 @@ import glob
 
 import cv2
 import numpy as np
-from nntools import NN_FILL_DOWNSAMPLE, NN_FILL_UPSAMPLE, MISSING_DATA_FLAG
-from nntools.dataset.image_tools import resize, pad
+
+from nntools import MISSING_DATA_FLAG, NN_FILL_DOWNSAMPLE, NN_FILL_UPSAMPLE
+from nntools.dataset.image_tools import resize
 from nntools.tracker import Log
-from nntools.utils.io import read_image, path_leaf
+from nntools.utils.io import path_leaf, read_image
 from nntools.utils.misc import to_iterable
 
 from .abstract_image_dataset import AbstractImageDataset, supportedExtensions
 
 
 class SegmentationDataset(AbstractImageDataset):
-    def __init__(self, img_url,
-                 mask_url=None,
-                 shape=None,
-                 keep_size_ratio=False,
-                 recursive_loading=True,
-                 n_classes=None,
-                 extract_image_id_function=None,
-                 use_cache=False,
-                 auto_pad=True,
-                 filling_strategy=NN_FILL_UPSAMPLE, flag=cv2.IMREAD_COLOR):
-
-        if mask_url is None or mask_url == '':
+    def __init__(
+        self,
+        img_url,
+        mask_url=None,
+        shape=None,
+        keep_size_ratio=False,
+        recursive_loading=True,
+        n_classes=None,
+        extract_image_id_function=None,
+        use_cache=False,
+        auto_pad=True,
+        filling_strategy=NN_FILL_UPSAMPLE,
+        flag=cv2.IMREAD_COLOR,
+    ):
+        if mask_url is None or mask_url == "":
             self.path_masks = None
         elif not isinstance(mask_url, dict):
-            self.path_masks = {'mask': to_iterable(mask_url)}
+            self.path_masks = {"mask": to_iterable(mask_url)}
         else:
             self.path_masks = {k: to_iterable(path) for k, path in mask_url.items()}
 
@@ -34,21 +38,27 @@ class SegmentationDataset(AbstractImageDataset):
         self.n_classes = n_classes
         self.filling_strategy = filling_strategy
 
-        super().__init__(img_url, shape, keep_size_ratio, recursive_loading,
-                                                  extract_image_id_function,
-                                                  auto_pad=auto_pad,
-                                                  use_cache=use_cache,
-                                                  flag=flag)
+        super().__init__(
+            img_url,
+            shape,
+            keep_size_ratio,
+            recursive_loading,
+            extract_image_id_function,
+            auto_pad=auto_pad,
+            use_cache=use_cache,
+            flag=flag,
+        )
 
     def get_class_count(self, save=False, load=False):
         from .utils import get_segmentation_class_count
+
         return get_segmentation_class_count(self, save=save, load=load)
 
     def list_files(self, recursive):
         for extension in supportedExtensions:
             prefix = "**/*." if recursive else "*."
             for path in self.path_img:
-                self.img_filepath['image'].extend(glob.glob(path + prefix + extension, recursive=recursive))
+                self.img_filepath["image"].extend(glob.glob(path + prefix + extension, recursive=recursive))
             if self.use_masks:
                 for mask_label, paths in self.path_masks.items():
                     for path in paths:
@@ -56,7 +66,7 @@ class SegmentationDataset(AbstractImageDataset):
                             self.gts[mask_label] = []
                         self.gts[mask_label].extend(glob.glob(path + prefix + extension, recursive=recursive))
 
-        self.img_filepath['image'] = np.asarray(self.img_filepath['image'])
+        self.img_filepath["image"] = np.asarray(self.img_filepath["image"])
         if self.use_masks:
             for mask_label in self.path_masks.keys():
                 self.gts[mask_label] = np.asarray(self.gts[mask_label])
@@ -64,19 +74,21 @@ class SegmentationDataset(AbstractImageDataset):
         """
         Sorting files
         """
-        img_filenames = [path_leaf(path).split('.')[0] for path in self.img_filepath['image']]
+        img_filenames = [path_leaf(path).split(".")[0] for path in self.img_filepath["image"]]
         if self.use_masks:
             masks_filenames = {}
             for k, files_list in self.gts.items():
-                masks_filenames[k] = [path_leaf(file).split('.')[0] for file in files_list]
+                masks_filenames[k] = [path_leaf(file).split(".")[0] for file in files_list]
 
             list_lengths = [len(mask_filenames) for mask_filenames in masks_filenames.values()]
             list_lengths.append(len(img_filenames))
             all_equal = all(elem == list_lengths[0] for elem in list_lengths)
 
             if not all_equal:
-                Log.warn("Mismatch between the size of the different input folders (longer %i, smaller %i)" % (max(
-                    list_lengths), min(list_lengths)))
+                Log.warn(
+                    "Mismatch between the size of the different input folders (longer %i, smaller %i)"
+                    % (max(list_lengths), min(list_lengths))
+                )
 
             list_common_file = set(img_filenames)
             for k, mask_filenames in masks_filenames.items():
@@ -85,13 +97,17 @@ class SegmentationDataset(AbstractImageDataset):
 
             if self.filling_strategy == NN_FILL_DOWNSAMPLE and not all_equal:
                 Log.warn("Downsampling the dataset to size %i" % min(list_lengths))
-                self.img_filepath['image'] = np.asarray(
-                    [img for img, filename in zip(self.img_filepath['image'], img_filenames) if
-                     filename in intersection])
+                self.img_filepath["image"] = np.asarray(
+                    [
+                        img
+                        for img, filename in zip(self.img_filepath["image"], img_filenames)
+                        if filename in intersection
+                    ]
+                )
                 for k in self.gts.keys():
                     self.gts[k] = np.asarray(
-                        [gt for gt, filename in zip(self.gts[k], masks_filenames[k]) if filename \
-                         in intersection])
+                        [gt for gt, filename in zip(self.gts[k], masks_filenames[k]) if filename in intersection]
+                    )
             elif self.filling_strategy == NN_FILL_UPSAMPLE and not all_equal:
                 Log.warn("Upsampling missing labels to fit the dataset's size (%i)" % max(list_lengths))
                 for k in self.gts.keys():
@@ -106,9 +122,9 @@ class SegmentationDataset(AbstractImageDataset):
                     self.gts[k] = np.asarray(gt_k)
 
             if self.filling_strategy == NN_FILL_DOWNSAMPLE or all_equal:
-                img_filenames = [path_leaf(path).split('.')[0] for path in self.img_filepath['image']]
+                img_filenames = [path_leaf(path).split(".")[0] for path in self.img_filepath["image"]]
                 sort_key_img = np.argsort([self.extract_image_id_function(x) for x in img_filenames])
-                self.img_filepath['image'] = self.img_filepath['image'][sort_key_img]
+                self.img_filepath["image"] = self.img_filepath["image"][sort_key_img]
 
                 if self.use_masks:
                     for k in self.gts.keys():
@@ -117,7 +133,7 @@ class SegmentationDataset(AbstractImageDataset):
 
     def load_image(self, item):
         inputs = super(SegmentationDataset, self).load_image(item)
-        actual_shape = inputs['image'].shape
+        actual_shape = inputs["image"].shape
         if self.use_masks:
             for k, file_list in self.gts.items():
                 filepath = file_list[item]
@@ -126,7 +142,7 @@ class SegmentationDataset(AbstractImageDataset):
                 else:
                     mask = read_image(filepath, cv2.IMREAD_GRAYSCALE)
                 mask = self.resize_and_pad(mask, interpolation=cv2.INTER_NEAREST_EXACT)
-                inputs[k] = (mask>0).astype(np.uint8)
+                inputs[k] = (mask > 0).astype(np.uint8)
 
         return inputs
 
