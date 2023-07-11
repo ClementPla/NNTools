@@ -31,7 +31,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["black[jupyter]", "ruff"]
+dev = ["black[jupyter]", "ruff", "pre-commit"]
 notebooks = ["ipykernel"]
 tracker = ["mlflow"]
 

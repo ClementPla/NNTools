@@ -24,6 +24,16 @@ If you are starting with a clean environment and don't need any of the features 
 pip install nntools
 ```
 
+### Development
+If you want to contribute to the project, fork the repository and clone it locally. Then you can install the package in editable mode with dev dependencies and [pre-commit hooks](https://pre-commit.com/):
+
+```bash
+git clone https://github.com/<your_user>/NNTools.git
+cd nntools
+pip install -e '.[dev,notebooks]'
+pre-commit install
+```
+
 ## Handling of data
 
 NNTools provides the `dataset` module to automatically create datasets (as subclasses of Pytorch's [Dataset](https://pytorch.org/tutorials/beginner/basics/data_tutorial.html))
@@ -41,7 +51,7 @@ dataset = D.MultiImageDataset(folders, shape=(1024, 1024), keep_size_ratio=True,
 label_filepath = "label.csv" # or label.xls
 dataset = D.ClassificationDataset(
     folder,
-    shape=(1024, 1024), 
+    shape=(1024, 1024),
     label_filepath=label_filepath,
     file_column="name",
     gt_column="retinopathy",
@@ -77,8 +87,8 @@ def merge_labels_to_multiclass(Class1, Class2):
 
 composer = D.Composition()
 composer.add(merge_labels_to_multiclass)
-data_aug = A.Compose([A.ElasticTransform(p=1, alpha=120, sigma=120 * 0.05, alpha_affine=120 * 0.03)]) 
-composer.add(data_aug) 
+data_aug = A.Compose([A.ElasticTransform(p=1, alpha=120, sigma=120 * 0.05, alpha_affine=120 * 0.03)])
+composer.add(data_aug)
 dataset.composer = composer
 ```
 
@@ -101,7 +111,7 @@ training:
         momentum: 0.001
 
 ^tracking:
-    url: localhost:4200 
+    url: localhost:4200
 ```
 
 It can then be opened and used like a regular dict in your Python script:
@@ -116,6 +126,6 @@ conf = Config("config.yaml")
 
 The `Config` class provides two small utilities functions:
     1. `config.tracked_params` will return all the parameters in a uploadable format.
-    2. The format of the tracked params can be adjusted using `*` and `^` markers. 
+    2. The format of the tracked params can be adjusted using `*` and `^` markers.
 
 Check the [example notebook](/notebooks/Config.ipynb) for more details.
