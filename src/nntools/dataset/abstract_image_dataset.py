@@ -83,8 +83,8 @@ class AbstractImageDataset(Dataset):
 
         self.ignore_keys = []
         self.flag = flag
-        self._cache_initialized = mp.Value('cache_initialized', 0)
-        self._cache_filled = mp.Value('cache_filled', 0)
+        self._cache_initialized = mp.Value('i', 0)
+        self._cache_filled = mp.Value('i', 0)
         
         self.cache_with_shared_array = False
 
