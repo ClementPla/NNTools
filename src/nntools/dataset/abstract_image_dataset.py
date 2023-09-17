@@ -161,14 +161,17 @@ class AbstractImageDataset(Dataset):
             else:
                 h, w, c = arr.shape
             logging.info(f"Initializing shared array {key} with size: {nb_samples}x{c}x{h}x{w}")
-            shared_array_base = mp.Array(ctypes.c_uint8, nb_samples * c * h * w)
-            with shared_array_base.get_lock():
-                shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
-                if c > 1:
-                    shared_array = shared_array.reshape(nb_samples, h, w, c)
-                else:
-                    shared_array = shared_array.reshape(nb_samples, h, w)
-                shared_arrays[key] = shared_array
+            if self.cache_with_sharred_array:
+                shared_array_base = mp.Array(ctypes.c_uint8, nb_samples * c * h * w)
+                with shared_array_base.get_lock():
+                    shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
+                    if c > 1:
+                        shared_array = shared_array.reshape(nb_samples, h, w, c)
+                    else:
+                        shared_array = shared_array.reshape(nb_samples, h, w)
+                    shared_arrays[key] = shared_array
+            else:
+                shared_arrays[key] = np.ndarray((nb_samples, h, w, c), dtype=arr.dtype)
         self.shared_arrays = shared_arrays
         self.cache_initialized = True
         self._cache_filled = False
