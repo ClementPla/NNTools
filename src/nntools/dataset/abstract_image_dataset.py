@@ -2,6 +2,7 @@ import ctypes
 import logging
 import math
 import multiprocessing as mp
+
 import os
 
 import cv2
@@ -109,7 +110,7 @@ class AbstractImageDataset(Dataset):
     def read_sharred_array(self, item):
         return {k: self.shared_arrays[k][item] for k in self.shared_arrays}
 
-    def load_image(self, item):
+    def load_image(self, item: int):
         inputs = {}
         for k, file_list in self.img_filepath.items():
             filepath = file_list[item]
@@ -135,13 +136,16 @@ class AbstractImageDataset(Dataset):
             image = pad(image=image, shape=self.shape)
         return image
 
-    def multiply_size(self, factor):
+    def multiply_size(self, factor: float):
         self.multiplicative_size_factor = factor
 
     def init_cache(self):
+        if not self.auto_resize and not self.auto_pad:
+            Log.warn("You are using a cache with auto_resize and auto_pad set to False. Make sure all your images are the same size")
+            
         arrays = self.load_image(0)  # Taking the first element
         arrays = self.precompose_data(arrays)
-        shared_arrays = {}
+        shared_arrays = mp.Manager().dict()
         nb_samples = self.real_length
         for key, arr in arrays.items():
             if not isinstance(arr, np.ndarray):
