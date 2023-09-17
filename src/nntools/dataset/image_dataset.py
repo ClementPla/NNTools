@@ -1,10 +1,10 @@
 import glob
 
 import cv2
+import logging
 import numpy as np
 
 from nntools import MISSING_DATA_FLAG, NN_FILL_DOWNSAMPLE, NN_FILL_UPSAMPLE
-from nntools.tracker import Log
 from nntools.utils.io import path_leaf
 from nntools.utils.misc import to_iterable
 
@@ -41,7 +41,7 @@ class MultiImageDataset(AbstractImageDataset):
     def match_images_number_per_folder(self, filenames_per_folder):
         list_lengths = [len(img_filenames) for img_filenames in filenames_per_folder.values()]
         if self.filling_strategy == NN_FILL_DOWNSAMPLE:
-            Log.warn("Downsampling the dataset to size %i" % min(list_lengths))
+            logging.warning("Downsampling the dataset to size %i" % min(list_lengths))
             smallest_list = sorted(filenames_per_folder.values(), key=lambda x: len(x))[0]
 
             for k in self.img_filepath.keys():
@@ -53,7 +53,7 @@ class MultiImageDataset(AbstractImageDataset):
                     ]
                 )
         elif self.filling_strategy == NN_FILL_UPSAMPLE:
-            Log.warn("Upsampling missing labels to fit the dataset's size (%i)" % max(list_lengths))
+            logging.warning("Upsampling missing labels to fit the dataset's size (%i)" % max(list_lengths))
 
             largest_list = sorted(filenames_per_folder.values(), key=lambda x: len(x))[-1]
             for k in self.img_filepath.keys():
@@ -88,7 +88,7 @@ class MultiImageDataset(AbstractImageDataset):
 
         all_equal = all(elem == list_lengths[0] for elem in list_lengths)
         if not all_equal:
-            Log.warn(
+            logging.warning(
                 "Mismatch between the size of the different input folders (smaller %i, longer %i)"
                 % (min(list_lengths), max(list_lengths))
             )
