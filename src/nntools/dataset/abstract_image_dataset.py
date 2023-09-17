@@ -2,6 +2,7 @@ import ctypes
 import logging
 import math
 import multiprocessing as mp
+from torch.multiprocessing import Manager
 
 import os
 
@@ -86,6 +87,8 @@ class AbstractImageDataset(Dataset):
         self.flag = flag
         self.cache_initialized = False
         self._cache_filled = False
+        
+        self.cache_with_sharred_array = False
 
         self.interpolation_flag = cv2.INTER_LINEAR
 
@@ -145,7 +148,8 @@ class AbstractImageDataset(Dataset):
             
         arrays = self.load_image(0)  # Taking the first element
         arrays = self.precompose_data(arrays)
-        shared_arrays = mp.Manager().dict()
+        
+        shared_arrays = Manager().dict() if self.cache_with_sharred_array else dict()
         nb_samples = self.real_length
         for key, arr in arrays.items():
             if not isinstance(arr, np.ndarray):
