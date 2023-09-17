@@ -2,14 +2,13 @@ import bisect
 import copy
 import os
 from typing import List
-
+import logging
 import numpy as np
 import torch
 import tqdm
 from torch import default_generator, randperm
 from torch._utils import _accumulate
 
-from nntools.tracker import Log
 
 from .abstract_image_dataset import AbstractImageDataset
 
@@ -38,7 +37,7 @@ def get_segmentation_class_count(dataset, save=False, load=False):
     classes_counts = classes_counts[: np.max(np.nonzero(classes_counts)) + 1]
     if save:
         np.save(filepath, classes_counts)
-        Log.warn("Weights stored in " + filepath)
+        logging.warn("Weights stored in " + filepath)
     return classes_counts
 
 

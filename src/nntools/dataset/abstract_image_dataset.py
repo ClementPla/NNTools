@@ -144,7 +144,7 @@ class AbstractImageDataset(Dataset):
 
     def init_cache(self):
         if not self.auto_resize and not self.auto_pad:
-            Log.warn("You are using a cache with auto_resize and auto_pad set to False. Make sure all your images are the same size")
+            logging.warn("You are using a cache with auto_resize and auto_pad set to False. Make sure all your images are the same size")
             
         arrays = self.load_image(0)  # Taking the first element
         arrays = self.precompose_data(arrays)

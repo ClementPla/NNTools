@@ -20,13 +20,14 @@ class Composition:
         self.deactivated += index
 
     def __call__(self, **kwargs):
+        batch_elements = kwargs
         for i, op in enumerate(self.ops):
             if i in self.deactivated:
                 continue
             if isinstance(op, CacheBullet):
                 continue
-            kwargs = op(**kwargs)
-        return kwargs
+            batch_elements = op(**batch_elements)
+        return batch_elements
 
     def __lshift__(self, other):
         return self.add(other)

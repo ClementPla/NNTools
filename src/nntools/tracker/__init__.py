@@ -1,7 +1,6 @@
 import logging
 
 from .log_mlflow import log_artifact, log_metrics, log_params
-from .logger import Log
 
 try:
     from .tracker import Tracker
