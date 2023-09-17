@@ -1,7 +1,7 @@
 import ctypes
 import logging
 import math
-import torch.multiprocessing as mp
+import multiprocessing as mp
 
 import os
 
