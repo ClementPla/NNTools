@@ -84,7 +84,7 @@ class SegmentationDataset(AbstractImageDataset):
             all_equal = all(elem == list_lengths[0] for elem in list_lengths)
 
             if not all_equal:
-                logging.warn(
+                logging.warning(
                     "Mismatch between the size of the different input folders (longer %i, smaller %i)"
                     % (max(list_lengths), min(list_lengths))
                 )
@@ -95,7 +95,7 @@ class SegmentationDataset(AbstractImageDataset):
             intersection = list(list_common_file)
 
             if self.filling_strategy == NN_FILL_DOWNSAMPLE and not all_equal:
-                logging.warn("Downsampling the dataset to size %i" % min(list_lengths))
+                logging.warning("Downsampling the dataset to size %i" % min(list_lengths))
                 self.img_filepath["image"] = np.asarray(
                     [
                         img
@@ -108,7 +108,7 @@ class SegmentationDataset(AbstractImageDataset):
                         [gt for gt, filename in zip(self.gts[k], masks_filenames[k]) if filename in intersection]
                     )
             elif self.filling_strategy == NN_FILL_UPSAMPLE and not all_equal:
-                logging.warn("Upsampling missing labels to fit the dataset's size (%i)" % max(list_lengths))
+                logging.warning("Upsampling missing labels to fit the dataset's size (%i)" % max(list_lengths))
                 for k in self.gts.keys():
                     gt_k = []
                     gt_sorted_filenames = [self.extract_image_id_function(_) for _ in masks_filenames[k]]

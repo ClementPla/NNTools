@@ -14,7 +14,6 @@ from torch.utils.data import Dataset
 
 from nntools import MISSING_DATA_FLAG, NN_FILL_UPSAMPLE
 from nntools.dataset.image_tools import pad, resize
-from nntools.tracker.logger import Log
 from nntools.utils.io import path_leaf, read_image
 from nntools.utils.misc import identity, to_iterable
 from nntools.utils.plotting import plot_images
@@ -144,7 +143,7 @@ class AbstractImageDataset(Dataset):
 
     def init_cache(self):
         if not self.auto_resize and not self.auto_pad:
-            logging.warn("You are using a cache with auto_resize and auto_pad set to False. Make sure all your images are the same size")
+            logging.warning("You are using a cache with auto_resize and auto_pad set to False. Make sure all your images are the same size")
             
         arrays = self.load_image(0)  # Taking the first element
         arrays = self.precompose_data(arrays)
@@ -319,7 +318,7 @@ class AbstractImageDataset(Dataset):
             n_row = math.ceil(math.sqrt(n_items))
             n_col = math.ceil(n_items / n_row)
         if n_row * n_col < n_items:
-            Log.warn("With %i columns, %i row(s), only %i items can be plotted" % (n_col, n_row, n_row * n_col))
+            logging.warning("With %i columns, %i row(s), only %i items can be plotted" % (n_col, n_row, n_row * n_col))
             n_items = n_row * n_col
         pad = 50 if add_labels else 0
         cols = []
