@@ -16,7 +16,7 @@ from nntools.dataset.image_tools import pad, resize
 from nntools.utils.io import path_leaf, read_image
 from nntools.utils.misc import identity, to_iterable
 from nntools.utils.plotting import plot_images
-
+from torch.utils.data import get_worker_info
 from .tools import Composition
 
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
@@ -91,7 +91,7 @@ class AbstractImageDataset(Dataset):
     def init_shared_values(self):
         self._cache_initialized = mp.Value('i', 0)
         self._cache_filled = mp.Value('i', 0) 
-        self.cache_with_shared_array = True # TODO: Investigate why if 'True', this doesn't work
+        self.cache_with_shared_array = False # TODO: Investigate why if 'True', this doesn't work
         
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
@@ -114,6 +114,8 @@ class AbstractImageDataset(Dataset):
     
     @cache_initialized.setter
     def cache_initialized(self, cache_initialized):
+        if cache_initialized:
+            logging.info(f"Worker: {get_worker_info().id}/{get_worker_info().num_workers} Cache is marked as initialized")
         self._cache_initialized.value = int(cache_initialized)
     
     @property
@@ -123,7 +125,7 @@ class AbstractImageDataset(Dataset):
     @cache_filled.setter
     def cache_filled(self, cache_filled):
         if cache_filled:
-            logging.info("Cache is marked as filled")
+            logging.info(f"Worker: {get_worker_info().id}/{get_worker_info().num_workers} Cache is marked as filled")
         self._cache_filled.value = int(cache_filled)
 
     def list_files(self, recursive):
@@ -181,7 +183,7 @@ class AbstractImageDataset(Dataset):
                 c = 1
             else:
                 h, w, c = arr.shape
-            logging.info(f"Initializing cache array {key} with size: {nb_samples}x{c}x{h}x{w}")
+            logging.info(f"Worker: {get_worker_info().id}/{get_worker_info().num_workers} Initializing cache array {key} with size: {nb_samples}x{c}x{h}x{w}")
             # if self.cache_with_shared_array:
             #     shared_array_base = mp.Array(ctypes.c_uint8, nb_samples * c * h * w)
             #     with shared_array_base.get_lock():
