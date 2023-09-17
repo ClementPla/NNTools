@@ -88,7 +88,7 @@ class AbstractImageDataset(Dataset):
         self.cache_initialized = False
         self._cache_filled = False
         
-        self.cache_with_sharred_array = False
+        self.cache_with_shared_array = False
 
         self.interpolation_flag = cv2.INTER_LINEAR
 
@@ -149,7 +149,7 @@ class AbstractImageDataset(Dataset):
         arrays = self.load_image(0)  # Taking the first element
         arrays = self.precompose_data(arrays)
         
-        shared_arrays = Manager().dict() if self.cache_with_sharred_array else dict()
+        shared_arrays = Manager().dict() if self.cache_with_shared_array else dict()
         nb_samples = self.real_length
         for key, arr in arrays.items():
             if not isinstance(arr, np.ndarray):
@@ -160,8 +160,8 @@ class AbstractImageDataset(Dataset):
                 c = 1
             else:
                 h, w, c = arr.shape
-            logging.info(f"Initializing shared array {key} with size: {nb_samples}x{c}x{h}x{w}")
-            if self.cache_with_sharred_array:
+            logging.info(f"Initializing cache array {key} with size: {nb_samples}x{c}x{h}x{w}")
+            if self.cache_with_shared_array:
                 shared_array_base = mp.Array(ctypes.c_uint8, nb_samples * c * h * w)
                 with shared_array_base.get_lock():
                     shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
@@ -171,7 +171,11 @@ class AbstractImageDataset(Dataset):
                         shared_array = shared_array.reshape(nb_samples, h, w)
                     shared_arrays[key] = shared_array
             else:
-                shared_arrays[key] = np.ndarray((nb_samples, h, w, c), dtype=arr.dtype)
+                if c>1:
+                    shared_arrays[key] = np.ndarray((nb_samples, h, w, c), dtype=arr.dtype)
+                else:
+                    shared_arrays[key] = np.ndarray((nb_samples, h, w), dtype=arr.dtype)
+                    
         self.shared_arrays = shared_arrays
         self.cache_initialized = True
         self._cache_filled = False
