@@ -5,10 +5,9 @@ import numpy as np
 
 from nntools import MISSING_DATA_FLAG, NN_FILL_DOWNSAMPLE, NN_FILL_UPSAMPLE
 from nntools.dataset.image_tools import resize
-from nntools.tracker import Log
 from nntools.utils.io import path_leaf, read_image
 from nntools.utils.misc import to_iterable
-
+import logging
 from .abstract_image_dataset import AbstractImageDataset, supportedExtensions
 
 
@@ -85,7 +84,7 @@ class SegmentationDataset(AbstractImageDataset):
             all_equal = all(elem == list_lengths[0] for elem in list_lengths)
 
             if not all_equal:
-                Log.warn(
+                logging.warn(
                     "Mismatch between the size of the different input folders (longer %i, smaller %i)"
                     % (max(list_lengths), min(list_lengths))
                 )
@@ -96,7 +95,7 @@ class SegmentationDataset(AbstractImageDataset):
             intersection = list(list_common_file)
 
             if self.filling_strategy == NN_FILL_DOWNSAMPLE and not all_equal:
-                Log.warn("Downsampling the dataset to size %i" % min(list_lengths))
+                logging.warn("Downsampling the dataset to size %i" % min(list_lengths))
                 self.img_filepath["image"] = np.asarray(
                     [
                         img
@@ -109,7 +108,7 @@ class SegmentationDataset(AbstractImageDataset):
                         [gt for gt, filename in zip(self.gts[k], masks_filenames[k]) if filename in intersection]
                     )
             elif self.filling_strategy == NN_FILL_UPSAMPLE and not all_equal:
-                Log.warn("Upsampling missing labels to fit the dataset's size (%i)" % max(list_lengths))
+                logging.warn("Upsampling missing labels to fit the dataset's size (%i)" % max(list_lengths))
                 for k in self.gts.keys():
                     gt_k = []
                     gt_sorted_filenames = [self.extract_image_id_function(_) for _ in masks_filenames[k]]
