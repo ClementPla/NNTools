@@ -83,6 +83,8 @@ class AbstractImageDataset(Dataset):
 
         self.ignore_keys = []
         self.flag = flag
+        
+        self._lock = mp.Lock()
         self._cache_initialized = mp.Value('i', 0)
         self._cache_filled = mp.Value('i', 0)
         
