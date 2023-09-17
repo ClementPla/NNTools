@@ -1,8 +1,7 @@
 import ctypes
 import logging
 import math
-import multiprocessing as mp
-from torch.multiprocessing import Manager
+import torch.multiprocessing as mp
 
 import os
 
@@ -84,8 +83,8 @@ class AbstractImageDataset(Dataset):
 
         self.ignore_keys = []
         self.flag = flag
-        self.cache_initialized = False
-        self._cache_filled = False
+        self._cache_initialized = mp.Value('cache_initialized', 0)
+        self._cache_filled = mp.Value('cache_filled', 0)
         
         self.cache_with_shared_array = False
 
@@ -94,6 +93,8 @@ class AbstractImageDataset(Dataset):
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
 
+    
+        
     @property
     def real_length(self):
         return len(self.img_filepath["image"])
@@ -105,6 +106,24 @@ class AbstractImageDataset(Dataset):
     @property
     def gt_filenames(self):
         return {k: [path_leaf(f) for f in v] for k, v in self.gts.items()}
+    
+    @property
+    def cache_initialized(self):
+        return bool(self._cache_initialized.value)
+    
+    @cache_initialized.setter
+    def cache_initialized(self, cache_initialized):
+        self._cache_initialized.value = int(cache_initialized)
+    
+    @property
+    def cache_filled(self):
+        return bool(self._cache_filled.value)
+    
+    @cache_filled.setter
+    def cache_filled(self, cache_filled):
+        if cache_filled:
+            logging.info("Cache is marked as filled")
+        self._cache_filled.value = int(cache_filled)
 
     def list_files(self, recursive):
         pass
@@ -148,7 +167,7 @@ class AbstractImageDataset(Dataset):
         arrays = self.load_image(0)  # Taking the first element
         arrays = self.precompose_data(arrays)
         
-        shared_arrays = Manager().dict() if self.cache_with_shared_array else dict()
+        shared_arrays = mp.Manager().dict() if self.cache_with_shared_array else dict()
         nb_samples = self.real_length
         for key, arr in arrays.items():
             if not isinstance(arr, np.ndarray):
@@ -177,7 +196,7 @@ class AbstractImageDataset(Dataset):
                     
         self.shared_arrays = shared_arrays
         self.cache_initialized = True
-        self._cache_filled = False
+        self.cache_filled = False
 
     def load_array(self, item):
         if not self.use_cache:
@@ -186,7 +205,7 @@ class AbstractImageDataset(Dataset):
         else:
             if not self.cache_initialized:
                 self.init_cache()
-            if not self._cache_filled:
+            if not self.cache_filled:
                 arrays = self.load_image(item)
                 arrays = self.precompose_data(arrays)
                 for k, array in arrays.items():
@@ -270,15 +289,6 @@ class AbstractImageDataset(Dataset):
 
     def set_ignore_key(self, key):
         self.ignore_keys.append(key)
-
-    @property
-    def cache_filled(self):
-        return self._cache_filled
-
-    @cache_filled.setter
-    def cache_filled(self, cache_filled):
-        logging.info("Cache is marked as filled")
-        self._cache_filled = cache_filled
 
     def clean_filter(self):
         self.ignore_keys = []
