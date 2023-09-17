@@ -84,18 +84,17 @@ class AbstractImageDataset(Dataset):
         self.ignore_keys = []
         self.flag = flag
         
-        self._lock = mp.Lock()
-        self._cache_initialized = mp.Value('i', 0)
-        self._cache_filled = mp.Value('i', 0)
         
-        self.cache_with_shared_array = False
 
         self.interpolation_flag = cv2.INTER_LINEAR
 
+    def init_shared_values(self):
+        self._cache_initialized = mp.Value('i', 0)
+        self._cache_filled = mp.Value('i', 0) 
+        self.cache_with_shared_array = False
+        
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
-
-    
         
     @property
     def real_length(self):
