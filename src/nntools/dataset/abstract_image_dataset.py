@@ -91,7 +91,7 @@ class AbstractImageDataset(Dataset):
     def init_shared_values(self):
         self._cache_initialized = mp.Value('i', 0)
         self._cache_filled = mp.Value('i', 0) 
-        self.cache_with_shared_array = True
+        self.cache_with_shared_array = False # TODO: Investigate why if 'True', this doesn't work
         
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
@@ -162,6 +162,8 @@ class AbstractImageDataset(Dataset):
         self.multiplicative_size_factor = factor
 
     def init_cache(self):
+        if self.cache_initialized:
+            return 
         if not self.auto_resize and not self.auto_pad:
             logging.warning("You are using a cache with auto_resize and auto_pad set to False. Make sure all your images are the same size")
             
