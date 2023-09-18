@@ -1,3 +1,5 @@
+import logging
+
 class CacheBullet:
     def __call__(self, **kwargs):
         return kwargs
@@ -37,6 +39,7 @@ class Composition:
             return kwargs
         else:
             for i, op in enumerate(self.ops):
+                logging.debug(f"Ops {i}: {str(op)}, {self._index_bullet}")
                 if i in self.deactivated:
                     continue
                 if i == self._index_bullet:
