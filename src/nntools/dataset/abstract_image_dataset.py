@@ -117,7 +117,6 @@ class AbstractImageDataset(Dataset):
     @cache_initialized.setter
     def cache_initialized(self, cache_initialized):
         if cache_initialized:
-            
             logging.info(f"Cache is marked as initialized")
         self._cache_initialized.value = int(cache_initialized)
     
@@ -128,7 +127,6 @@ class AbstractImageDataset(Dataset):
     @cache_filled.setter
     def cache_filled(self, cache_filled):
         if cache_filled:
-            
             logging.info(f"Cache is marked as filled")
         self._cache_filled.value = int(cache_filled)
 
@@ -218,7 +216,6 @@ class AbstractImageDataset(Dataset):
             if not self.cache_filled:
                 arrays = self.load_image(item)
                 arrays = self.precompose_data(arrays)
-                logging.debug(f"Loading item {item} from disk and caching it")
                 for k, array in arrays.items():
                     self.shared_arrays[k][item] = array
                 return arrays
