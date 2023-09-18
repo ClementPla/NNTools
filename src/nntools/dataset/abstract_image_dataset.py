@@ -215,6 +215,7 @@ class AbstractImageDataset(Dataset):
             if not self.cache_filled:
                 arrays = self.load_image(item)
                 arrays = self.precompose_data(arrays)
+                logging.debug(f"Loading item {item} from disk and caching it")
                 for k, array in arrays.items():
                     self.shared_arrays[k][item] = torch.from_numpy(array)
                 return arrays
