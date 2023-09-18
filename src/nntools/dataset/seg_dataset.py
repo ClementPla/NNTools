@@ -88,6 +88,7 @@ class SegmentationDataset(AbstractImageDataset):
                     "Mismatch between the size of the different input folders (longer %i, smaller %i)"
                     % (max(list_lengths), min(list_lengths))
                 )
+                logging.debug(f"List lengths: {list(zip(list(masks_filenames.keys())+['image'], list_lengths))}")
 
             list_common_file = set(img_filenames)
             for k, mask_filenames in masks_filenames.items():
