@@ -115,8 +115,8 @@ class AbstractImageDataset(Dataset):
     @cache_initialized.setter
     def cache_initialized(self, cache_initialized):
         if cache_initialized:
-            if get_worker_info() is not None:
-                logging.info(f"Worker: {get_worker_info().id}/{get_worker_info().num_workers} Cache is marked as initialized")
+            
+            logging.info(f"Cache is marked as initialized")
         self._cache_initialized.value = int(cache_initialized)
     
     @property
@@ -126,8 +126,8 @@ class AbstractImageDataset(Dataset):
     @cache_filled.setter
     def cache_filled(self, cache_filled):
         if cache_filled:
-            if get_worker_info() is not None:
-                logging.info(f"Worker: {get_worker_info().id}/{get_worker_info().num_workers} Cache is marked as filled")
+            
+            logging.info(f"Cache is marked as filled")
         self._cache_filled.value = int(cache_filled)
 
     def list_files(self, recursive):
@@ -185,8 +185,8 @@ class AbstractImageDataset(Dataset):
                 c = 1
             else:
                 h, w, c = arr.shape
-            if get_worker_info() is not None:
-                logging.info(f"Worker: {get_worker_info().id}/{get_worker_info().num_workers} Initializing cache array {key} with size: {nb_samples}x{c}x{h}x{w}")
+            
+            logging.info(f"Initializing cache array {key} with size: {nb_samples}x{c}x{h}x{w}")
             # if self.cache_with_shared_array:
             #     shared_array_base = mp.Array(ctypes.c_uint8, nb_samples * c * h * w)
             #     with shared_array_base.get_lock():
