@@ -166,6 +166,7 @@ class AbstractImageDataset(Dataset):
         self.multiplicative_size_factor = factor
 
     def init_cache(self):
+        self.use_cache = True
         if self.cache_initialized:
             return 
         if not self.auto_resize and not self.auto_pad:
