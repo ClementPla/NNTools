@@ -39,7 +39,7 @@ class Composition:
             for i, op in enumerate(self.ops):
                 if i in self.deactivated:
                     continue
-                if i >= self._index_bullet:
+                if i == self._index_bullet:
                     break
                 kwargs = op(**kwargs)
             return kwargs

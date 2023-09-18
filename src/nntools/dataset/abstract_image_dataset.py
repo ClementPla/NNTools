@@ -194,12 +194,12 @@ class AbstractImageDataset(Dataset):
                     shared_array = shared_array.reshape(nb_samples, h, w, c)
                 else:
                     shared_array = shared_array.reshape(nb_samples, h, w)
-                shared_arrays[key] = torch.from_numpy(shared_array)
+                shared_arrays[key] = shared_array
             else:
                 if c>1:
-                    shared_arrays[key] = torch.from_numpy(np.ndarray((nb_samples, h, w, c), dtype=arr.dtype))
+                    shared_arrays[key] = np.ndarray((nb_samples, h, w, c), dtype=arr.dtype)
                 else:
-                    shared_arrays[key] = torch.from_numpy(np.ndarray((nb_samples, h, w), dtype=arr.dtype))
+                    shared_arrays[key] = np.ndarray((nb_samples, h, w), dtype=arr.dtype)
                         
         self.shared_arrays = shared_arrays
         self.cache_initialized = True
@@ -210,7 +210,6 @@ class AbstractImageDataset(Dataset):
             data = self.load_image(item)
             return self.precompose_data(data)
         else:
-            logging.debug(f"Is initialized: {self.cache_initialized} - Is filled: {self.cache_filled}")
             if not self.cache_initialized:
                 self.init_cache()
             if not self.cache_filled:
@@ -218,10 +217,10 @@ class AbstractImageDataset(Dataset):
                 arrays = self.precompose_data(arrays)
                 logging.debug(f"Loading item {item} from disk and caching it")
                 for k, array in arrays.items():
-                    self.shared_arrays[k][item] = torch.from_numpy(array)
+                    self.shared_arrays[k][item] = array
                 return arrays
             else:
-                return {k: v[item].numpy() for k, v in self.shared_arrays.items()}
+                return {k: v[item] for k, v in self.shared_arrays.items()}
 
     def columns(self):
         return (self.img_filepath.keys(), self.gts.keys())
