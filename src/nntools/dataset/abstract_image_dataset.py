@@ -89,6 +89,8 @@ class AbstractImageDataset(Dataset):
         self.interpolation_flag = cv2.INTER_LINEAR
 
     def init_shared_values(self):
+        # TODO: This is only for multiprocessing purposes (cache_with_shared_array==True). It shouldn't be called if
+        # num_workers==0 and not DDP...
         self._cache_initialized = mp.Value('i', 0)
         self._cache_filled = mp.Value('i', 0) 
         self.cache_with_shared_array = True 
