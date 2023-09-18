@@ -91,7 +91,7 @@ class AbstractImageDataset(Dataset):
     def init_shared_values(self):
         self._cache_initialized = mp.Value('i', 0)
         self._cache_filled = mp.Value('i', 0) 
-        self.cache_with_shared_array = False # TODO: Investigate why if 'True', this doesn't work
+        self.cache_with_shared_array = True # TODO: Investigate why if 'True', this doesn't work
         
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
