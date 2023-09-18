@@ -220,7 +220,7 @@ class AbstractImageDataset(Dataset):
                     self.shared_arrays[k][item] = array
                 return arrays
             else:
-                return {k: v[item] for k, v in self.shared_arrays.items()}
+                return {k: v[item].copy() for k, v in self.shared_arrays.items()}
 
     def columns(self):
         return (self.img_filepath.keys(), self.gts.keys())
