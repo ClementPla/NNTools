@@ -1,7 +1,7 @@
 import ctypes
 import logging
 import math
-import multiprocessing as mp
+import torch.multiprocessing as mp
 
 import os
 
@@ -210,6 +210,7 @@ class AbstractImageDataset(Dataset):
             data = self.load_image(item)
             return self.precompose_data(data)
         else:
+            logging.debug(f"Is initialized: {self.cache_initialized} - Is filled: {self.cache_filled}")
             if not self.cache_initialized:
                 self.init_cache()
             if not self.cache_filled:
