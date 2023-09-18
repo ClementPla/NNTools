@@ -91,7 +91,7 @@ class AbstractImageDataset(Dataset):
     def init_shared_values(self):
         self._cache_initialized = mp.Value('i', 0)
         self._cache_filled = mp.Value('i', 0) 
-        self.cache_with_shared_array = True # TODO: Investigate why if 'True', this doesn't work
+        self.cache_with_shared_array = True 
         
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
@@ -110,6 +110,8 @@ class AbstractImageDataset(Dataset):
     
     @property
     def cache_initialized(self):
+        if not hasattr(self, "_cache_initialized"):
+            return False
         return bool(self._cache_initialized.value)
     
     @cache_initialized.setter
@@ -169,6 +171,7 @@ class AbstractImageDataset(Dataset):
         self.use_cache = True
         if self.cache_initialized:
             return 
+        self.init_shared_values()
         if not self.auto_resize and not self.auto_pad:
             logging.warning("You are using a cache with auto_resize and auto_pad set to False. Make sure all your images are the same size")
             
@@ -186,7 +189,6 @@ class AbstractImageDataset(Dataset):
                 c = 1
             else:
                 h, w, c = arr.shape
-            
             logging.info(f"Initializing cache array {key} with size: {nb_samples}x{c}x{h}x{w}")
             if self.cache_with_shared_array:
                 shared_array_base = mp.Array(ctypes.c_uint8, nb_samples * c * h * w)
