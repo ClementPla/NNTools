@@ -210,7 +210,7 @@ class AbstractImageDataset(Dataset):
                     print(mp.current_process().name, self.shared_arrays[k][item].shape)
                     print(mp.current_process().name, item, array.shape)
 
-                    self.shared_arrays[k][item][:] = array.flatten()[:]
+                    self.shared_arrays[k][item][:] = 128
                     print(mp.current_process().name, "And so on and so forth", item)
                 return arrays
             else:
