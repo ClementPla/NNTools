@@ -197,12 +197,12 @@ class AbstractImageDataset(Dataset):
         self.cache_filled = False
 
     def load_array(self, item):
+        print(f'Cache initialized: {self._cache_initialized}, Cache filled: {self.cache_filled}')
         if not self.use_cache:
             data = self.load_image(item)
             return self.precompose_data(data)
         else:
             if not self._cache_initialized:
-                print('Here')
                 self.init_cache()
                 self._cache_initialized = True
             if not self.cache_filled:
@@ -215,7 +215,6 @@ class AbstractImageDataset(Dataset):
                         self.shared_arrays[k][item, :, :, :] = array[:, :, :]
                 return arrays
             else:
-                print('There')
                 return {k: v[item] for k, v in self.shared_arrays.items()}
 
     def columns(self):
