@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-
+from torch.multiprocessing import shared_memory
 from nntools import MISSING_DATA_FLAG, NN_FILL_UPSAMPLE
 from nntools.dataset.image_tools import pad, resize
 from nntools.utils.io import path_leaf, read_image
@@ -190,7 +190,7 @@ class AbstractImageDataset(Dataset):
                 logging.info(f"Initializing cache array {key} with size: {nb_samples}x{c}x{h}x{w}")
             
             if self.cache_with_shared_array:
-                shm = mp.shared_memory.SharedMemory(name=f'nntools_{key}', size=arr.nbytes*nb_samples)
+                shm = shared_memory.SharedMemory(name=f'nntools_{key}', size=arr.nbytes*nb_samples)
                 shared_array = np.ndarray((nb_samples, h, w, c), dtype=arr.dtype, buffer=shm.buf)
                 shared_arrays[key] = shared_array
             else:
