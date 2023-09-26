@@ -116,15 +116,11 @@ class AbstractImageDataset(Dataset):
     
     @cache_filled.setter
     def cache_filled(self, cache_filled):
-        if cache_filled:
-            logging.info(f"Cache is marked as filled")
+        logging.info(f"Cache filled?  {cache_filled}")
         self._cache_filled.value = int(cache_filled)
         
     def list_files(self, recursive):
         pass
-
-    def read_sharred_array(self, item):
-        return {k: self.shared_arrays[k][item] for k in self.shared_arrays}
 
     def load_image(self, item: int):
         inputs = {}
@@ -205,6 +201,7 @@ class AbstractImageDataset(Dataset):
         self.shared_arrays = shared_arrays
         
     def load_array(self, item):
+        logging.debug(f'Cache filled: {self.cache_filled}, Cache initialized {self._cache_initialized}')
         if not self.use_cache:
             data = self.load_image(item)
             return self.precompose_data(data)
