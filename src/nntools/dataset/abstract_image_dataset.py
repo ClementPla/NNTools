@@ -85,15 +85,13 @@ class AbstractImageDataset(Dataset):
         self.flag = flag
         
         
-
+        self.cache_with_shared_array = True 
         self.interpolation_flag = cv2.INTER_LINEAR
 
     def init_shared_values(self):
-        # TODO: This is only for multiprocessing purposes (cache_with_shared_array==True). It shouldn't be called if
-        # num_workers==0 and not DDP...
         self._cache_initialized = mp.Value('i', 0)
         self._cache_filled = mp.Value('i', 0) 
-        self.cache_with_shared_array = True 
+        self._cached_indices = mp.list([])
         
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
@@ -184,19 +182,17 @@ class AbstractImageDataset(Dataset):
             if not isinstance(arr, np.ndarray):
                 shared_arrays[key] = np.ndarray(nb_samples, dtype=type(arr))
                 continue
+            
             if arr.ndim == 2:
                 h, w = arr.shape
                 c = 1
             else:
                 h, w, c = arr.shape
-            logging.info(f"Initializing cache array {key} with size: {nb_samples}x{c}x{h}x{w}")
+                logging.info(f"Initializing cache array {key} with size: {nb_samples}x{c}x{h}x{w}")
+            
             if self.cache_with_shared_array:
-                shared_array_base = mp.Array(ctypes.c_uint8, nb_samples * c * h * w)
-                shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
-                if c > 1:
-                    shared_array = shared_array.reshape(nb_samples, h, w, c)
-                else:
-                    shared_array = shared_array.reshape(nb_samples, h, w)
+                shm = mp.shared_memory.SharedMemory(name=f'nntools_{key}', size=arr.nbytes*nb_samples)
+                shared_array = np.ndarray((nb_samples, h, w, c), dtype=arr.dtype, buffer=shm.buf)
                 shared_arrays[key] = shared_array
             else:
                 if c>1:
