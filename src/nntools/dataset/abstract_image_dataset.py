@@ -1,6 +1,6 @@
 import logging
 import math
-import torch.multiprocessing as mp
+import multiprocessing as mp
 
 import os
 
@@ -10,6 +10,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from multiprocessing import shared_memory
+
 from nntools import MISSING_DATA_FLAG, NN_FILL_UPSAMPLE
 from nntools.dataset.image_tools import pad, resize
 from nntools.utils.io import path_leaf, read_image
@@ -106,14 +107,6 @@ class AbstractImageDataset(Dataset):
         return {k: [path_leaf(f) for f in v] for k, v in self.gts.items()}
     
     @property
-    def cache_initialized(self):
-        return self._cache_initialized
-    
-    @cache_initialized.setter
-    def cache_initialized(self, cache_initialized):
-        self._cache_initialized = bool(cache_initialized)
-    
-    @property
     def cache_filled(self):
         return bool(self._cache_filled.value)
     
@@ -167,7 +160,7 @@ class AbstractImageDataset(Dataset):
         arrays = self.load_image(0)  # Taking the first element
         arrays = self.precompose_data(arrays)
         
-        shared_arrays = dict()
+        shared_arrays = mp.dict()
         nb_samples = self.real_length
         for key, arr in arrays.items():
             if not isinstance(arr, np.ndarray):
@@ -202,14 +195,14 @@ class AbstractImageDataset(Dataset):
         self.cache_filled = False
 
     def load_array(self, item):
-        print(mp.current_process().name, "Call", self.cache_initialized)
+        print(mp.current_process().name, "Call", self._cache_initialized)
         if not self.use_cache:
             data = self.load_image(item)
             return self.precompose_data(data)
         else:
-            if not self.cache_initialized:
+            if not self._cache_initialized:
                 self.init_cache()
-                self.cache_initialized = True
+                self._cache_initialized = True
             if not self.cache_filled:
                 arrays = self.load_image(item)
                 arrays = self.precompose_data(arrays)
