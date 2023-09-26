@@ -208,6 +208,9 @@ class AbstractImageDataset(Dataset):
                 arrays = self.precompose_data(arrays)
                 for k, array in arrays.items():
                     with self._cache_lock:
+                        if mp.current_process().name == "Process-2":
+                            import time
+                            time.sleep(1)
                         print(mp.current_process().name, "So far so good", k, item)
                         print(self.shared_arrays[k][item, 0, 0, 0], mp.current_process().name)
                         self.shared_arrays[k][item, :, :, :] = 0
