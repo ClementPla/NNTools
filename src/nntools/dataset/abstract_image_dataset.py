@@ -88,7 +88,8 @@ class AbstractImageDataset(Dataset):
         self.interpolation_flag = cv2.INTER_LINEAR
         self.shm = None
         
-    def init_shared_variables(self):        
+    def init_shared_variables(self):
+        logging.debug(f"Initializing shared variables for {mp.current_process().name}")        
         self._cache_filled = mp.Value('i', 0) 
         
     def __len__(self):
