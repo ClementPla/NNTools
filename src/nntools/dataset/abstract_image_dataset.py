@@ -182,7 +182,6 @@ class AbstractImageDataset(Dataset):
                     logging.info("Assessing existing shared memory")
                     logging.debug(f'nntools_{key}_{self.id.name}: size: {shm.buf.nbytes} ({h}x{w}x{c})')
                 
-                print('All fine here', mp.current_process().name)
                 shared_array = np.ndarray((nb_samples,)+arr.shape, dtype=arr.dtype, buffer=shm.buf)
                 shared_arrays[key] = shared_array
             else:
@@ -208,6 +207,7 @@ class AbstractImageDataset(Dataset):
                 arrays = self.precompose_data(arrays)
                 print(mp.current_process().name, "So far so good", item)
                 for k, array in arrays.items():
+                    print(mp.current_process().name, self.shared_arrays[k][item].shape)
                     self.shared_arrays[k][item] = array
                 print(mp.current_process().name, "And so on and so forth", item)
                 return arrays
