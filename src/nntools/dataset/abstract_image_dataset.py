@@ -87,6 +87,7 @@ class AbstractImageDataset(Dataset):
         self._cache_initialized = False
         self.cache_with_shared_array = True 
         self.interpolation_flag = cv2.INTER_LINEAR
+        self._cache_lock = mp.Lock()
 
     def init_shared_values(self):
         self._cache_filled = mp.Value('i', 0) 
@@ -206,10 +207,11 @@ class AbstractImageDataset(Dataset):
                 arrays = self.load_image(item)
                 arrays = self.precompose_data(arrays)
                 for k, array in arrays.items():
-                    print(mp.current_process().name, "So far so good", k, item)
-                    print(self.shared_arrays[k][item, 0, 0, 0], mp.current_process().name)
-                    self.shared_arrays[k][item, :, :, :] = 0
-                    print(mp.current_process().name, "And so on and so forth", k, item)
+                    with self._cache_lock:
+                        print(mp.current_process().name, "So far so good", k, item)
+                        print(self.shared_arrays[k][item, 0, 0, 0], mp.current_process().name)
+                        self.shared_arrays[k][item, :, :, :] = 0
+                        print(mp.current_process().name, "And so on and so forth", k, item)
 
                 return arrays
             else:
