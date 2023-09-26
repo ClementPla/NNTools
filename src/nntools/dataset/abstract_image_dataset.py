@@ -208,6 +208,8 @@ class AbstractImageDataset(Dataset):
                 print(mp.current_process().name, "So far so good", item)
                 for k, array in arrays.items():
                     print(mp.current_process().name, self.shared_arrays[k][item].shape)
+                    print(mp.current_process().name, item, array.shape)
+
                     self.shared_arrays[k][item] = array
                 print(mp.current_process().name, "And so on and so forth", item)
                 return arrays
