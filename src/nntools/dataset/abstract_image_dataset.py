@@ -109,6 +109,7 @@ class AbstractImageDataset(Dataset):
     @property
     def cache_filled(self):
         if not hasattr(self, '_cache_filled'):
+            logging.debug("Attribute _cache_filled not found, returning False")
             return False
         return bool(self._cache_filled.value)
     
@@ -203,7 +204,6 @@ class AbstractImageDataset(Dataset):
         self.shared_arrays = shared_arrays
         
     def load_array(self, item):
-        print(f'Cache initialized: {self._cache_initialized}, Cache filled: {self.cache_filled}')
         if not self.use_cache:
             data = self.load_image(item)
             return self.precompose_data(data)
