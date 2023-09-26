@@ -210,9 +210,11 @@ class AbstractImageDataset(Dataset):
                 arrays = self.load_image(item)
                 arrays = self.precompose_data(arrays)
                 for k, array in arrays.items():
-                    print(mp.current_process().name, self.shm, self.shared_arrays[k][item].shape, array.shape)                    
-                    self.shared_arrays[k][item, :, :, :] = array[:, :, :]
-
+                    print(mp.current_process().name, self.shm, self.shared_arrays[k][item].shape, array.shape)
+                    if array.ndim == 2:                    
+                        self.shared_arrays[k][item, :, :] = array[:, :]
+                    else:
+                        self.shared_arrays[k][item, :, :, :] = array[:, :, :]
                 return arrays
             else:
                 return {k: v[item] for k, v in self.shared_arrays.items()}
