@@ -189,7 +189,12 @@ class AbstractImageDataset(Dataset):
                 logging.info(f"Initializing cache array {key} with size: {nb_samples}x{c}x{h}x{w}")
             
             if self.cache_with_shared_array:
-                shm = shared_memory.SharedMemory(name=f'nntools_{key}', size=arr.nbytes*nb_samples)
+                try:
+                    shm = shared_memory.SharedMemory(name=f'nntools_{key}', size=arr.nbytes*nb_samples)
+                except FileNotFoundError:
+                    logging.info("Creating shared memory")
+                    shm = shared_memory.SharedMemory(create=True, name=f'nntools_{key}', size=arr.nbytes*nb_samples)
+                    
                 shared_array = np.ndarray((nb_samples, h, w, c), dtype=arr.dtype, buffer=shm.buf)
                 shared_arrays[key] = shared_array
             else:
