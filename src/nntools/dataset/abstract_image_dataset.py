@@ -83,13 +83,13 @@ class AbstractImageDataset(Dataset):
 
         self.ignore_keys = []
         self.flag = flag
-        
+        self._cache_filled = False
         self._cache_initialized = False
         self.cache_with_shared_array = True 
         self.interpolation_flag = cv2.INTER_LINEAR
 
-    def init_shared_values(self):
-        self._cache_filled = mp.Value('i', 0) 
+    # def init_shared_values(self):
+    #     self._cache_filled = mp.Value('i', 0) 
         
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
@@ -108,14 +108,15 @@ class AbstractImageDataset(Dataset):
     
     @property
     def cache_filled(self):
-        return bool(self._cache_filled.value)
+        return bool(self._cache_filled)
     
     @cache_filled.setter
     def cache_filled(self, cache_filled):
         if cache_filled:
             logging.info(f"Cache is marked as filled")
-        self._cache_filled.value = int(cache_filled)
-
+        # self._cache_filled.value = int(cache_filled)
+        self._cache_filled = cache_filled
+        
     def list_files(self, recursive):
         pass
 
@@ -153,7 +154,7 @@ class AbstractImageDataset(Dataset):
 
     def init_cache(self):
         self.use_cache = True
-        self.init_shared_values()
+        # self.init_shared_values()
         if not self.auto_resize and not self.auto_pad:
             logging.warning("You are using a cache with auto_resize and auto_pad set to False. Make sure all your images are the same size")
             
