@@ -160,7 +160,7 @@ class AbstractImageDataset(Dataset):
         arrays = self.load_image(0)  # Taking the first element
         arrays = self.precompose_data(arrays)
         
-        shared_arrays = mp.dict()
+        shared_arrays = dict()
         nb_samples = self.real_length
         for key, arr in arrays.items():
             if not isinstance(arr, np.ndarray):
