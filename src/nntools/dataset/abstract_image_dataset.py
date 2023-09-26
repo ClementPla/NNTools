@@ -206,9 +206,10 @@ class AbstractImageDataset(Dataset):
             if not self.cache_filled:
                 arrays = self.load_image(item)
                 arrays = self.precompose_data(arrays)
+                print(mp.current_process().name, "So far so good", item)
                 for k, array in arrays.items():
                     self.shared_arrays[k][item] = array
-                
+                print(mp.current_process().name, "And so on and so forth", item)
                 return arrays
             else:
                 return {k: v[item] for k, v in self.shared_arrays.items()}
