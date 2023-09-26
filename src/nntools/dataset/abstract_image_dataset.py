@@ -1,4 +1,3 @@
-import ctypes
 import logging
 import math
 import torch.multiprocessing as mp
@@ -10,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from torch.multiprocessing import shared_memory
+from multiprocessing import shared_memory
 from nntools import MISSING_DATA_FLAG, NN_FILL_UPSAMPLE
 from nntools.dataset.image_tools import pad, resize
 from nntools.utils.io import path_leaf, read_image
