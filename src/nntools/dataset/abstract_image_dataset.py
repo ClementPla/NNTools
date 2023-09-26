@@ -88,6 +88,9 @@ class AbstractImageDataset(Dataset):
         self.interpolation_flag = cv2.INTER_LINEAR
         self.shm = None
         
+    def init_shared_variables(self):        
+        self._cache_filled = mp.Value('i', 0) 
+        
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
         
@@ -105,6 +108,8 @@ class AbstractImageDataset(Dataset):
     
     @property
     def cache_filled(self):
+        if not hasattr(self._cache_filled):
+            return False
         return bool(self._cache_filled.value)
     
     @cache_filled.setter
@@ -198,6 +203,7 @@ class AbstractImageDataset(Dataset):
         self.shared_arrays = shared_arrays
         
     def load_array(self, item):
+        print(f'Cache initialized: {self._cache_initialized}, Cache filled: {self.cache_filled}')
         if not self.use_cache:
             data = self.load_image(item)
             return self.precompose_data(data)
