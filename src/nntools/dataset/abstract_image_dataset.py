@@ -181,6 +181,7 @@ class AbstractImageDataset(Dataset):
                     shm = shared_memory.SharedMemory(name=f'nntools_{key}_{str(self.id)}')
                     logging.info("Assessing existing shared memory")
                     logging.debug(f'nntools_{key}_{self.id.name}: size: {shm.buf.nbytes} ({h}x{w}x{c})')
+                
                 self.shm = shm
                 shared_array = np.ndarray((nb_samples,)+arr.shape, dtype=arr.dtype, buffer=shm.buf)
                 shared_arrays[key] = shared_array
@@ -194,7 +195,6 @@ class AbstractImageDataset(Dataset):
         self.cache_filled = False
 
     def load_array(self, item):
-        print(mp.current_process().name, "Call", self._cache_initialized)
         if not self.use_cache:
             data = self.load_image(item)
             return self.precompose_data(data)
@@ -208,6 +208,7 @@ class AbstractImageDataset(Dataset):
                 for k, array in arrays.items():
                     print(mp.current_process().name, "So far so good", k, item)
                     self.shared_arrays[k][item][:, :, :] = array[:, :, :]
+                    self.shm.close()
                     print(mp.current_process().name, "And so on and so forth", k, item)
                     
                 return arrays
