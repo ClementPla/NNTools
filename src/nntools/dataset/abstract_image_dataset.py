@@ -207,7 +207,7 @@ class AbstractImageDataset(Dataset):
                 arrays = self.precompose_data(arrays)
                 for k, array in arrays.items():
                     print(mp.current_process().name, "So far so good", k, item)
-                    self.shared_arrays[k][item][:, :, :] = array[:, :, :]
+                    self.shared_arrays[k][item][:, :, :] = 0
                     print(mp.current_process().name, "And so on and so forth", k, item)
 
                 return arrays
