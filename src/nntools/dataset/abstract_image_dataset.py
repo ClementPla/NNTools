@@ -199,7 +199,6 @@ class AbstractImageDataset(Dataset):
                     shared_arrays[key] = np.ndarray((nb_samples, h, w), dtype=arr.dtype)
                         
         self.shared_arrays = shared_arrays
-        self.cache_initialized = True
         self.cache_filled = False
 
     def load_array(self, item):
@@ -210,6 +209,7 @@ class AbstractImageDataset(Dataset):
         else:
             if not self.cache_initialized:
                 self.init_cache()
+                self.cache_initialized = True
             if not self.cache_filled:
                 arrays = self.load_image(item)
                 arrays = self.precompose_data(arrays)
