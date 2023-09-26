@@ -182,11 +182,8 @@ class AbstractImageDataset(Dataset):
                                                      size=arr.nbytes*nb_samples, create=False)
                     logging.info(f"Assessing existing shared memory {mp.current_process().name}")
                     logging.debug(f'nntools_{key}_{self.id.name}: size: {shm.buf.nbytes} ({nb_samples}x{h}x{w}x{c})')
-                    self.shm = shm
-                    
-                shared_array = np.frombuffer(buffer=shm.buf, dtype=arr.dtype)
-                shared_array = shared_array.reshape((nb_samples, h, w, c))
-                shared_array[:] = 0
+                self.shm = shm    
+                shared_array = np.frombuffer(buffer=shm.buf, dtype=arr.dtype).reshape((nb_samples, h, w, c))
                 shared_arrays[key] = shared_array
             else:
                 if c>1:
@@ -204,14 +201,14 @@ class AbstractImageDataset(Dataset):
             return self.precompose_data(data)
         else:
             if not self._cache_initialized:
-                shm = self.init_cache()
+                self.init_cache()
                 self._cache_initialized = True
             if not self.cache_filled:
                 arrays = self.load_image(item)
                 arrays = self.precompose_data(arrays)
                 for k, array in arrays.items():
-                    print(mp.current_process().name, self.shm)                    
-                    self.shared_arrays[k][item] = array[:, :, :]
+                    print(mp.current_process().name, self.shm, self.shared_arrays[k][item].shape, array.shape)                    
+                    self.shared_arrays[k][item, :, :, :] = array[:, :, :]
 
                 return arrays
             else:
