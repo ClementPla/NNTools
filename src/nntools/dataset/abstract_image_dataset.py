@@ -160,8 +160,6 @@ class AbstractImageDataset(Dataset):
 
     def init_cache(self):
         self.use_cache = True
-        if self.cache_initialized:
-            return 
         self.init_shared_values()
         if not self.auto_resize and not self.auto_pad:
             logging.warning("You are using a cache with auto_resize and auto_pad set to False. Make sure all your images are the same size")
@@ -183,11 +181,11 @@ class AbstractImageDataset(Dataset):
             
             if self.cache_with_shared_array:
                 try:
-                    shm = shared_memory.SharedMemory(name=f'nntools_{key}_{self.id.name}', size=arr.nbytes*nb_samples, create=True)
+                    shm = shared_memory.SharedMemory(name=f'nntools_{key}_{str(self.id)}', size=arr.nbytes*nb_samples, create=True)
                     logging.info("Creating shared memory")
                     logging.debug(f'nntools_{key}_{self.id.name}: size: {shm.buf.nbytes} ({h}x{w}x{c})')
                 except FileExistsError:
-                    shm = shared_memory.SharedMemory(name=f'nntools_{key}_{self.id.name}')
+                    shm = shared_memory.SharedMemory(name=f'nntools_{key}_{str(self.id)}')
                     logging.info("Assessing existing shared memory")
                     logging.debug(f'nntools_{key}_{self.id.name}: size: {shm.buf.nbytes} ({h}x{w}x{c})')
                 
@@ -216,6 +214,8 @@ class AbstractImageDataset(Dataset):
                 arrays = self.precompose_data(arrays)
                 for k, array in arrays.items():
                     self.shared_arrays[k][item] = array
+                
+                print(mp.current_process().name, "filled cache for item", item)
                 return arrays
             else:
                 return {k: v[item] for k, v in self.shared_arrays.items()}
