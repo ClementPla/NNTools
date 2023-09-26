@@ -181,8 +181,8 @@ class AbstractImageDataset(Dataset):
                     shm = shared_memory.SharedMemory(name=f'nntools_{key}_{str(self.id)}')
                     logging.info("Assessing existing shared memory")
                     logging.debug(f'nntools_{key}_{self.id.name}: size: {shm.buf.nbytes} ({h}x{w}x{c})')
-                
-                shared_array = np.ndarray(nb_samples*h*w*c, dtype=arr.dtype, buffer=shm.buf)
+                self.shm = shm
+                shared_array = np.ndarray((nb_samples,)+arr.shape, dtype=arr.dtype, buffer=shm.buf)
                 shared_arrays[key] = shared_array
             else:
                 if c>1:
@@ -210,7 +210,7 @@ class AbstractImageDataset(Dataset):
                     print(mp.current_process().name, self.shared_arrays[k][item].shape)
                     print(mp.current_process().name, item, array.shape)
 
-                    self.shared_arrays[k][item][:] = 128
+                    self.shared_arrays[k][item][:, :, :] = array[:, :, :]
                     print(mp.current_process().name, "And so on and so forth", item)
                 return arrays
             else:
