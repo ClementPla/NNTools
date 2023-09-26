@@ -188,7 +188,7 @@ class AbstractImageDataset(Dataset):
                 logging.info(f"Initializing cache array {key} with size: {nb_samples}x{c}x{h}x{w}")
             
             if self.cache_with_shared_array:
-                print(os.environ['LOCAL_RANK'])
+                print(os.environ['RANK'])
                 try:
                     shm = shared_memory.SharedMemory(name=f'nntools_{key}', size=arr.nbytes*nb_samples)
                 except FileNotFoundError:
