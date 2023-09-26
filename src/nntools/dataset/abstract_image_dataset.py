@@ -190,10 +190,11 @@ class AbstractImageDataset(Dataset):
             if self.cache_with_shared_array:
                 if os.environ.get('LOCAL_RANK', None) is None:
                     logging.info("Creating shared memory")
-                    shm = shared_memory.SharedMemory(name=f'nntools_angy_butterfly_{key}', size=arr.nbytes*nb_samples, create=True)
-                else:
-                    logging.info("Assessing existing shared memory")
-                    shm = shared_memory.SharedMemory(name=f'nntools_angy_butterfly_{key}')
+                    try:
+                        shm = shared_memory.SharedMemory(name=f'nntools_{key}', size=arr.nbytes*nb_samples, create=True)
+                    except FileExistsError:
+                        logging.info("Assessing existing shared memory")
+                        shm = shared_memory.SharedMemory(name=f'nntools_{key}')
                     
                 shared_array = np.ndarray((nb_samples,)+arr.shape, dtype=arr.dtype, buffer=shm.buf)
                 shared_arrays[key] = shared_array
