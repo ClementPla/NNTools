@@ -88,9 +88,6 @@ class AbstractImageDataset(Dataset):
         self.interpolation_flag = cv2.INTER_LINEAR
         self.shm = None
         
-    def init_shared_variables(self):        
-        self._cache_filled = mp.Value('i', 0) 
-        
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
         
@@ -152,6 +149,9 @@ class AbstractImageDataset(Dataset):
         self.multiplicative_size_factor = factor
 
     def init_cache(self):
+        if self.cache_filled:
+            return
+        self.init_shared_variables()
         self.use_cache = True
         if not self.auto_resize and not self.auto_pad:
             logging.warning("You are using a cache with auto_resize and auto_pad set to False. Make sure all your images are the same size")
@@ -198,7 +198,6 @@ class AbstractImageDataset(Dataset):
         self.shared_arrays = shared_arrays
         
     def load_array(self, item):
-        print(f'Cache initialized: {self._cache_initialized}, Cache filled: {self.cache_filled}')
         if not self.use_cache:
             data = self.load_image(item)
             return self.precompose_data(data)
