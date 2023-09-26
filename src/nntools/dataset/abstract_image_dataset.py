@@ -185,17 +185,16 @@ class AbstractImageDataset(Dataset):
                 c = 1
             else:
                 h, w, c = arr.shape
-                logging.info(f"Initializing cache array {key} with size: {nb_samples}x{c}x{h}x{w}")
             
             if self.cache_with_shared_array:
                 try:
                     shm = shared_memory.SharedMemory(name=f'nntools_{key}_{self.id.name}', size=arr.nbytes*nb_samples, create=True)
                     logging.info("Creating shared memory")
-                    logging.debug(f'nntools_{key}_{self.id.name}: size{shm.buf.nbytes}')
+                    logging.debug(f'nntools_{key}_{self.id.name}: size: {shm.buf.nbytes} ({h}x{w}x{c})')
                 except FileExistsError:
                     shm = shared_memory.SharedMemory(name=f'nntools_{key}_{self.id.name}')
                     logging.info("Assessing existing shared memory")
-                    logging.debug(f'nntools_{key}_{self.id.name}: size{shm.buf.nbytes}')
+                    logging.debug(f'nntools_{key}_{self.id.name}: size: {shm.buf.nbytes} ({h}x{w}x{c})')
                 
                 
                 shared_array = np.ndarray((nb_samples,)+arr.shape, dtype=arr.dtype, buffer=shm.buf)
