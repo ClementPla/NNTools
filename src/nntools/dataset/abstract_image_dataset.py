@@ -191,11 +191,11 @@ class AbstractImageDataset(Dataset):
                 try:
                     shm = shared_memory.SharedMemory(name=f'nntools_{key}_{self.id.name}', size=arr.nbytes*nb_samples, create=True)
                     logging.info("Creating shared memory")
-                    logging.debug(f'nntools_{key}_{self.id.name}', shm.buf.nbytes)
+                    logging.debug(f'nntools_{key}_{self.id.name}: size{shm.buf.nbytes}')
                 except FileExistsError:
-                    logging.info("Assessing existing shared memory")
                     shm = shared_memory.SharedMemory(name=f'nntools_{key}_{self.id.name}')
-                    logging.debug(f'nntools_{key}_{self.id.name}', shm.buf.nbytes)
+                    logging.info("Assessing existing shared memory")
+                    logging.debug(f'nntools_{key}_{self.id.name}: size{shm.buf.nbytes}')
                 
                 
                 shared_array = np.ndarray((nb_samples,)+arr.shape, dtype=arr.dtype, buffer=shm.buf)
