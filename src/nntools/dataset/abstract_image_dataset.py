@@ -86,9 +86,8 @@ class AbstractImageDataset(Dataset):
         self._cache_initialized = False
         self.cache_with_shared_array = True 
         self.interpolation_flag = cv2.INTER_LINEAR
-
-    def init_shared_values(self):
         self._cache_filled = mp.Value('i', 0) 
+
         
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
@@ -152,7 +151,6 @@ class AbstractImageDataset(Dataset):
 
     def init_cache(self):
         self.use_cache = True
-        self.init_shared_values()
         if not self.auto_resize and not self.auto_pad:
             logging.warning("You are using a cache with auto_resize and auto_pad set to False. Make sure all your images are the same size")
             
@@ -181,10 +179,13 @@ class AbstractImageDataset(Dataset):
                                                      size=arr.nbytes*nb_samples, create=False)
                     logging.info(f"Assessing existing shared memory {mp.current_process().name}")
                     logging.debug(f'nntools_{key}_{self.id.name}: size: {shm.buf.nbytes} ({nb_samples}x{h}x{w}x{c})')
+                
+                self.shm = shm
                 if c>1:
                     shared_array = np.frombuffer(buffer=shm.buf, dtype=arr.dtype).reshape((nb_samples, h, w, c))
                 else:
                     shared_array = np.frombuffer(buffer=shm.buf, dtype=arr.dtype).reshape((nb_samples, h, w))
+                
                 shared_arrays[key] = shared_array
             else:
                 if c>1:
@@ -194,6 +195,9 @@ class AbstractImageDataset(Dataset):
                         
         self.shared_arrays = shared_arrays
 
+    def __del__(self):
+        self.shm.close()
+        
     def load_array(self, item):
         print(f'Cache initialized: {self._cache_initialized}, Cache filled: {self.cache_filled}')
         if not self.use_cache:
