@@ -209,7 +209,6 @@ class AbstractImageDataset(Dataset):
                     print(mp.current_process().name, "So far so good", k, item)
                     self.shared_arrays[k][item][:, :, :] = array[:, :, :]
                     print(mp.current_process().name, "And so on and so forth", k, item)
-                    self.shm.close()
 
                 return arrays
             else:
