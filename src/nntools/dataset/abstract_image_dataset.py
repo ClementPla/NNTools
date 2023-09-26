@@ -108,7 +108,7 @@ class AbstractImageDataset(Dataset):
     
     @property
     def cache_filled(self):
-        if not hasattr(self._cache_filled):
+        if not hasattr(self, '_cache_filled'):
             return False
         return bool(self._cache_filled.value)
     
