@@ -180,7 +180,6 @@ class AbstractImageDataset(Dataset):
                 h, w, c = arr.shape
             
             if self.cache_with_shared_array:
-                print(mp.current_process().name, "Initialization")
                 try:
                     shm = shared_memory.SharedMemory(name=f'nntools_{key}_{str(self.id)}', size=arr.nbytes*nb_samples, create=True)
                     logging.info("Creating shared memory")
@@ -204,6 +203,7 @@ class AbstractImageDataset(Dataset):
         self.cache_filled = False
 
     def load_array(self, item):
+        print(mp.current_process().name, "Call", self.cache_initialized)
         if not self.use_cache:
             data = self.load_image(item)
             return self.precompose_data(data)
