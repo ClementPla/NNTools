@@ -184,6 +184,7 @@ class AbstractImageDataset(Dataset):
                 
                 self.shm = shm
                 shared_array = np.ndarray((nb_samples,)+arr.shape, dtype=arr.dtype, buffer=shm.buf)
+                shared_array[:] = 0
                 shared_arrays[key] = shared_array
             else:
                 if c>1:
@@ -206,8 +207,8 @@ class AbstractImageDataset(Dataset):
                 arrays = self.load_image(item)
                 arrays = self.precompose_data(arrays)
                 for k, array in arrays.items():
-                    
                     print(mp.current_process().name, "So far so good", k, item)
+                    
                     print(self.shared_arrays[k][item, 0, 0, 0], mp.current_process().name)
                     self.shared_arrays[k][item, :, :, :] = 0
                     print(mp.current_process().name, "And so on and so forth", k, item)
