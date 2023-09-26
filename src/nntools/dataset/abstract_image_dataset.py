@@ -191,12 +191,12 @@ class AbstractImageDataset(Dataset):
                 if os.environ.get('LOCAL_RANK', None) is None:
                     try:
                         logging.info("Creating shared memory")
-                        shm = shared_memory.SharedMemory(name=f'nntools_{key}', size=arr.nbytes*nb_samples, create=True)
-                        print(f'nntools_{key}', shm.buf.nbytes)
+                        shm = shared_memory.SharedMemory(name=f'nntools_{key}_{self.id.name}', size=arr.nbytes*nb_samples, create=True)
+                        print(f'nntools_{key}_{self.id.name}', shm.buf.nbytes)
                     except FileExistsError:
                         logging.info("Assessing existing shared memory")
-                        shm = shared_memory.SharedMemory(name=f'nntools_{key}')
-                        print(f'nntools_{key}', shm.buf.nbytes)
+                        shm = shared_memory.SharedMemory(name=f'nntools_{key}_{self.id.name}')
+                        print(f'nntools_{key}_{self.id.name}', shm.buf.nbytes)
                 
                 
                 shared_array = np.ndarray((nb_samples,)+arr.shape, dtype=arr.dtype, buffer=shm.buf)
