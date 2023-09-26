@@ -198,7 +198,6 @@ class AbstractImageDataset(Dataset):
     def __del__(self):
         if self.shm:
             self.shm.close()
-        super().__del__()
         
     def load_array(self, item):
         print(f'Cache initialized: {self._cache_initialized}, Cache filled: {self.cache_filled}')
