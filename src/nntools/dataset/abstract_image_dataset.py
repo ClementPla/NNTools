@@ -88,8 +88,6 @@ class AbstractImageDataset(Dataset):
         self.shm = None
         self.cache_initialized = False
         
-    def init_shared_values(self):
-        self._cache_filled = mp.Value('i', 0) 
         
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
@@ -108,18 +106,18 @@ class AbstractImageDataset(Dataset):
     
     @property
     def cache_filled(self):
-        if not hasattr(self, "_cache_filled"):
-            self._cache_filled = mp.Value('i', 0)
-        return bool(self._cache_filled.value)
+        if hasattr(self, "_cache_filled"):
+            return self._cache_filled.value
+        else:
+            return False
     
     @cache_filled.setter
-    def cache_filled(self, cache_filled):
-        if cache_filled:
-            logging.info(f"Cache is marked as filled")
-        if not hasattr(self, "_cache_filled"):
-            self._cache_filled = mp.Value('i', 0)
-        self._cache_filled.value = int(cache_filled)
-        
+    def cache_filled(self, value):
+        if hasattr(self, "_cache_filled"):
+            self._cache_filled.value = value
+        else:
+            self._cache_filled = mp.Value("i", value)
+
     def list_files(self, recursive):
         pass
 
@@ -152,10 +150,9 @@ class AbstractImageDataset(Dataset):
         self.multiplicative_size_factor = factor
 
     def init_cache(self):
+        self.use_cache = True
         if self.cache_initialized:
             return 
-        self.init_shared_values()
-        self.use_cache = True
         if not self.auto_resize and not self.auto_pad:
             logging.warning("You are using a cache with auto_resize and auto_pad set to False. Make sure all your images are the same size")
             
@@ -164,9 +161,11 @@ class AbstractImageDataset(Dataset):
         
         shared_arrays = dict()
         nb_samples = self.real_length
+        self.shms = {} # Keep reference to all shm avoid the call from the garbage collector which pointer to buffer error
+        
         for key, arr in arrays.items():
             if not isinstance(arr, np.ndarray):
-                shared_arrays[key] = np.ndarray(nb_samples, dtype=type(arr))
+                shared_arrays[key] = np.ndarray(nb_samples, dtype=type(arr)) 
                 continue
             if arr.ndim == 2:
                 h, w = arr.shape
@@ -183,13 +182,14 @@ class AbstractImageDataset(Dataset):
                     shm = shared_memory.SharedMemory(name=f'nntools_{key}_{str(self.id)}',
                                                      size=arr.nbytes*nb_samples, create=False)
                     logging.info(f"Assessing existing shared memory {mp.current_process().name}")
-                    logging.debug(f'nntools_{key}_{self.id.name}: size: {shm.buf.nbytes} ({nb_samples}x{h}x{w}x{c})')
                 
-                self.shm = shm
+                self.shms[key] = shm
                 if arr.ndim == 3:
                     shared_array = np.frombuffer(buffer=shm.buf, dtype=arr.dtype).reshape((nb_samples, h, w, c))
                 else:
                     shared_array = np.frombuffer(buffer=shm.buf, dtype=arr.dtype).reshape((nb_samples, h, w))
+                
+                shared_array[:] = 0 # The initialization with 0 is not needed. However, it's a good way to check if the shared memory is correctly initialized (including checking if there is enough space in dev/shm)
                 
                 shared_arrays[key] = shared_array
             else:
@@ -208,18 +208,17 @@ class AbstractImageDataset(Dataset):
         else:
             if not self.cache_initialized:
                 self.init_cache()
-            logging.debug(f"Loading item {item} from cache, cache_initialized: {self.cache_initialized}, cache_filled: {self.cache_filled}")
-            if not self.cache_filled:
-                arrays = self.load_image(item)
-                arrays = self.precompose_data(arrays)
-                for k, array in arrays.items():
-                    if array.ndim == 2:                    
-                        self.shared_arrays[k][item, :, :] = array[:, :]
-                    else:
-                        self.shared_arrays[k][item, :, :, :] = array[:, :, :]
-                return arrays
-            else:
+            if self.cache_filled:
                 return {k: v[item] for k, v in self.shared_arrays.items()}
+
+            arrays = self.load_image(item)
+            arrays = self.precompose_data(arrays)
+            for k, array in arrays.items():
+                if array.ndim == 2:                    
+                    self.shared_arrays[k][item, :, :] = array[:, :]
+                else:
+                    self.shared_arrays[k][item, :, :, :] = array[:, :, :]
+            return arrays
 
     def columns(self):
         return (self.img_filepath.keys(), self.gts.keys())
