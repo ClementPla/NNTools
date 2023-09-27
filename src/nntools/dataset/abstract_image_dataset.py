@@ -156,7 +156,7 @@ class AbstractImageDataset(Dataset):
             self.shms.append(shm)
 
             self._cache_items = np.frombuffer(buffer=shm.buf, dtype=bool)
-            self._cache_items[:] = False
+            self._cache_items[:] = 0
             
         for key, arr in arrays.items():
             if not isinstance(arr, np.ndarray):
@@ -193,7 +193,7 @@ class AbstractImageDataset(Dataset):
             data = self.load_image(item)
             return self.precompose_data(data)
         else:
-            if self.cache_filled:
+            if self._cache_items[item]:
                 return {k: v[item] for k, v in self.shared_arrays.items()}            
             
             if not self.cache_initialized:
@@ -207,8 +207,6 @@ class AbstractImageDataset(Dataset):
                 else:
                     self.shared_arrays[k][item, :, :, :] = array[:, :, :]
             self._cache_items[item] = True
-            if np.all(self._cache_items):
-                self.cache_filled = True
             return arrays
 
     def columns(self):
