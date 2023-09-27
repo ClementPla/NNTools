@@ -167,49 +167,48 @@ class AbstractImageDataset(Dataset):
             if not isinstance(arr, np.ndarray):
                 shared_arrays[key] = np.ndarray(nb_samples, dtype=type(arr)) 
                 continue
-            if arr.ndim == 2:
-                h, w = arr.shape
-                c = 1
-            else:
-                h, w, c = arr.shape
             
+            memory_shape = (nb_samples, ) + arr.shape
             if self.cache_with_shared_array:
                 try:
                     shm = shared_memory.SharedMemory(name=f'nntools_{key}_{str(self.id)}', size=arr.nbytes*nb_samples, create=True)
                     logging.info(f"Creating shared memory, {mp.current_process().name}")
-                    logging.debug(f'nntools_{key}_{self.id.name}: size: {shm.buf.nbytes} ({nb_samples}x{h}x{w}x{c})')
+                    logging.debug(f'nntools_{key}_{self.id.name}: size: {shm.buf.nbytes} ({memory_shape})')
                 except FileExistsError:
                     shm = shared_memory.SharedMemory(name=f'nntools_{key}_{str(self.id)}',
                                                      size=arr.nbytes*nb_samples, create=False)
                     logging.info(f"Assessing existing shared memory {mp.current_process().name}")
                 
                 self.shms[key] = shm
-                if arr.ndim == 3:
-                    shared_array = np.frombuffer(buffer=shm.buf, dtype=arr.dtype).reshape((nb_samples, h, w, c))
-                else:
-                    shared_array = np.frombuffer(buffer=shm.buf, dtype=arr.dtype).reshape((nb_samples, h, w))
+
+                shared_array = np.frombuffer(buffer=shm.buf, dtype=arr.dtype).reshape(memory_shape)
                 
                 shared_array[:] = 0 # The initialization with 0 is not needed. However, it's a good way to check if the shared memory is correctly initialized (including checking if there is enough space in dev/shm)
                 
                 shared_arrays[key] = shared_array
             else:
-                if arr.ndim == 3:
-                    shared_arrays[key] = np.ndarray((nb_samples, h, w, c), dtype=arr.dtype)
-                else:
-                    shared_arrays[key] = np.ndarray((nb_samples, h, w), dtype=arr.dtype)
-                        
+                shared_arrays[key] = np.zeros(memory_shape, dtype=arr.dtype) # np.ndarray seemed buggy (at least with sharedMemory)
+               
         self.shared_arrays = shared_arrays
         self.cache_initialized = True
-        
+    
+    def __del__(self):
+        for shm in self.shms.values():
+                shm.close()
+        if mp.current_process().name == "MainProcess":
+            for shm in self.shms.values():
+                shm.unlink()
+    
     def load_array(self, item):
         if not self.use_cache:
             data = self.load_image(item)
             return self.precompose_data(data)
         else:
+            if self.cache_filled:
+                return {k: v[item] for k, v in self.shared_arrays.items()}            
+            
             if not self.cache_initialized:
                 self.init_cache()
-            if self.cache_filled:
-                return {k: v[item] for k, v in self.shared_arrays.items()}
 
             arrays = self.load_image(item)
             arrays = self.precompose_data(arrays)
