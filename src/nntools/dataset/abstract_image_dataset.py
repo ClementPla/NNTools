@@ -89,11 +89,8 @@ class AbstractImageDataset(Dataset):
         self.shm = None
         
     def init_shared_values(self):
-        # TODO: This is only for multiprocessing purposes (cache_with_shared_array==True). It shouldn't be called if
-        # num_workers==0 and not DDP...
         self._cache_initialized = mp.Value('i', 0)
         self._cache_filled = mp.Value('i', 0) 
-        self.cache_with_shared_array = True 
         
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
@@ -164,9 +161,9 @@ class AbstractImageDataset(Dataset):
         self.multiplicative_size_factor = factor
 
     def init_cache(self):
-        if self.cache_filled:
-            return
-        self.init_shared_variables()
+        if self.cache_initialized:
+            return 
+        self.init_shared_values()
         self.use_cache = True
         if not self.auto_resize and not self.auto_pad:
             logging.warning("You are using a cache with auto_resize and auto_pad set to False. Make sure all your images are the same size")
@@ -213,14 +210,12 @@ class AbstractImageDataset(Dataset):
         self.shared_arrays = shared_arrays
         
     def load_array(self, item):
-        logging.debug(f'Cache filled: {self.cache_filled}, Cache initialized {self._cache_initialized}')
         if not self.use_cache:
             data = self.load_image(item)
             return self.precompose_data(data)
         else:
-            if not self._cache_initialized:
+            if not self.cache_initialized:
                 self.init_cache()
-                self._cache_initialized = True
             if not self.cache_filled:
                 arrays = self.load_image(item)
                 arrays = self.precompose_data(arrays)
