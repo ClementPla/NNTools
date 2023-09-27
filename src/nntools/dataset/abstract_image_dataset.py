@@ -196,14 +196,14 @@ class AbstractImageDataset(Dataset):
                     logging.debug(f'nntools_{key}_{self.id.name}: size: {shm.buf.nbytes} ({nb_samples}x{h}x{w}x{c})')
                 
                 self.shm = shm
-                if c>1:
+                if arr.ndim == 3:
                     shared_array = np.frombuffer(buffer=shm.buf, dtype=arr.dtype).reshape((nb_samples, h, w, c))
                 else:
                     shared_array = np.frombuffer(buffer=shm.buf, dtype=arr.dtype).reshape((nb_samples, h, w))
                 
                 shared_arrays[key] = shared_array
             else:
-                if c>1:
+                if arr.ndim == 3:
                     shared_arrays[key] = np.ndarray((nb_samples, h, w, c), dtype=arr.dtype)
                 else:
                     shared_arrays[key] = np.ndarray((nb_samples, h, w), dtype=arr.dtype)
@@ -217,6 +217,7 @@ class AbstractImageDataset(Dataset):
         else:
             if not self.cache_initialized:
                 self.init_cache()
+            logging.debug(f"Loading item {item} from cache, cache_initialized: {self.cache_initialized}, cache_filled: {self.cache_filled}")
             if not self.cache_filled:
                 arrays = self.load_image(item)
                 arrays = self.precompose_data(arrays)
