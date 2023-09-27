@@ -126,6 +126,8 @@ class AbstractImageDataset(Dataset):
     def cache_filled(self, cache_filled):
         if cache_filled:
             logging.info(f"Cache is marked as filled")
+        if not hasattr(self, "_cache_filled"):
+            self._cache_filled = mp.Value('i', 0)
         self._cache_filled.value = int(cache_filled)
         
     def list_files(self, recursive):
