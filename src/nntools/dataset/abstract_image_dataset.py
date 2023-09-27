@@ -155,7 +155,7 @@ class AbstractImageDataset(Dataset):
                 shm = shared_memory.SharedMemory(name=f'nntools_{str(self.id)}_is_item_cached', size=nb_samples, create=False)
             self.shms.append(shm)
 
-            self._cache_items = np.frombuffer(buffer=shm.buf, dtype=np.bool)
+            self._cache_items = np.frombuffer(buffer=shm.buf, dtype=bool)
             self._cache_items[:] = False
             
         for key, arr in arrays.items():
