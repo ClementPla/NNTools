@@ -209,6 +209,7 @@ class AbstractImageDataset(Dataset):
                     shared_arrays[key] = np.ndarray((nb_samples, h, w), dtype=arr.dtype)
                         
         self.shared_arrays = shared_arrays
+        self.cache_initialized = True
         
     def load_array(self, item):
         if not self.use_cache:
