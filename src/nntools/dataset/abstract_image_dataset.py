@@ -193,11 +193,11 @@ class AbstractImageDataset(Dataset):
             data = self.load_image(item)
             return self.precompose_data(data)
         else:
-            if self._cache_items[item]:
-                return {k: v[item] for k, v in self.shared_arrays.items()}            
-            
             if not self.cache_initialized:
                 self.init_cache()
+            
+            if self._cache_items[item]:
+                return {k: v[item] for k, v in self.shared_arrays.items()}      
 
             arrays = self.load_image(item)
             arrays = self.precompose_data(arrays)
