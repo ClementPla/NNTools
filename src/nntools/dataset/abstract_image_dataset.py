@@ -83,7 +83,6 @@ class AbstractImageDataset(Dataset):
 
         self.ignore_keys = []
         self.flag = flag
-        self._cache_initialized = False
         self.cache_with_shared_array = True 
         self.interpolation_flag = cv2.INTER_LINEAR
         self.shm = None
