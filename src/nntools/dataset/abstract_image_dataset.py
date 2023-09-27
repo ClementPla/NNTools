@@ -86,9 +86,9 @@ class AbstractImageDataset(Dataset):
         self.cache_with_shared_array = True 
         self.interpolation_flag = cv2.INTER_LINEAR
         self.shm = None
+        self.cache_initialized = False
         
     def init_shared_values(self):
-        self._cache_initialized = mp.Value('i', 0)
         self._cache_filled = mp.Value('i', 0) 
         
     def __len__(self):
@@ -105,18 +105,6 @@ class AbstractImageDataset(Dataset):
     @property
     def gt_filenames(self):
         return {k: [path_leaf(f) for f in v] for k, v in self.gts.items()}
-    
-    @property
-    def cache_initialized(self):
-        if not hasattr(self, "_cache_initialized"):
-            return False
-        return bool(self._cache_initialized.value)
-    
-    @cache_initialized.setter
-    def cache_initialized(self, cache_initialized):
-        if cache_initialized:
-            logging.info(f"Cache is marked as initialized")
-        self._cache_initialized.value = int(cache_initialized)
     
     @property
     def cache_filled(self):
