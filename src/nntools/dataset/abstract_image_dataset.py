@@ -87,7 +87,7 @@ class AbstractImageDataset(Dataset):
         self.interpolation_flag = cv2.INTER_LINEAR
         self.shm = None
         self.cache_initialized = False
-        
+        self.cache_filled = False
         
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
@@ -104,20 +104,6 @@ class AbstractImageDataset(Dataset):
     def gt_filenames(self):
         return {k: [path_leaf(f) for f in v] for k, v in self.gts.items()}
     
-    @property
-    def cache_filled(self):
-        if hasattr(self, "_cache_filled"):
-            return self._cache_filled.value
-        else:
-            return False
-    
-    @cache_filled.setter
-    def cache_filled(self, value):
-        if hasattr(self, "_cache_filled"):
-            self._cache_filled.value = value
-        else:
-            self._cache_filled = mp.Value("i", value)
-
     def list_files(self, recursive):
         pass
 
@@ -161,8 +147,17 @@ class AbstractImageDataset(Dataset):
         
         shared_arrays = dict()
         nb_samples = self.real_length
-        self.shms = {} # Keep reference to all shm avoid the call from the garbage collector which pointer to buffer error
-        
+        self.shms = [] # Keep reference to all shm avoid the call from the garbage collector which pointer to buffer error
+        if self.cache_with_shared_array:
+            try:
+                shm = shared_memory.SharedMemory(name=f'nntools_{str(self.id)}_is_item_cached', size=nb_samples, create=True)
+            except FileExistsError:
+                shm = shared_memory.SharedMemory(name=f'nntools_{str(self.id)}_is_item_cached', size=nb_samples, create=False)
+            self.shms.append(shm)
+
+            self._cache_items = np.frombuffer(buffer=shm.buf, dtype=np.bool)
+            self._cache_items[:] = False
+            
         for key, arr in arrays.items():
             if not isinstance(arr, np.ndarray):
                 shared_arrays[key] = np.ndarray(nb_samples, dtype=type(arr)) 
@@ -179,7 +174,7 @@ class AbstractImageDataset(Dataset):
                                                      size=arr.nbytes*nb_samples, create=False)
                     logging.info(f"Assessing existing shared memory {mp.current_process().name}")
                 
-                self.shms[key] = shm
+                self.shms.append(shm)
 
                 shared_array = np.frombuffer(buffer=shm.buf, dtype=arr.dtype).reshape(memory_shape)
                 
@@ -192,13 +187,6 @@ class AbstractImageDataset(Dataset):
         self.shared_arrays = shared_arrays
         self.cache_initialized = True
     
-    # def __del__(self):
-    #     if self.cache_initialized:
-    #         for shm in self.shms.values():
-    #                 shm.close()
-    #         if mp.current_process().name == "MainProcess":
-    #             for shm in self.shms.values():
-    #                 shm.unlink()
     
     def load_array(self, item):
         if not self.use_cache:
@@ -218,6 +206,9 @@ class AbstractImageDataset(Dataset):
                     self.shared_arrays[k][item, :, :] = array[:, :]
                 else:
                     self.shared_arrays[k][item, :, :, :] = array[:, :, :]
+            self._cache_items[item] = True
+            if np.all(self._cache_items):
+                self.cache_filled = True
             return arrays
 
     def columns(self):
