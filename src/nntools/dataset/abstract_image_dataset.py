@@ -192,13 +192,13 @@ class AbstractImageDataset(Dataset):
         self.shared_arrays = shared_arrays
         self.cache_initialized = True
     
-    def __del__(self):
-        if self.cache_initialized:
-            for shm in self.shms.values():
-                    shm.close()
-            if mp.current_process().name == "MainProcess":
-                for shm in self.shms.values():
-                    shm.unlink()
+    # def __del__(self):
+    #     if self.cache_initialized:
+    #         for shm in self.shms.values():
+    #                 shm.close()
+    #         if mp.current_process().name == "MainProcess":
+    #             for shm in self.shms.values():
+    #                 shm.unlink()
     
     def load_array(self, item):
         if not self.use_cache:
