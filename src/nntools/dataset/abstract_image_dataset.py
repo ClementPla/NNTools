@@ -88,9 +88,12 @@ class AbstractImageDataset(Dataset):
         self.interpolation_flag = cv2.INTER_LINEAR
         self.shm = None
         
-    def init_shared_variables(self):
-        logging.debug(f"Initializing shared variables for {mp.current_process().name}")        
+    def init_shared_values(self):
+        # TODO: This is only for multiprocessing purposes (cache_with_shared_array==True). It shouldn't be called if
+        # num_workers==0 and not DDP...
+        self._cache_initialized = mp.Value('i', 0)
         self._cache_filled = mp.Value('i', 0) 
+        self.cache_with_shared_array = True 
         
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
@@ -108,15 +111,25 @@ class AbstractImageDataset(Dataset):
         return {k: [path_leaf(f) for f in v] for k, v in self.gts.items()}
     
     @property
-    def cache_filled(self):
-        if not hasattr(self, '_cache_filled'):
-            logging.debug("Attribute _cache_filled not found, returning False")
+    def cache_initialized(self):
+        if not hasattr(self, "_cache_initialized"):
             return False
+        return bool(self._cache_initialized.value)
+    
+    @cache_initialized.setter
+    def cache_initialized(self, cache_initialized):
+        if cache_initialized:
+            logging.info(f"Cache is marked as initialized")
+        self._cache_initialized.value = int(cache_initialized)
+    
+    @property
+    def cache_filled(self):
         return bool(self._cache_filled.value)
     
     @cache_filled.setter
     def cache_filled(self, cache_filled):
-        logging.info(f"Cache filled?  {cache_filled}")
+        if cache_filled:
+            logging.info(f"Cache is marked as filled")
         self._cache_filled.value = int(cache_filled)
         
     def list_files(self, recursive):
@@ -131,7 +144,6 @@ class AbstractImageDataset(Dataset):
             else:
                 img = read_image(filepath, flag=self.flag)
                 img = self.resize_and_pad(image=img, interpolation=self.interpolation_flag)
-
             inputs[k] = img
         return inputs
 
