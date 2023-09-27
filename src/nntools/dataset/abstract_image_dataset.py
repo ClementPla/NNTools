@@ -88,7 +88,7 @@ class AbstractImageDataset(Dataset):
         self.shm = None
         self.cache_initialized = False
         self.cache_filled = False
-        
+        self._is_first_process = False
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
         
@@ -135,6 +135,17 @@ class AbstractImageDataset(Dataset):
     def multiply_size(self, factor: float):
         self.multiplicative_size_factor = factor
 
+    def __del__(self):
+        if self.use_cache and self.cache_initialized and self._is_first_process:
+            for shm in self.shms:
+                shm.close()
+            if self._is_first_process:
+                for shm in self.shms:
+                    shm.unlink()
+            self.cache_initialized = False
+            self._is_first_process = False
+            
+        
     def init_cache(self):
         self.use_cache = True
         if self.cache_initialized:
@@ -151,8 +162,11 @@ class AbstractImageDataset(Dataset):
         if self.cache_with_shared_array:
             try:
                 shm = shared_memory.SharedMemory(name=f'nntools_{str(self.id)}_is_item_cached', size=nb_samples, create=True)
+                self._is_first_process = True
             except FileExistsError:
                 shm = shared_memory.SharedMemory(name=f'nntools_{str(self.id)}_is_item_cached', size=nb_samples, create=False)
+                self._is_first_process = False
+
             self.shms.append(shm)
 
             self._cache_items = np.frombuffer(buffer=shm.buf, dtype=bool)
