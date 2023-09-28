@@ -81,6 +81,7 @@ class AbstractImageDataset(Dataset):
         self.tag = None
         self.return_tag = False
 
+
         self.ignore_keys = []
         self.flag = flag
         self.cache_with_shared_array = True 
@@ -89,6 +90,8 @@ class AbstractImageDataset(Dataset):
         self.cache_initialized = False
         self.cache_filled = False
         self._is_first_process = False
+        self.id = ''
+        
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
         
@@ -182,7 +185,7 @@ class AbstractImageDataset(Dataset):
                 try:
                     shm = shared_memory.SharedMemory(name=f'nntools_{key}_{str(self.id)}', size=arr.nbytes*nb_samples, create=True)
                     logging.info(f"Creating shared memory, {mp.current_process().name}")
-                    logging.debug(f'nntools_{key}_{self.id.name}: size: {shm.buf.nbytes} ({memory_shape})')
+                    logging.debug(f'nntools_{key}_{str(self.id)}: size: {shm.buf.nbytes} ({memory_shape})')
                 except FileExistsError:
                     shm = shared_memory.SharedMemory(name=f'nntools_{key}_{str(self.id)}',
                                                      size=arr.nbytes*nb_samples, create=False)
