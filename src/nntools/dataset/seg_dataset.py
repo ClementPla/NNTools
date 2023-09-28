@@ -142,7 +142,7 @@ class SegmentationDataset(AbstractImageDataset):
                 else:
                     mask = read_image(filepath, cv2.IMREAD_GRAYSCALE)
                 mask = self.resize_and_pad(mask, interpolation=cv2.INTER_NEAREST_EXACT)
-                inputs[k] = (mask > 0).astype(np.uint8)
+                inputs[k] = mask.astype(np.uint8)
 
         return inputs
 
