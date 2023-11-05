@@ -104,7 +104,6 @@ class SegmentationDataset(AbstractImageDataset):
                 list_common_file = list_common_file & set(mask_ids)
             
             intersection_ids = np.asarray(list(list_common_file))
-            intersection_argsort = np.argsort(intersection_ids)
             logging.debug(f"Number of files in intersection dataset: {len(intersection_ids)}")
             if self.filling_strategy == NN_FILL_DOWNSAMPLE or all_equal:
                 # We only keep the intersection of the files
@@ -112,10 +111,9 @@ class SegmentationDataset(AbstractImageDataset):
                     logging.warning("Downsampling the dataset to size %i" % min(list_lengths))
                     
                 self.img_filepath["image"] = self.img_filepath["image"][np.isin(img_ids, intersection_ids)]
-                self.img_filepath["image"] = self.img_filepath["image"]
+
                 for k in self.gts.keys():
                     self.gts[k] = self.gts[k][np.isin(gts_ids[k], intersection_ids)]
-                    self.gts[k] = self.gts[k]
                     
             elif self.filling_strategy == NN_FILL_UPSAMPLE and not all_equal:
                 if len(img_ids) < max(list_lengths):

@@ -39,6 +39,7 @@ class MultiImageDataset(AbstractImageDataset):
         )
 
     def match_images_number_per_folder(self, filenames_per_folder):
+        # TODO refactor this function to match the implementation of SegmentationDataset
         list_lengths = [len(img_filenames) for img_filenames in filenames_per_folder.values()]
         if self.filling_strategy == NN_FILL_DOWNSAMPLE:
             logging.warning("Downsampling the dataset to size %i" % min(list_lengths))
