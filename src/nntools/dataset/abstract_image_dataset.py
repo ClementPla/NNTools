@@ -59,19 +59,26 @@ class AbstractImageDataset(Dataset):
         self._precache_composer = None
         self._composer = None
         self.keep_size_ratio = keep_size_ratio
-        if isinstance(shape, int):
-            shape = (shape, shape)
-        self.shape = tuple(shape)
+        
+        self.auto_resize = True
+        self.auto_pad = auto_pad
+
+        if shape is None:
+            self.auto_resize = False
+            self.auto_pad = False
+            self.shape = (-1, -1)
+        else:
+            if isinstance(shape, int):
+                shape = (shape, shape)
+            self.shape = tuple(shape)
         self.recursive_loading = recursive_loading
 
         self.img_filepath = {"image": []}
         self.gts = {}
         self.shared_arrays = {}
 
-        self.auto_resize = True
         self.return_indices = False
         self.list_files(recursive_loading)
-        self.auto_pad = auto_pad
 
         self.use_cache = use_cache
         self.cmap_name = "jet_r"
