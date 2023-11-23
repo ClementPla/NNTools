@@ -1,39 +1,42 @@
 import glob
 import os
+from pathlib import Path
+from typing import Callable, List, Tuple, Union
 
 import cv2
 import numpy as np
 import pandas
 
-from .abstract_image_dataset import AbstractImageDataset, supportedExtensions
+from nntools.dataset.abstract_image_dataset import AbstractImageDataset, AllowedImreadFlags, supportedExtensions
+from nntools.utils.misc import to_iterable
 
 
 class ClassificationDataset(AbstractImageDataset):
+    
+    
     def __init__(
         self,
-        img_url,
-        shape=None,
-        keep_size_ratio=False,
-        recursive_loading=True,
+        img_url: Path | List[Path],
+        shape: int | Tuple[int, int] | None = None,
+        keep_size_ratio: bool = False,
+        recursive_loading: bool = True,
+        extract_image_id_function: Callable[[str], str] | None = None,
+        use_cache: bool = False,
+        auto_pad: bool = True,
+        flag: AllowedImreadFlags = cv2.IMREAD_UNCHANGED,
         map_class=None,
         label_present=True,
         label_per_folder=True,
         label_filepath=None,
         file_column="image",
         gt_column="label",
-        extract_image_id_function=None,
-        use_cache=False,
-        auto_pad=True,
-        flag=cv2.IMREAD_COLOR,
     ):
         self.map_class = map_class
         self.label_present = label_present
         self.label_per_folder = label_per_folder if label_filepath is None else False
         self.label_filepath = label_filepath
         self.file_column = file_column
-        if not isinstance(gt_column, list):
-            gt_column = [gt_column]
-        self.gt_column = gt_column
+        self.gt_column = to_iterable(gt_column)
         super().__init__(
             img_url,
             shape,

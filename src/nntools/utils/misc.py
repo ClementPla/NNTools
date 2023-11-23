@@ -1,9 +1,10 @@
 import inspect
 import numbers
 from functools import partial
+from typing import Any, List, Tuple
 
 
-def to_iterable(param, iterable_type=list):
+def to_iterable(param: Any, iterable_type: List | Tuple =list):
     if not isinstance(param, iterable_type):
         param = iterable_type([param])
     return param

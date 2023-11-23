@@ -19,6 +19,7 @@ keywords = [
 ]
 dependencies = [
     "torch",
+    "attrs",
     "numpy",
     "matplotlib",
     "tqdm",

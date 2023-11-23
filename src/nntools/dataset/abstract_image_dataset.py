@@ -1,22 +1,23 @@
 import logging
 import math
 import multiprocessing as mp
-
 import os
-
+from multiprocessing import shared_memory
+from pathlib import Path
+from typing import Callable, List, Tuple, Union, Dict
+from attrs import define
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-import torch
 from torch.utils.data import Dataset
-from multiprocessing import shared_memory
 
 from nntools import MISSING_DATA_FLAG, NN_FILL_UPSAMPLE
 from nntools.dataset.image_tools import pad, resize
+from nntools.dataset.utils import convert_dict_to_plottable
 from nntools.utils.io import path_leaf, read_image
 from nntools.utils.misc import identity, to_iterable
 from nntools.utils.plotting import plot_images
-from torch.utils.data import get_worker_info
+
 from .tools import Composition
 
 supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
@@ -25,28 +26,19 @@ supportedExtensions = supportedExtensions + [ext.upper() for ext in supportedExt
 plt.rcParams["image.cmap"] = "gray"
 
 
-def convert_dict_to_plottable(dict_arrays):
-    plotted_arrays = {}
-    for k, v in dict_arrays.items():
-        if isinstance(v, torch.Tensor):
-            v = v.numpy()
-            if v.ndim == 3:
-                v = v.transpose((1, 2, 0))
-        plotted_arrays[k] = v
-    return plotted_arrays
-
+AllowedImreadFlags = Union[cv2.IMREAD_UNCHANGED, cv2.IMREAD_GRAYSCALE, cv2.IMREAD_COLOR]
 
 class AbstractImageDataset(Dataset):
     def __init__(
         self,
-        img_url=None,
-        shape=None,
-        keep_size_ratio=False,
-        recursive_loading=True,
-        extract_image_id_function=None,
-        use_cache=False,
-        auto_pad=True,
-        flag=cv2.IMREAD_UNCHANGED,
+        img_url: Path | List[Path],
+        shape: int | Tuple[int, int] | None = None,
+        keep_size_ratio: bool = False,
+        recursive_loading: bool = True,
+        extract_image_id_function: Callable[[str], str] | None = None,
+        use_cache: bool = False,
+        auto_pad: bool = True,
+        flag: AllowedImreadFlags = cv2.IMREAD_UNCHANGED,
     ):
         super().__init__()
 
@@ -54,12 +46,12 @@ class AbstractImageDataset(Dataset):
             self.extract_image_id_function = identity
         else:
             self.extract_image_id_function = extract_image_id_function
-        if img_url is not None:
-            self.path_img = to_iterable(img_url)
+        
+        self.path_img = to_iterable(img_url)
         self._precache_composer = None
         self._composer = None
         self.keep_size_ratio = keep_size_ratio
-        
+
         self.auto_resize = True
         self.auto_pad = auto_pad
 
@@ -88,20 +80,19 @@ class AbstractImageDataset(Dataset):
         self.tag = None
         self.return_tag = False
 
-
         self.ignore_keys = []
         self.flag = flag
-        self.cache_with_shared_array = True 
+        self.cache_with_shared_array = True
         self.interpolation_flag = cv2.INTER_LINEAR
         self.shm = None
         self.cache_initialized = False
         self.cache_filled = False
         self._is_first_process = False
-        self.id = ''
-        
+        self.id = ""
+
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
-        
+
     @property
     def real_length(self):
         return len(self.img_filepath["image"])
@@ -113,7 +104,7 @@ class AbstractImageDataset(Dataset):
     @property
     def gt_filenames(self):
         return {k: [path_leaf(f) for f in v] for k, v in self.gts.items()}
-    
+
     def list_files(self, recursive):
         pass
 
@@ -154,79 +145,87 @@ class AbstractImageDataset(Dataset):
                     shm.unlink()
             self.cache_initialized = False
             self._is_first_process = False
-            
-        
+
     def init_cache(self):
         self.use_cache = True
         if self.cache_initialized:
-            return 
+            return
         if not self.auto_resize and not self.auto_pad:
-            logging.warning("You are using a cache with auto_resize and auto_pad set to False. Make sure all your images are the same size")
-            
+            logging.warning(
+                "You are using a cache with auto_resize and auto_pad set to False. Make sure all your images are the same size"
+            )
+
         arrays = self.load_image(0)  # Taking the first element
         arrays = self.precompose_data(arrays)
-        
+
         shared_arrays = dict()
         nb_samples = self.real_length
-        self.shms = [] # Keep reference to all shm avoid the call from the garbage collector which pointer to buffer error
+        self.shms = []  # Keep reference to all shm avoid the call from the garbage collector which pointer to buffer error
         if self.cache_with_shared_array:
             try:
-                shm = shared_memory.SharedMemory(name=f'nntools_{str(self.id)}_is_item_cached', size=nb_samples, create=True)
+                shm = shared_memory.SharedMemory(name=f"nntools_{self.id}_is_item_cached", size=nb_samples, create=True)
                 self._is_first_process = True
             except FileExistsError:
-                shm = shared_memory.SharedMemory(name=f'nntools_{str(self.id)}_is_item_cached', size=nb_samples, create=False)
+                shm = shared_memory.SharedMemory(
+                    name=f"nntools_{self.id}_is_item_cached", size=nb_samples, create=False
+                )
                 self._is_first_process = False
 
             self.shms.append(shm)
 
             self._cache_items = np.frombuffer(buffer=shm.buf, dtype=bool)
             self._cache_items[:] = 0
-            
+
         for key, arr in arrays.items():
             if not isinstance(arr, np.ndarray):
-                shared_arrays[key] = np.ndarray(nb_samples, dtype=type(arr)) 
+                shared_arrays[key] = np.ndarray(nb_samples, dtype=type(arr))
                 continue
-            
-            memory_shape = (nb_samples, ) + arr.shape
+
+            memory_shape = (nb_samples, *arr.shape)
             if self.cache_with_shared_array:
                 try:
-                    shm = shared_memory.SharedMemory(name=f'nntools_{key}_{str(self.id)}', size=arr.nbytes*nb_samples, create=True)
+                    shm = shared_memory.SharedMemory(
+                        name=f"nntools_{key}_{self.id}", size=arr.nbytes * nb_samples, create=True
+                    )
                     logging.info(f"Creating shared memory, {mp.current_process().name}")
-                    logging.debug(f'nntools_{key}_{str(self.id)}: size: {shm.buf.nbytes} ({memory_shape})')
+                    logging.debug(f"nntools_{key}_{self.id}: size: {shm.buf.nbytes} ({memory_shape})")
                 except FileExistsError:
-                    shm = shared_memory.SharedMemory(name=f'nntools_{key}_{str(self.id)}',
-                                                     size=arr.nbytes*nb_samples, create=False)
+                    shm = shared_memory.SharedMemory(
+                        name=f"nntools_{key}_{self.id}", size=arr.nbytes * nb_samples, create=False
+                    )
                     logging.info(f"Assessing existing shared memory {mp.current_process().name}")
-                
+
                 self.shms.append(shm)
 
                 shared_array = np.frombuffer(buffer=shm.buf, dtype=arr.dtype).reshape(memory_shape)
-                
-                shared_array[:] = 0 # The initialization with 0 is not needed. However, it's a good way to check if the shared memory is correctly initialized (including checking if there is enough space in dev/shm)
-                
+
+                shared_array[:] = 0
+                # The initialization with 0 is not needed.
+                # However, it's a good way to check if the shared memory is correctly initialized
+                # It checks if there is enough space in dev/shm
+
                 shared_arrays[key] = shared_array
             else:
-                shared_arrays[key] = np.zeros(memory_shape, dtype=arr.dtype) # np.ndarray seemed buggy (at least with sharedMemory)
-               
+                shared_arrays[key] = np.zeros(memory_shape, dtype=arr.dtype)
+
         self.shared_arrays = shared_arrays
         self.cache_initialized = True
-    
-    
-    def load_array(self, item):
+
+    def load_array(self, item: int):
         if not self.use_cache:
             data = self.load_image(item)
             return self.precompose_data(data)
         else:
             if not self.cache_initialized:
                 self.init_cache()
-            
+
             if self._cache_items[item]:
-                return {k: v[item] for k, v in self.shared_arrays.items()}      
+                return {k: v[item] for k, v in self.shared_arrays.items()}
 
             arrays = self.load_image(item)
             arrays = self.precompose_data(arrays)
             for k, array in arrays.items():
-                if array.ndim == 2:                    
+                if array.ndim == 2:
                     self.shared_arrays[k][item, :, :] = array[:, :]
                 else:
                     self.shared_arrays[k][item, :, :, :] = array[:, :, :]
@@ -236,15 +235,15 @@ class AbstractImageDataset(Dataset):
     def columns(self):
         return (self.img_filepath.keys(), self.gts.keys())
 
-    def remap(self, old_key, new_key):
+    def remap(self, old_key: str, new_key: str):
         dicts = [self.img_filepath, self.gts, self.shared_arrays]
         for d in dicts:
             if old_key in d.keys():
                 d[new_key] = d.pop(old_key)
 
-    def filename(self, items, col="image"):
+    def filename(self, items: List[int], key: str = "image"):
         items = np.asarray(items)
-        filepaths = self.img_filepath[col][items]
+        filepaths = self.img_filepath[key][items]
         if isinstance(filepaths, list) or isinstance(filepaths, np.ndarray):
             return [os.path.basename(f) for f in filepaths]
         else:
@@ -258,23 +257,23 @@ class AbstractImageDataset(Dataset):
     def composer(self, comp: Composition):
         self._composer = comp
 
-    def get_class_count(self, load=True, save=True):
+    def get_class_count(self, load: bool = True, save: bool = True):
         pass
 
-    def transpose_img(self, img):
+    def transpose_img(self, img: np.ndarray):
         if img.ndim == 3:
             img = img.transpose(2, 0, 1)
         elif img.ndim == 2:
             img = np.expand_dims(img, 0)
         return img
 
-    def subset(self, indices):
+    def subset(self, indices: List[int]):
         for k, files in self.img_filepath.items():
             self.img_filepath[k] = files[indices]
         for k, files in self.gts.items():
             self.gts[k] = files[indices]
 
-    def __getitem__(self, index, return_indices=False, return_tag=False):
+    def __getitem__(self, index: int, return_indices: bool = False, return_tag: bool = False):
         if abs(index) >= len(self):
             raise StopIteration
         if index >= self.real_length:
@@ -298,7 +297,7 @@ class AbstractImageDataset(Dataset):
         outputs = self.filter_data(outputs)
         return outputs
 
-    def filter_data(self, datadict):
+    def filter_data(self, datadict: Dict[str, np.ndarray]):
         list_keys = list(datadict.keys())
         filtered_dict = {}
         for k in list_keys:
@@ -312,24 +311,24 @@ class AbstractImageDataset(Dataset):
     def clean_filter(self):
         self.ignore_keys = []
 
-    def plot(self, item, classes=None, fig_size=1):
+    def plot(self, item: int, classes: List[str] | None = None, fig_size: int = 1):
         arrays = self.__getitem__(item, return_indices=False)
         arrays = convert_dict_to_plottable(arrays)
         plot_images(arrays, self.cmap_name, classes=classes, fig_size=fig_size)
 
     def get_mosaic(
         self,
-        n_items=9,
-        shuffle=False,
-        indexes=None,
-        resolution=(512, 512),
-        show=False,
-        fig_size=1,
-        save=None,
-        add_labels=False,
-        n_row=None,
-        n_col=None,
-        n_classes=None,
+        n_items: int = 9,
+        shuffle: bool = False,
+        indexes: List[int] | None = None,
+        resolution: Tuple[int, int] = (512, 512),
+        show: bool = False,
+        fig_size: int = 1,
+        save: bool | None = None,
+        add_labels: bool = False,
+        n_row: int | None = None,
+        n_col: int | None = None,
+        n_classes: int | None = None,
     ):
         if indexes is None:
             if shuffle:

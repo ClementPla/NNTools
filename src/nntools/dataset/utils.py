@@ -179,3 +179,13 @@ def concat_datasets_if_needed(datasets):
         return dataset
     else:
         return datasets
+
+def convert_dict_to_plottable(dict_arrays):
+    plotted_arrays = {}
+    for k, v in dict_arrays.items():
+        if isinstance(v, torch.Tensor):
+            v = v.numpy()
+            if v.ndim == 3:
+                v = v.transpose((1, 2, 0))
+        plotted_arrays[k] = v
+    return plotted_arrays
