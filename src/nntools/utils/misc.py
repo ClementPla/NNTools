@@ -5,6 +5,8 @@ from typing import Any, List, Tuple
 
 
 def to_iterable(param: Any, iterable_type: List | Tuple =list):
+    if isinstance(param, dict):
+        return param
     if not isinstance(param, iterable_type):
         param = iterable_type([param])
     return param

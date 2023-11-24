@@ -2,13 +2,15 @@ import logging
 import math
 import multiprocessing as mp
 import os
+from abc import ABC, abstractmethod
 from multiprocessing import shared_memory
 from pathlib import Path
-from typing import Callable, List, Tuple, Union, Dict
-from attrs import define
+from typing import Callable, Dict, List, Literal, Tuple
+
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+from attrs import define, field
 from torch.utils.data import Dataset
 
 from nntools import MISSING_DATA_FLAG, NN_FILL_UPSAMPLE
@@ -26,69 +28,80 @@ supportedExtensions = supportedExtensions + [ext.upper() for ext in supportedExt
 plt.rcParams["image.cmap"] = "gray"
 
 
-AllowedImreadFlags = Union[cv2.IMREAD_UNCHANGED, cv2.IMREAD_GRAYSCALE, cv2.IMREAD_COLOR]
+AllowedImreadFlags = Literal["cv2.IMREAD_UNCHANGED", "cv2.IMREAD_GRAYSCALE", "cv2.IMREAD_COLOR"]
+AlloweInterpolationFlags = Literal[
+    "cv2.INTER_NEAREST", "cv2.INTER_LINEAR", "cv2.INTER_CUBIC", "cv2.INTER_AREA", "cv2.INTER_LANCZOS4"
+]
 
-class AbstractImageDataset(Dataset):
-    def __init__(
-        self,
-        img_url: Path | List[Path],
-        shape: int | Tuple[int, int] | None = None,
-        keep_size_ratio: bool = False,
-        recursive_loading: bool = True,
-        extract_image_id_function: Callable[[str], str] | None = None,
-        use_cache: bool = False,
-        auto_pad: bool = True,
-        flag: AllowedImreadFlags = cv2.IMREAD_UNCHANGED,
-    ):
+
+def shape_converter(shape: int | Tuple[int, int] | None) -> Tuple[int, int] | None:
+    if shape is None:
+        return None
+    if isinstance(shape, int):
+        return (shape, shape)
+    return shape
+
+
+@define
+class AbstractImageDataset(Dataset, ABC):
+    img_root: Path | List[Path] | Dict[str, Path] | Dict[str, List[Path]] = field(converter=to_iterable)
+    shape: int | Tuple[int, int] | None = field(default=None, converter=shape_converter)
+    keep_size_ratio: bool = True
+    extract_image_id_function: Callable[[str], str] = identity
+    recursive_loading: bool = True
+    use_cache: bool = False
+    flag: AllowedImreadFlags = cv2.IMREAD_UNCHANGED
+    return_indices: bool = False
+    cmap_name: str = "jet_r"
+    multiplicative_size_factor: float = 1
+    return_tag: bool = False
+    id: str = ""
+    tag: str | List[str] | None = None
+    interpolation_flag: AlloweInterpolationFlags = cv2.INTER_LINEAR
+
+    auto_pad: bool = field()
+
+    @auto_pad.default
+    def _auto_pad_default(self):
+        if self.shape is None:
+            return False
+        return True
+
+    @auto_pad.validator
+    def _auto_pad_validator(self, attribute, value):
+        if self.shape is None and value:
+            raise ValueError("auto_pad cannot be True if shape is None")
+
+    auto_resize: bool = field()
+
+    @auto_resize.default
+    def _auto_resize_default(self):
+        if self.shape is None:
+            return False
+        return True
+
+    @auto_resize.validator
+    def _auto_resize_validator(self, attribute, value):
+        if self.shape is None and value:
+            raise ValueError("auto_resize cannot be True if shape is None")
+
+    _precache_composer: Composition | None = field(default=None)
+    _composer = None
+
+    def __attrs_pre_init__(self):
         super().__init__()
 
-        if extract_image_id_function is None:
-            self.extract_image_id_function = identity
-        else:
-            self.extract_image_id_function = extract_image_id_function
-        
-        self.path_img = to_iterable(img_url)
-        self._precache_composer = None
-        self._composer = None
-        self.keep_size_ratio = keep_size_ratio
-
-        self.auto_resize = True
-        self.auto_pad = auto_pad
-
-        if shape is None:
-            self.auto_resize = False
-            self.auto_pad = False
-            self.shape = (-1, -1)
-        else:
-            if isinstance(shape, int):
-                shape = (shape, shape)
-            self.shape = tuple(shape)
-        self.recursive_loading = recursive_loading
-
+    def __attrs_post_init__(self):
+        self.ignore_keys = []
         self.img_filepath = {"image": []}
         self.gts = {}
         self.shared_arrays = {}
-
-        self.return_indices = False
-        self.list_files(recursive_loading)
-
-        self.use_cache = use_cache
-        self.cmap_name = "jet_r"
-
-        self.multiplicative_size_factor = 1
-
-        self.tag = None
-        self.return_tag = False
-
-        self.ignore_keys = []
-        self.flag = flag
         self.cache_with_shared_array = True
-        self.interpolation_flag = cv2.INTER_LINEAR
         self.shm = None
         self.cache_initialized = False
         self.cache_filled = False
         self._is_first_process = False
-        self.id = ""
+        self.list_files(self.recursive_loading)
 
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
@@ -105,6 +118,7 @@ class AbstractImageDataset(Dataset):
     def gt_filenames(self):
         return {k: [path_leaf(f) for f in v] for k, v in self.gts.items()}
 
+    @abstractmethod
     def list_files(self, recursive):
         pass
 

@@ -1,16 +1,15 @@
 import bisect
 import copy
+import logging
 import os
 from typing import List
-import logging
+
 import numpy as np
 import torch
 import tqdm
 from torch import default_generator, randperm
 from torch._utils import _accumulate
-
-
-from .abstract_image_dataset import AbstractImageDataset
+from torch.utils.data import Dataset
 
 
 def get_segmentation_class_count(dataset, save=False, load=False):
@@ -63,7 +62,7 @@ def class_weighting(class_count, mode="balanced", ignore_index=-100, eps=1, log_
     return class_weights.astype(np.float32)
 
 
-def check_dataleaks(*datasets: List[AbstractImageDataset], raise_exception=True):
+def check_dataleaks(*datasets: List[Dataset], raise_exception=True):
     is_okay = True
     cols = {"files": [], "gts": []}
     unfold_datasets = []
@@ -179,6 +178,7 @@ def concat_datasets_if_needed(datasets):
         return dataset
     else:
         return datasets
+
 
 def convert_dict_to_plottable(dict_arrays):
     plotted_arrays = {}

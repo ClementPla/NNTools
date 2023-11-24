@@ -1,57 +1,35 @@
 import glob
 import os
-from pathlib import Path
-from typing import Callable, List, Tuple, Union
+from typing import List
 
-import cv2
 import numpy as np
 import pandas
+from attrs import define, field
 
-from nntools.dataset.abstract_image_dataset import AbstractImageDataset, AllowedImreadFlags, supportedExtensions
+from nntools.dataset.abstract_image_dataset import AbstractImageDataset, supportedExtensions
 from nntools.utils.misc import to_iterable
 
 
+@define
 class ClassificationDataset(AbstractImageDataset):
+    map_class: dict[int, str] | None = None
+    label_present: bool = True
+    label_filepath: str | None = None
+    label_per_folder: bool = field()
+    @label_per_folder.default
+    def _label_per_folder_default(self):
+        return self.label_filepath is None
+    @label_per_folder.validator
+    def _label_per_folder_validator(self, attribute, value):
+        if value and self.label_filepath is not None:
+            raise ValueError("label_per_folder cannot be True if label_filepath is not None")
+    file_column: str = "image"
+    gt_column: str | List[str] = field(default="label", converter=to_iterable)
     
-    
-    def __init__(
-        self,
-        img_url: Path | List[Path],
-        shape: int | Tuple[int, int] | None = None,
-        keep_size_ratio: bool = False,
-        recursive_loading: bool = True,
-        extract_image_id_function: Callable[[str], str] | None = None,
-        use_cache: bool = False,
-        auto_pad: bool = True,
-        flag: AllowedImreadFlags = cv2.IMREAD_UNCHANGED,
-        map_class=None,
-        label_present=True,
-        label_per_folder=True,
-        label_filepath=None,
-        file_column="image",
-        gt_column="label",
-    ):
-        self.map_class = map_class
-        self.label_present = label_present
-        self.label_per_folder = label_per_folder if label_filepath is None else False
-        self.label_filepath = label_filepath
-        self.file_column = file_column
-        self.gt_column = to_iterable(gt_column)
-        super().__init__(
-            img_url,
-            shape,
-            keep_size_ratio,
-            recursive_loading,
-            extract_image_id_function,
-            use_cache,
-            flag=flag,
-            auto_pad=auto_pad,
-        )
-
     def list_files(self, recursive):
         for extension in supportedExtensions:
             prefix = "**/*." if recursive else "*."
-            for path in self.path_img:
+            for path in self.img_root:
                 self.img_filepath["image"].extend(glob.glob(path + prefix + extension, recursive=recursive))
 
         self.img_filepath["image"] = np.asarray(self.img_filepath["image"])

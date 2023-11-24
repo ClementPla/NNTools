@@ -1,61 +1,43 @@
 import glob
 import logging
+from typing import Callable
 
 import cv2
 import numpy as np
+from attrs import define, field
 
 from nntools import MISSING_DATA_FLAG, NN_FILL_DOWNSAMPLE, NN_FILL_UPSAMPLE
+from nntools.dataset.abstract_image_dataset import AbstractImageDataset, supportedExtensions
 from nntools.dataset.image_tools import resize
 from nntools.utils.io import path_leaf, read_image
 from nntools.utils.misc import to_iterable
-
-from .abstract_image_dataset import AbstractImageDataset, supportedExtensions
 
 
 def extract_filename_without_extension(filename):
     return filename.split(".")[0]
 
 
-class SegmentationDataset(AbstractImageDataset):
-    def __init__(
-        self,
-        img_url,
-        mask_url=None,
-        shape=None,
-        keep_size_ratio=False,
-        recursive_loading=True,
-        n_classes=None,
-        extract_image_id_function=None,
-        use_cache=False,
-        auto_pad=True,
-        filling_strategy=NN_FILL_UPSAMPLE,
-        flag=cv2.IMREAD_COLOR,
-        binarize_mask=False,
-    ):
-        if mask_url is None or mask_url == "":
-            self.path_masks = None
-        elif not isinstance(mask_url, dict):
-            self.path_masks = {"mask": to_iterable(mask_url)}
-        else:
-            self.path_masks = {k: to_iterable(path) for k, path in mask_url.items()}
-        if extract_image_id_function is None:
-            extract_image_id_function = extract_filename_without_extension
-            
-        self.use_masks = self.path_masks is not None
-        self.n_classes = n_classes
-        self.filling_strategy = filling_strategy
-        self.binarize_mask = binarize_mask
+def mask_path_converter(mask_path):
+    if mask_path is None or mask_path == "":
+        return None
+    elif not isinstance(mask_path, dict):
+        return {"mask": to_iterable(mask_path)}
+    else:
+        return {k: to_iterable(path) for k, path in mask_path.items()}
 
-        super().__init__(
-            img_url,
-            shape,
-            keep_size_ratio,
-            recursive_loading,
-            extract_image_id_function,
-            auto_pad=auto_pad,
-            use_cache=use_cache,
-            flag=flag,
-        )
+
+@define
+class SegmentationDataset(AbstractImageDataset):
+    extract_image_id_function: Callable | None = extract_filename_without_extension
+    mask_root: str | dict[str, str] | None = field(default=None, converter=mask_path_converter)
+    use_masks: bool = field()
+    @use_masks.default
+    def _use_masks_default(self):
+        return self.mask_root is not None
+
+    filling_strategy: str = field(default=NN_FILL_UPSAMPLE)
+    binarize_mask: bool = field(default=False)
+    n_classes: int | None = field(default=None)
 
     def get_class_count(self, save=False, load=False):
         from .utils import get_segmentation_class_count
@@ -65,10 +47,10 @@ class SegmentationDataset(AbstractImageDataset):
     def list_files(self, recursive):
         for extension in supportedExtensions:
             prefix = "**/*." if recursive else "*."
-            for path in self.path_img:
+            for path in self.img_root:
                 self.img_filepath["image"].extend(glob.glob(path + prefix + extension, recursive=recursive))
             if self.use_masks:
-                for mask_label, paths in self.path_masks.items():
+                for mask_label, paths in self.mask_root.items():
                     for path in paths:
                         if mask_label not in self.gts:
                             self.gts[mask_label] = []
@@ -76,7 +58,7 @@ class SegmentationDataset(AbstractImageDataset):
 
         if self.use_masks:
             gts_ids = {}
-            for mask_key in self.path_masks.keys():
+            for mask_key in self.mask_root.keys():
                 self.gts[mask_key] = np.asarray(self.gts[mask_key])
                 gts_ids[mask_key] = [self.extract_image_id_function(path_leaf(path)) for path in self.gts[mask_key]]
                 argsort_ids = np.argsort(gts_ids[mask_key])
