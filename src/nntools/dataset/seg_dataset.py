@@ -16,7 +16,6 @@ from nntools.utils.misc import to_iterable
 def extract_filename_without_extension(filename):
     return filename.split(".")[0]
 
-
 def mask_path_converter(mask_path):
     if mask_path is None or mask_path == "":
         return None
