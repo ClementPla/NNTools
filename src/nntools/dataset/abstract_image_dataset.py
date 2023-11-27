@@ -34,7 +34,7 @@ AlloweInterpolationFlags = Literal[
 ]
 
 
-def shape_converter(shape: Union[int, Tuple[int, int], None]) -> Tuple[int, int] | None:
+def shape_converter(shape: Union[int, Tuple[int, int], None]) -> Optional[Tuple[int, int]]:
     if shape is None:
         return None
     if isinstance(shape, int):
