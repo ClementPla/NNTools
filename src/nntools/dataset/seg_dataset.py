@@ -29,14 +29,7 @@ def mask_path_converter(mask_path):
 
 @define
 class SegmentationDataset(AbstractImageDataset):
-    extract_image_id_function: Optional[Callable] = field()
-    @extract_image_id_function.default
-    def _extract_image_id_function_default(self):
-        if self.extract_image_id_function is None:
-            return extract_filename_without_extension
-        else :
-            return self.extract_image_id_function
-    
+    extract_image_id_function: Optional[Callable] = field(default=extract_filename_without_extension)
     mask_root: Optional[Union[str, dict[str, str]]] = field(default=None, converter=mask_path_converter)
     use_masks: bool = field()
 
@@ -52,6 +45,9 @@ class SegmentationDataset(AbstractImageDataset):
         return get_segmentation_class_count(self, save=save, load=load)
 
     def list_files(self, recursive):
+        if self.extract_image_id_function is None:
+            self.extract_image_id_function = extract_filename_without_extension
+            
         for extension in supportedExtensions:
             prefix = "**/*." if recursive else "*."
             for path in self.img_root:
