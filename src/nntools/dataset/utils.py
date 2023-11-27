@@ -12,7 +12,6 @@ from torch._utils import _accumulate
 from torch.utils.data import Dataset
 
 
-
 def get_segmentation_class_count(dataset, save=False, load=False):
     sample = dataset[0]
     if "mask" not in sample.keys():
