@@ -117,6 +117,14 @@ class AbstractImageDataset(Dataset, ABC):
     @property
     def gt_filenames(self):
         return {k: [path_leaf(f) for f in v] for k, v in self.gts.items()}
+    
+    @property
+    def composer(self):
+        return self._composer
+
+    @composer.setter
+    def composer(self, comp: Composition):
+        self._composer = comp
 
     @abstractmethod
     def list_files(self, recursive):
@@ -263,13 +271,7 @@ class AbstractImageDataset(Dataset, ABC):
         else:
             return os.path.basename(filepaths)
 
-    @property
-    def composer(self):
-        return self._composer
-
-    @composer.setter
-    def composer(self, comp: Composition):
-        self._composer = comp
+    
 
     def get_class_count(self, load: bool = True, save: bool = True):
         pass
