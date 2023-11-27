@@ -9,6 +9,7 @@ from attrs import define, field
 from nntools import MISSING_DATA_FLAG, NN_FILL_DOWNSAMPLE, NN_FILL_UPSAMPLE
 from nntools.dataset.abstract_image_dataset import AbstractImageDataset, supportedExtensions
 from nntools.dataset.image_tools import resize
+from nntools.dataset.utils import get_segmentation_class_count
 from nntools.utils.io import path_leaf, read_image
 from nntools.utils.misc import to_iterable
 
@@ -28,7 +29,14 @@ def mask_path_converter(mask_path):
 
 @define
 class SegmentationDataset(AbstractImageDataset):
-    extract_image_id_function: Optional[Callable] = extract_filename_without_extension
+    extract_image_id_function: Optional[Callable] = field(default=extract_filename_without_extension)
+    @extract_image_id_function.default
+    def _extract_image_id_function_default(self):
+        if self.extract_image_id_function is None:
+            return extract_filename_without_extension
+        else :
+            return self.extract_image_id_function
+    
     mask_root: Optional[Union[str, dict[str, str]]] = field(default=None, converter=mask_path_converter)
     use_masks: bool = field()
 
@@ -41,8 +49,6 @@ class SegmentationDataset(AbstractImageDataset):
     n_classes: Optional[int] = field(default=None)
 
     def get_class_count(self, save=False, load=False):
-        from .utils import get_segmentation_class_count
-
         return get_segmentation_class_count(self, save=save, load=load)
 
     def list_files(self, recursive):
