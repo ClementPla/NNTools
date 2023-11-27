@@ -60,7 +60,6 @@ class SegmentationDataset(AbstractImageDataset):
         if self.use_masks:
             gts_ids = {}
             for mask_key in self.mask_root.keys():
-                print(mask_key, self.extract_image_id_function)
                 self.gts[mask_key] = np.asarray(self.gts[mask_key])
                 gts_ids[mask_key] = [self.extract_image_id_function(path_leaf(path)) for path in self.gts[mask_key]]
                 argsort_ids = np.argsort(gts_ids[mask_key])
