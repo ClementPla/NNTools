@@ -26,7 +26,7 @@ def mask_path_converter(mask_path):
         return {k: to_iterable(path) for k, path in mask_path.items()}
 
 
-@define
+@define(slots=False)
 class SegmentationDataset(AbstractImageDataset):
     extract_image_id_function: Optional[Callable] = extract_filename_without_extension
     mask_root: Optional[Union[str, dict[str, str]]] = field(default=None, converter=mask_path_converter)
