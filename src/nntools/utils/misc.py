@@ -4,7 +4,7 @@ from functools import partial
 from typing import Any, Sequence
 
 
-def to_iterable(param: Any, iterable_type: Sequence[Any]=list):
+def to_iterable(param: Any, iterable_type: Sequence[Any] = list):
     if isinstance(param, dict):
         return param
     if not isinstance(param, iterable_type):

@@ -1,5 +1,6 @@
 import logging
 
+
 class CacheBullet:
     def __call__(self, **kwargs):
         return kwargs

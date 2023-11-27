@@ -5,7 +5,7 @@ import os
 from abc import ABC, abstractmethod
 from multiprocessing import shared_memory
 from pathlib import Path
-from typing import Callable, Dict, List, Literal, Tuple
+from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import cv2
 import matplotlib.pyplot as plt
@@ -34,7 +34,7 @@ AlloweInterpolationFlags = Literal[
 ]
 
 
-def shape_converter(shape: int | Tuple[int, int] | None) -> Tuple[int, int] | None:
+def shape_converter(shape: Union[int, Tuple[int, int], None]) -> Tuple[int, int] | None:
     if shape is None:
         return None
     if isinstance(shape, int):
@@ -44,8 +44,8 @@ def shape_converter(shape: int | Tuple[int, int] | None) -> Tuple[int, int] | No
 
 @define
 class AbstractImageDataset(Dataset, ABC):
-    img_root: Path | List[Path] | Dict[str, Path] | Dict[str, List[Path]] = field(converter=to_iterable)
-    shape: int | Tuple[int, int] | None = field(default=None, converter=shape_converter)
+    img_root: Union[Path, List[Path], Dict[str, Path], Dict[str, List[Path]]] = field(converter=to_iterable)
+    shape: Optional[Union[int, Tuple[int, int]]] = field(default=None, converter=shape_converter)
     keep_size_ratio: bool = True
     extract_image_id_function: Callable[[str], str] = identity
     recursive_loading: bool = True
@@ -56,7 +56,7 @@ class AbstractImageDataset(Dataset, ABC):
     multiplicative_size_factor: float = 1
     return_tag: bool = False
     id: str = ""
-    tag: str | List[str] | None = None
+    tag: Optional[Union[str, List[str]]] = None
     interpolation_flag: AlloweInterpolationFlags = cv2.INTER_LINEAR
 
     auto_pad: bool = field()
@@ -85,7 +85,7 @@ class AbstractImageDataset(Dataset, ABC):
         if self.shape is None and value:
             raise ValueError("auto_resize cannot be True if shape is None")
 
-    _precache_composer: Composition | None = field(default=None)
+    _precache_composer: Optional[Composition] = field(default=None)
     _composer = None
 
     def __attrs_pre_init__(self):
@@ -325,7 +325,7 @@ class AbstractImageDataset(Dataset, ABC):
     def clean_filter(self):
         self.ignore_keys = []
 
-    def plot(self, item: int, classes: List[str] | None = None, fig_size: int = 1):
+    def plot(self, item: int, classes: Optional[List[str]] = None, fig_size: int = 1):
         arrays = self.__getitem__(item, return_indices=False)
         arrays = convert_dict_to_plottable(arrays)
         plot_images(arrays, self.cmap_name, classes=classes, fig_size=fig_size)
@@ -334,15 +334,15 @@ class AbstractImageDataset(Dataset, ABC):
         self,
         n_items: int = 9,
         shuffle: bool = False,
-        indexes: List[int] | None = None,
+        indexes: Optional[List[int]] = None,
         resolution: Tuple[int, int] = (512, 512),
         show: bool = False,
         fig_size: int = 1,
-        save: bool | None = None,
+        save: Optional[bool] = None,
         add_labels: bool = False,
-        n_row: int | None = None,
-        n_col: int | None = None,
-        n_classes: int | None = None,
+        n_row: Optional[int] = None,
+        n_col: Optional[int] = None,
+        n_classes: Optional[int] = None,
     ):
         if indexes is None:
             if shuffle:

@@ -1,6 +1,6 @@
 import glob
 import os
-from typing import List
+from typing import List, Optional, Union
 
 import numpy as np
 import pandas
@@ -12,16 +12,16 @@ from nntools.utils.misc import to_iterable
 
 @define
 class ClassificationDataset(AbstractImageDataset):
-    map_class: dict[int, str] | dict[str, dict[int, str]] | None = None
-    label_dataframe: pandas.DataFrame | None = None
-    label_filepath: str | None = None
+    map_class: Optional[Union[dict[int, str], dict[str, dict[int, str]]]] = None
+    label_dataframe: Optional[pandas.DataFrame] = None
+    label_filepath: Optional[str] = None
     label_per_folder: bool = field()
     @label_per_folder.default
     def _label_per_folder_default(self):
         return self.label_filepath is None and self.label_dataframe is None
     
     file_column: str = "image"
-    gt_column: str | List[str] = field(default="label", converter=to_iterable)
+    gt_column: Union[str, List[str]] = field(default="label", converter=to_iterable)
     
     def list_files(self, recursive):
         for extension in supportedExtensions:

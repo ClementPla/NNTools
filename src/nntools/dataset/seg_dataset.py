@@ -1,6 +1,6 @@
 import glob
 import logging
-from typing import Callable
+from typing import Callable, Optional, Union
 
 import cv2
 import numpy as np
@@ -16,6 +16,7 @@ from nntools.utils.misc import to_iterable
 def extract_filename_without_extension(filename):
     return filename.split(".")[0]
 
+
 def mask_path_converter(mask_path):
     if mask_path is None or mask_path == "":
         return None
@@ -27,16 +28,17 @@ def mask_path_converter(mask_path):
 
 @define
 class SegmentationDataset(AbstractImageDataset):
-    extract_image_id_function: Callable | None = extract_filename_without_extension
-    mask_root: str | dict[str, str] | None = field(default=None, converter=mask_path_converter)
+    extract_image_id_function: Optional[Callable] = extract_filename_without_extension
+    mask_root: Optional[Union[str, dict[str, str]]] = field(default=None, converter=mask_path_converter)
     use_masks: bool = field()
+
     @use_masks.default
     def _use_masks_default(self):
         return self.mask_root is not None
 
     filling_strategy: str = field(default=NN_FILL_UPSAMPLE)
     binarize_mask: bool = field(default=False)
-    n_classes: int | None = field(default=None)
+    n_classes: Optional[int] = field(default=None)
 
     def get_class_count(self, save=False, load=False):
         from .utils import get_segmentation_class_count
@@ -114,7 +116,7 @@ class SegmentationDataset(AbstractImageDataset):
                     gts_k[~temps_ids] = MISSING_DATA_FLAG
                     self.gts[k] = gts_k
 
-    def load_image(self, item):
+    def load_image(self, item: int):
         inputs = super(SegmentationDataset, self).load_image(item)
         actual_shape = inputs["image"].shape
         if self.use_masks:
@@ -132,7 +134,7 @@ class SegmentationDataset(AbstractImageDataset):
 
         return inputs
 
-    def get_mask(self, item):
+    def get_mask(self, item: int):
         filepath = self.gts[item]
         mask = read_image(filepath, cv2.IMREAD_GRAYSCALE)
         if self.auto_resize:
