@@ -11,6 +11,8 @@ from torch import default_generator, randperm
 from torch._utils import _accumulate
 from torch.utils.data import Dataset
 
+from nntools.dataset.abstract_image_dataset import AbstractImageDataset
+
 
 def get_segmentation_class_count(dataset, save=False, load=False):
     sample = dataset[0]
@@ -106,6 +108,10 @@ def check_dataleaks(*datasets: List[Dataset], raise_exception=True):
 
 
 def random_split(dataset, lengths, generator=default_generator):
+    if sum(lengths)==1:
+        lengths = [int(length*len(dataset)) for length in lengths[:-1]]
+        lengths.append(len(dataset)-sum(lengths)) # To prevent rounding error
+        
     if sum(lengths) != len(dataset):
         raise ValueError("Sum of input lengths does not equal the length of the input dataset!")
 
@@ -113,6 +119,9 @@ def random_split(dataset, lengths, generator=default_generator):
     datasets = []
     for offset, length in zip(_accumulate(lengths), lengths):
         d = copy.deepcopy(dataset)
+        if issubclass(d, AbstractImageDataset):
+            # We need to explicit call the attrs post init callback since deepcopy does not call it
+            d.__attrs_post_init__()
         indx = indices[offset - length : offset]
         d.subset(indx)
         datasets.append(d)
