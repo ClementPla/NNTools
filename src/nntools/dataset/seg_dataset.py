@@ -29,7 +29,7 @@ def mask_path_converter(mask_path):
 
 @define
 class SegmentationDataset(AbstractImageDataset):
-    extract_image_id_function: Optional[Callable] = field(default=extract_filename_without_extension)
+    extract_image_id_function: Optional[Callable] = field()
     @extract_image_id_function.default
     def _extract_image_id_function_default(self):
         if self.extract_image_id_function is None:
