@@ -11,7 +11,6 @@ from torch import default_generator, randperm
 from torch._utils import _accumulate
 from torch.utils.data import Dataset
 
-from nntools.dataset.abstract_image_dataset import AbstractImageDataset
 
 
 def get_segmentation_class_count(dataset, save=False, load=False):
@@ -119,9 +118,8 @@ def random_split(dataset, lengths, generator=default_generator):
     datasets = []
     for offset, length in zip(_accumulate(lengths), lengths):
         d = copy.deepcopy(dataset)
-        if issubclass(d, AbstractImageDataset):
-            # We need to explicit call the attrs post init callback since deepcopy does not call it
-            d.__attrs_post_init__()
+        # We need to explicit call the attrs post init callback since deepcopy does not call it
+        d.__attrs_post_init__()
         indx = indices[offset - length : offset]
         d.subset(indx)
         datasets.append(d)
