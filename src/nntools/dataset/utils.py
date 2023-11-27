@@ -120,7 +120,7 @@ def random_split(dataset, lengths, generator=default_generator):
         # We need to explicit call the attrs post init callback since deepcopy does not call it
         d.__attrs_post_init__()
         # We also need to explicitely copy the composer
-        d.composer = dataset.composer
+        d.composer = copy.deepcopy(dataset.composer)
         indx = indices[offset - length : offset]
         d.subset(indx)
         
