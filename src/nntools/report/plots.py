@@ -28,7 +28,10 @@ def build_bar_plot(y, title="", size=(8, 6)):
     return fig
 
 
-def display_confusion_matrix(conf_mats, labels, text_angle=0, plot_size=800, text_size="8pt"):
+def display_confusion_matrix(conf_mats, labels, text_angle=0, 
+                             plot_size=800, text_size="8pt",
+                             xlabel='Predicted', ylabel='Groundtruth',
+                             title="Confusion Matrix"):
     if not isinstance(conf_mats, dict):
         conf_mats = {"Confusion Matrix": conf_mats}
 
@@ -77,11 +80,14 @@ def display_confusion_matrix(conf_mats, labels, text_angle=0, plot_size=800, tex
 
     source = ColumnDataSource(data=source_data)
     p = figure(
-        title="Confusion Matrix", x_axis_location="above", tools="hover,save", y_range=labels[::-1], x_range=labels
+        title=title, 
+        x_axis_location="above", 
+        tools="hover,save", 
+        y_range=labels[::-1], x_range=labels
     )
 
-    p.plot_width = plot_size
-    p.plot_height = p.plot_width
+    p.width = plot_size
+    p.height = plot_size
     rectwidth = 0.9
     p.rect(
         "predicted", "groundtruth", rectwidth, rectwidth, source=source, color="colors", alpha="alphas", line_width=1
@@ -103,14 +109,14 @@ def display_confusion_matrix(conf_mats, labels, text_angle=0, plot_size=800, tex
     p.axis.major_label_standoff = 5
     p.xgrid.visible = False
     p.ygrid.visible = False
-    p.xaxis.axis_label = "Predicted"
-    p.yaxis.axis_label = "Groundtruth"
+    p.xaxis.axis_label = xlabel
+    p.yaxis.axis_label = ylabel
 
     hover = p.select(dict(type=HoverTool))
     hover.tooltips = OrderedDict(
         [
-            ("predicted", "@predicted"),
-            ("groundtruth", "@groundtruth"),
+            (xlabel, "@predicted"),
+            (ylabel, "@groundtruth"),
             ("ratio", "@ratios"),
         ]
     )
