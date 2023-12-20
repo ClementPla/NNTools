@@ -98,10 +98,7 @@ class ClassificationDataset(AbstractImageDataset):
         return count
 
     def remap(self, old_key, new_key):
-        try:
-            self.gt_column[self.gt_column.index(old_key)] = new_key
-        except ValueError:
-            pass
+        self.gt_column[self.gt_column.index(old_key)] = new_key
         super(ClassificationDataset, self).remap(old_key, new_key)
 
     def load_image(self, item):
