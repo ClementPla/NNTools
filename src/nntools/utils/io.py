@@ -1,16 +1,14 @@
-import ntpath
 import os
-from pathlib import Path
 
 import cv2
+import torch
 import yaml
 
 
-def read_image(filepath: Path, flag=None):
-
+def read_image(filepath, flag=None):
     if flag is None:
         flag = cv2.IMREAD_UNCHANGED
-    image = cv2.imread(str(filepath), flag)
+    image = cv2.imread(filepath, flag)
     if image.ndim == 3:
         return image[:, :, ::-1]  # Change from BGR to RGB
     else:
@@ -28,9 +26,29 @@ def save_yaml(yaml_file, filepath):
         yaml.dump(yaml_file, outfile, default_flow_style=False)
 
 
-def path_leaf(path):
-    head, tail = ntpath.split(path)
-    return tail or ntpath.basename(head)
+def path_leaf(filepath: str):
+    """
+    Return the filename (without the extension) from a filepath
+    Args:
+        path (str): /abc/def/test.jpeg
+
+    Returns:
+        str: test
+    """
+    return os.path.splitext(os.path.basename(filepath))[0]
+
+
+def path_folder_leaf(filepath: str):
+    """
+    Return the container folder of the given file (from a filepath)
+
+    Args:
+        filepath (str): /abc/def/test.jpeg
+
+    Returns:
+        str: def
+    """
+    return os.path.dirname(filepath).split("/")[-1]
 
 
 def create_folder(folder_path):
@@ -48,7 +66,6 @@ def get_most_recent_file(dirpath, filtername=None):
 
 
 def jit_load(project_folder, experiment, run_name, run_id, filename=None, filtername="best"):
-    import torch
 
     folder_path = os.path.join(project_folder, experiment, run_name, "trained_model", run_id)
     script_path = os.path.join(folder_path, "model_scripted.pth")

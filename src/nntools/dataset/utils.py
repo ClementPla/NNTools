@@ -11,6 +11,8 @@ from torch import default_generator, randperm
 from torch._utils import _accumulate
 from torch.utils.data import Dataset
 
+from nntools.dataset.constants import supportedExtensions
+
 
 def get_segmentation_class_count(dataset, save=False, load=False):
     sample = dataset[0]
@@ -106,10 +108,10 @@ def check_dataleaks(*datasets: List[Dataset], raise_exception=True):
 
 
 def random_split(dataset, lengths, generator=default_generator):
-    if sum(lengths)==1:
-        lengths = [int(length*len(dataset)) for length in lengths[:-1]]
-        lengths.append(len(dataset)-sum(lengths)) # To prevent rounding error
-        
+    if sum(lengths) == 1:
+        lengths = [int(length * len(dataset)) for length in lengths[:-1]]
+        lengths.append(len(dataset) - sum(lengths))  # To prevent rounding error
+
     if sum(lengths) != len(dataset):
         raise ValueError("Sum of input lengths does not equal the length of the input dataset!")
 
@@ -123,10 +125,22 @@ def random_split(dataset, lengths, generator=default_generator):
         d.composer = copy.deepcopy(dataset.composer)
         indx = indices[offset - length : offset]
         d.subset(indx)
-        
+
         datasets.append(d)
     return tuple(datasets)
 
+
+def list_files_in_folder(folder, recursive=True):
+    files = []
+    if recursive:
+        for dirpath, dirnames, filenames in os.walk(folder):
+            for f in filenames:
+                if os.path.splitext(f)[1] in supportedExtensions:
+                    files.append(os.path.join(dirpath, f))
+    else:
+        files = [f for f in os.listdir(folder) if os.path.splitext(f)[1] in supportedExtensions]
+
+    return files
 
 class ConcatDataset(torch.utils.data.ConcatDataset):
     def __init__(self, *args, **kwargs):

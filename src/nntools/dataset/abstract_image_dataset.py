@@ -16,14 +16,11 @@ from torch.utils.data import Dataset
 from nntools import MISSING_DATA_FLAG, NN_FILL_UPSAMPLE
 from nntools.dataset.image_tools import pad, resize
 from nntools.dataset.utils import convert_dict_to_plottable
-from nntools.utils.io import path_leaf, read_image
+from nntools.utils.io import read_image
 from nntools.utils.misc import identity, to_iterable
 from nntools.utils.plotting import plot_images
 
 from .tools import Composition
-
-supportedExtensions = {".jpg", ".jpeg", ".png", ".tiff", ".tif", ".jp2", ".exr", ".pbm", ".pgm", ".ppm", ".pxm", ".pnm"}
-supportedExtensions.update({ext.upper() for ext in supportedExtensions})
 
 plt.rcParams["image.cmap"] = "gray"
 
