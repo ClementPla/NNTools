@@ -109,11 +109,11 @@ class AbstractImageDataset(Dataset, ABC):
 
     @property
     def filenames(self):
-        return {k: [path_leaf(f) for f in v] for k, v in self.img_filepath.items()}
+        return {k: [f.name for f in v] for k, v in self.img_filepath.items()}
 
     @property
     def gt_filenames(self):
-        return {k: [path_leaf(f) for f in v] for k, v in self.gts.items()}
+        return {k: [f.name for f in v] for k, v in self.gts.items()}
 
     @property
     def composer(self):
@@ -180,12 +180,11 @@ class AbstractImageDataset(Dataset, ABC):
 
         shared_arrays = dict()
         nb_samples = self.real_length
-        self.shms = []  
+        self.shms = []
         # Keep reference to all shm avoid the call from the garbage collector which pointer to buffer error
         if self.cache_with_shared_array:
             try:
-                shm = shared_memory.SharedMemory(name=f"nntools_{self.id}_is_item_cached", 
-                                                 size=nb_samples, create=True)
+                shm = shared_memory.SharedMemory(name=f"nntools_{self.id}_is_item_cached", size=nb_samples, create=True)
                 self._is_first_process = True
             except FileExistsError:
                 shm = shared_memory.SharedMemory(
@@ -194,7 +193,6 @@ class AbstractImageDataset(Dataset, ABC):
                 self._is_first_process = False
 
             self.shms.append(shm)
-
             self._cache_items = np.frombuffer(buffer=shm.buf, dtype=bool)
             self._cache_items[:] = 0
 
