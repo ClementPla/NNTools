@@ -1,5 +1,4 @@
-import glob
-import os
+from pathlib import Path
 from typing import List, Optional, Union
 
 import numpy as np
@@ -24,18 +23,18 @@ class ClassificationDataset(AbstractImageDataset):
     gt_column: Union[str, List[str]] = field(default="label", converter=to_iterable)
     
     def list_files(self, recursive):
-        for extension in supportedExtensions:
-            prefix = "**/*." if recursive else "*."
-            for path in self.img_root:
-                self.img_filepath["image"].extend(glob.glob(path + prefix + extension, recursive=recursive))
-
+        
+        prefix = "**/*" if recursive else "*"
+        for path in self.img_root:
+            filepaths = [p.resolve() for p in Path(path).glob(prefix) if p.suffix in supportedExtensions]
+            self.img_filepath["image"].extend(filepaths)
+       
         self.img_filepath["image"] = np.asarray(self.img_filepath["image"])
 
         if self.label_per_folder:
-            self.gts["label"] = []
-            for f in self.img_filepath["image"]:
-                self.gts["label"].append(os.path.basename(os.path.dirname(f)))
-        
+            # Get the name of the containing folder
+            self.gts["label"] = [p.parts[-2] for p in self.img_filepath['image']]
+            
         elif self.label_dataframe is not None:
             self.match_df_with_images(self.label_dataframe)
         
@@ -76,8 +75,7 @@ class ClassificationDataset(AbstractImageDataset):
         return len(unique_labels)
         
     def match_df_with_images(self, df: pandas.DataFrame):
-        img_names = [os.path.basename(p) for p in self.img_filepath["image"]]
-        img_names = [self.extract_image_id_function(_) for _ in img_names]
+        img_names = [self.extract_image_id_function(p.stem) for p in self.img_filepath["image"]]
         argsort = np.argsort(img_names)
 
         self.img_filepath["image"] = self.img_filepath["image"][argsort]

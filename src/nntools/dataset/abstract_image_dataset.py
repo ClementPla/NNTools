@@ -22,8 +22,8 @@ from nntools.utils.plotting import plot_images
 
 from .tools import Composition
 
-supportedExtensions = ["jpg", "jpeg", "png", "tiff", "tif", "jp2", "exr", "pbm", "pgm", "ppm", "pxm", "pnm"]
-supportedExtensions = supportedExtensions + [ext.upper() for ext in supportedExtensions]
+supportedExtensions = {".jpg", ".jpeg", ".png", ".tiff", ".tif", ".jp2", ".exr", ".pbm", ".pgm", ".ppm", ".pxm", ".pnm"}
+supportedExtensions.update({ext.upper() for ext in supportedExtensions})
 
 plt.rcParams["image.cmap"] = "gray"
 
@@ -88,9 +88,6 @@ class AbstractImageDataset(Dataset, ABC):
     _precache_composer: Optional[Composition] = field(default=None)
     _composer = None
 
-    def __attrs_pre_init__(self):
-        super().__init__()
-
     def __attrs_post_init__(self):
         self.ignore_keys = []
         self.img_filepath = {"image": []}
@@ -117,7 +114,7 @@ class AbstractImageDataset(Dataset, ABC):
     @property
     def gt_filenames(self):
         return {k: [path_leaf(f) for f in v] for k, v in self.gts.items()}
-    
+
     @property
     def composer(self):
         return self._composer
@@ -174,7 +171,8 @@ class AbstractImageDataset(Dataset, ABC):
             return
         if not self.auto_resize and not self.auto_pad:
             logging.warning(
-                "You are using a cache with auto_resize and auto_pad set to False. Make sure all your images are the same size"
+                "You are using a cache with auto_resize and auto_pad set to False.\
+                    Make sure all your images are the same size"
             )
 
         arrays = self.load_image(0)  # Taking the first element
@@ -182,10 +180,12 @@ class AbstractImageDataset(Dataset, ABC):
 
         shared_arrays = dict()
         nb_samples = self.real_length
-        self.shms = []  # Keep reference to all shm avoid the call from the garbage collector which pointer to buffer error
+        self.shms = []  
+        # Keep reference to all shm avoid the call from the garbage collector which pointer to buffer error
         if self.cache_with_shared_array:
             try:
-                shm = shared_memory.SharedMemory(name=f"nntools_{self.id}_is_item_cached", size=nb_samples, create=True)
+                shm = shared_memory.SharedMemory(name=f"nntools_{self.id}_is_item_cached", 
+                                                 size=nb_samples, create=True)
                 self._is_first_process = True
             except FileExistsError:
                 shm = shared_memory.SharedMemory(
@@ -270,8 +270,6 @@ class AbstractImageDataset(Dataset, ABC):
             return [os.path.basename(f) for f in filepaths]
         else:
             return os.path.basename(filepaths)
-
-    
 
     def get_class_count(self, load: bool = True, save: bool = True):
         pass

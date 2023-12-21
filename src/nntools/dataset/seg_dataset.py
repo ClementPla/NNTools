@@ -1,5 +1,5 @@
-import glob
 import logging
+from pathlib import Path
 from typing import Callable, Optional, Union
 
 import cv2
@@ -10,7 +10,7 @@ from nntools import MISSING_DATA_FLAG, NN_FILL_DOWNSAMPLE, NN_FILL_UPSAMPLE
 from nntools.dataset.abstract_image_dataset import AbstractImageDataset, supportedExtensions
 from nntools.dataset.image_tools import resize
 from nntools.dataset.utils import get_segmentation_class_count
-from nntools.utils.io import path_leaf, read_image
+from nntools.utils.io import read_image
 from nntools.utils.misc import to_iterable
 
 
@@ -47,29 +47,30 @@ class SegmentationDataset(AbstractImageDataset):
     def list_files(self, recursive):
         if self.extract_image_id_function is None:
             self.extract_image_id_function = extract_filename_without_extension
-            
-        for extension in supportedExtensions:
-            prefix = "**/*." if recursive else "*."
-            for path in self.img_root:
-                self.img_filepath["image"].extend(glob.glob(path + prefix + extension, recursive=recursive))
-            if self.use_masks:
-                for mask_label, paths in self.mask_root.items():
-                    for path in paths:
-                        if mask_label not in self.gts:
-                            self.gts[mask_label] = []
-                        self.gts[mask_label].extend(glob.glob(path + prefix + extension, recursive=recursive))
+        
+        prefix = "**/*" if recursive else "*"
+        for path in self.img_root:
+            filepaths = [p.resolve() for p in Path(path).glob(prefix) if p.suffix in supportedExtensions]
+            self.img_filepath["image"].extend(filepaths)
+        if self.use_masks:
+            for mask_label, paths in self.mask_root.items():
+                for path in paths:
+                    if mask_label not in self.gts:
+                        self.gts[mask_label] = []
+                    filepaths = [p.resolve() for p in Path(path).glob(prefix) if p.suffix in supportedExtensions]
+                    self.gts[mask_label].extend(filepaths)
 
         if self.use_masks:
             gts_ids = {}
             for mask_key in self.mask_root.keys():
                 self.gts[mask_key] = np.asarray(self.gts[mask_key])
-                gts_ids[mask_key] = [self.extract_image_id_function(path_leaf(path)) for path in self.gts[mask_key]]
+                gts_ids[mask_key] = [self.extract_image_id_function(path.stem) for path in self.gts[mask_key]]
                 argsort_ids = np.argsort(gts_ids[mask_key])
                 gts_ids[mask_key] = np.asarray(gts_ids[mask_key])[argsort_ids]
                 self.gts[mask_key] = self.gts[mask_key][argsort_ids]
 
         self.img_filepath["image"] = np.asarray(self.img_filepath["image"])
-        img_ids = np.asarray([self.extract_image_id_function(path_leaf(path)) for path in self.img_filepath["image"]])
+        img_ids = np.asarray([self.extract_image_id_function(path.stem) for path in self.img_filepath["image"]])
         argsort_ids = np.argsort(img_ids)
         img_ids = img_ids[argsort_ids]
         self.img_filepath["image"] = self.img_filepath["image"][argsort_ids]
@@ -83,7 +84,7 @@ class SegmentationDataset(AbstractImageDataset):
                     "Mismatch between the size of the different input folders (longer %i, smaller %i)"
                     % (max(list_lengths), min(list_lengths))
                 )
-                logging.debug(f"List lengths: {list(zip(list(gts_ids.keys())+['image'], list_lengths))}")
+                logging.debug(f"List lengths: {list(zip([*list(gts_ids.keys()), 'image'], list_lengths))}")
 
             list_common_file = set(img_ids)
             for mask_ids in gts_ids.values():

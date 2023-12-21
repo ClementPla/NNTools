@@ -1,5 +1,5 @@
-import glob
 import logging
+from pathlib import Path
 from typing import Literal
 
 import numpy as np
@@ -7,7 +7,6 @@ from attrs import define
 
 from nntools import MISSING_DATA_FLAG, NN_FILL_DOWNSAMPLE, NN_FILL_UPSAMPLE
 from nntools.dataset.abstract_image_dataset import AbstractImageDataset, supportedExtensions
-from nntools.utils.io import path_leaf
 from nntools.utils.misc import to_iterable
 
 
@@ -19,20 +18,22 @@ class MultiImageDataset(AbstractImageDataset):
         if not isinstance(self.img_root, dict):
             img_root = {"image": to_iterable(self.img_root)}
         else:
-            img_root = self.img_root
-
+            img_root = {}
+            for k, v in self.img_root.items():
+                img_root[k] = to_iterable(v)
+                
         self.img_filepath = {k: [] for k in img_root.keys()}
 
-        for extension in supportedExtensions:
-            prefix = "**/*." if recursive else "*."
-            for root_label, paths in img_root.items():
-                for path in paths:
-                    self.img_filepath[root_label].extend(glob.glob(path + prefix + extension, recursive=recursive))
+        prefix = "**/*" if recursive else "*"
+        for root_label, paths in img_root.items():
+            for path in paths:
+                filepaths = [p.resolve() for p in Path(path).glob(prefix) if p.suffix in supportedExtensions]
+                self.img_filepath[root_label].extend(filepaths)
 
         imgs_ids = {}
         for k, filepaths in self.img_filepath.items():
             self.img_filepath[k] = np.asarray(filepaths)
-            imgs_ids[k] = np.asarray([self.extract_image_id_function(path_leaf(path)) for path in self.img_filepath[k]])
+            imgs_ids[k] = np.asarray([self.extract_image_id_function(path.stem) for path in self.img_filepath[k]])
             argsort_ids = np.argsort(imgs_ids[k])
             imgs_ids[k] = imgs_ids[k][argsort_ids]
             self.img_filepath[k] = self.img_filepath[k][argsort_ids]
@@ -74,6 +75,6 @@ class MultiImageDataset(AbstractImageDataset):
             return max([len(filepaths) for filepaths in self.img_filepath.values()])
 
 
-@define
+@define(slots=False)
 class ImageDataset(MultiImageDataset):
     pass
