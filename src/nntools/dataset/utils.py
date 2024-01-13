@@ -138,7 +138,7 @@ def list_files_in_folder(folder, recursive=True):
                 if os.path.splitext(f)[1] in supportedExtensions:
                     files.append(os.path.join(dirpath, f))
     else:
-        files = [f for f in os.listdir(folder) if os.path.splitext(f)[1] in supportedExtensions]
+        files = [os.path.join(folder, f) for f in os.listdir(folder) if os.path.splitext(f)[1] in supportedExtensions]
 
     return files
 
