@@ -34,7 +34,6 @@ class ClassificationDataset(AbstractImageDataset):
         if self.label_per_folder:
             # Get the name of the containing folder
             self.gts["label"] = [path_folder_leaf(p) for p in self.img_filepath["image"]]
-
         elif self.label_dataframe is not None:
             self.match_df_with_images(self.label_dataframe)
 
@@ -76,8 +75,10 @@ class ClassificationDataset(AbstractImageDataset):
 
     def match_df_with_images(self, df: pandas.DataFrame):
         img_names = [self.extract_image_id_function(path_leaf(p)) for p in self.img_filepath["image"]]
+        in_csv = np.isin(img_names, df.apply(lambda x: path_leaf(x[self.file_column]), axis=1))
+        self.img_filepath["image"] = self.img_filepath["image"][in_csv]
+        img_names = np.asarray(img_names)[in_csv]
         argsort = np.argsort(img_names)
-
         self.img_filepath["image"] = self.img_filepath["image"][argsort]
         df.sort_values(self.file_column, inplace=True)
         for col in self.gt_column:
