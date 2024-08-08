@@ -99,6 +99,12 @@ class AbstractImageDataset(Dataset, ABC):
         self.list_files(self.recursive_loading)
         self.ignore_keys = []
         self.viewer = Viewer(self)
+        self.create_cache()
+
+    def __len__(self):
+        return int(self.multiplicative_size_factor * self.real_length)
+
+    def create_cache(self):
         if self.use_cache:
             match self.cache_option:
                 case NNOpt.CACHE_DISK:
@@ -107,9 +113,6 @@ class AbstractImageDataset(Dataset, ABC):
                     if not self.id:
                         raise ValueError("You must provide a dataset's id for the shared memory cache")
                     self.cache = MemoryCache(self)
-
-    def __len__(self):
-        return int(self.multiplicative_size_factor * self.real_length)
 
     @property
     def real_length(self):
@@ -130,6 +133,10 @@ class AbstractImageDataset(Dataset, ABC):
     @composer.setter
     def composer(self, comp: Composition):
         self._composer = comp
+
+    def init_cache(self):
+        if self.use_cache:
+            self.cache.init_cache()
 
     @abstractmethod
     def list_files(self, recursive):
@@ -210,7 +217,6 @@ class AbstractImageDataset(Dataset, ABC):
             raise StopIteration
         if index >= self.real_length:
             index = int(index % self.real_length)
-
         inputs = self.load_array(index)
 
         if self.composer:

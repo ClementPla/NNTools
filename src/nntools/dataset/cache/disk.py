@@ -49,23 +49,19 @@ class DiskCache(AbstractCache):
 
         self.is_item_cached[:] = False
         for k, v in self.cache_folders.items():
-            v.cache_folder.mkdir(parents=True, exist_ok=True)
-            logging.info(f"Creating cache folder {self.root_cache_folder}.")
+            if not v.cache_folder.exists():
+                v.cache_folder.mkdir(parents=True, exist_ok=False)
+                logging.info(f"Creating cache folder {self.root_cache_folder}.")
 
-        self.needs_filling = self.check_if_filling_is_needed()
+        self.check_if_filling_is_needed()
         self.is_initialized = True
-        if not self.needs_filling:
-            self.is_item_cached[:] = True
 
     def check_if_filling_is_needed(self):
-        needed = []
-        for k, v in self.cache_folders.items():
-            v = v.cache_folder
-            needed.append(not v.exists() or not (len(list(v.iterdir())) == self.nb_samples))
-        return any(needed)
+        for i in range(self.nb_samples):
+            self.is_item_cached[i] = self.check_cache(i)
 
     def __getitem__(self, item):
-        if self.is_item_cached[item]:
+        if self.is_item_cached[item] or self.check_cache(item):
             return self.get_cached_item(item)
         else:
             return self.cache_item(item)

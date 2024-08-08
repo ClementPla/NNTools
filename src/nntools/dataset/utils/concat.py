@@ -88,7 +88,7 @@ class ConcatDataset(torch.utils.data.ConcatDataset):
 
     def init_cache(self):
         for d in self.datasets:
-            d.cache.init_cache()
+            d.init_cache()
 
     def __setattr__(self, key, value):
         if key == "post_init":

@@ -1,6 +1,8 @@
 import copy
+
 import numpy as np
 from torch import default_generator, randperm
+
 from nntools.dataset.viewer import Viewer
 
 
@@ -16,21 +18,15 @@ def random_split(dataset, lengths, generator=default_generator):
     datasets = []
     for split, (offset, length) in enumerate(zip(np.cumsum(lengths), lengths)):
         d = copy.deepcopy(dataset)
-        # We need to explicit call the attrs post init callback since deepcopy does not call it
-        # d.__attrs_post_init__()
-        # We also need to explicitely copy the composer
+
         d.img_filepath = copy.deepcopy(dataset.img_filepath)
         d.gts = copy.deepcopy(dataset.gts)
         d.composer = copy.deepcopy(dataset.composer)
         d.ignore_keys = copy.deepcopy(dataset.ignore_keys)
-        d.viewer = Viewer(d)
         indx = indices[offset - length : offset]
         d.subset(indx)
         d.id = d.id + f"_split_{split}"
-        if dataset.use_cache:
-            d.cache = copy.deepcopy(dataset.cache)
-            d.cache.d = d
-
+        d.create_cache()
         datasets.append(d)
     return tuple(datasets)
 
@@ -46,9 +42,6 @@ def split(dataset, indices):
         d.viewer = Viewer(d)
         d.subset(indx)
         d.id = d.id + f"_split_{split}"
-        if dataset.use_cache:
-            d.cache = copy.deepcopy(dataset.cache)
-            d.cache.d = d
-
+        d.create_cache()
         datasets.append(d)
     return tuple(datasets)
