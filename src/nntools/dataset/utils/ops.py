@@ -18,7 +18,7 @@ def random_split(dataset, lengths, generator=default_generator):
     datasets = []
     for split, (offset, length) in enumerate(zip(np.cumsum(lengths), lengths)):
         d = copy.deepcopy(dataset)
-
+        d.viewer = Viewer(d)
         d.img_filepath = copy.deepcopy(dataset.img_filepath)
         d.gts = copy.deepcopy(dataset.gts)
         d.composer = copy.deepcopy(dataset.composer)
