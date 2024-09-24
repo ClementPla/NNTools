@@ -1,24 +1,11 @@
 import logging
 import multiprocessing as mp
 from multiprocessing import shared_memory
-import os
 
 import numpy as np
 
 from nntools.dataset.cache.abstract_cache import AbstractCache
-
-
-def _get_rank() -> int:
-    # Borrowed from pytorch_lightning
-    # https://pytorch-lightning.readthedocs.io/en/1.7.7/_modules/pytorch_lightning/utilities/rank_zero.html#rank_zero_warn
-    # SLURM_PROCID can be set even if SLURM is not managing the multiprocessing,
-    # therefore LOCAL_RANK needs to be checked first
-    rank_keys = ("RANK", "LOCAL_RANK", "SLURM_PROCID", "JSM_NAMESPACE_RANK")
-    for key in rank_keys:
-        rank = os.environ.get(key)
-        if rank is not None:
-            return int(rank)
-    return 0
+from nntools.utils.mp import _get_rank
 
 
 class MemoryCache(AbstractCache):
@@ -115,3 +102,9 @@ class MemoryCache(AbstractCache):
     def remap(self, old_key: str, new_key: str):
         if self.cache_arrays is not None:
             self.cache_arrays[new_key] = self.cache_arrays.pop(old_key)
+
+
+class DuplicatedMemoryCache(MemoryCache):
+    def __init__(self, dataset):
+        super().__init__(dataset)
+        self.cache_with_shared_array = False

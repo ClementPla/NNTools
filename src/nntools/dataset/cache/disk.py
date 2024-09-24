@@ -7,6 +7,7 @@ import numpy as np
 from nntools.dataset.cache.abstract_cache import AbstractCache
 from nntools.utils.io import read_image, save_image
 from nntools.utils.misc import can_be_stored_as_image, convert_to_image, is_image, revert_image_to_original_dtype
+from nntools.utils.mp import rank_zero_only
 
 
 class Metadata:
@@ -17,7 +18,7 @@ class Metadata:
 
 
 class DiskCache(AbstractCache):
-    def __init__(self, dataset, cache_dir: Path = "") -> None:
+    def __init__(self, dataset) -> None:
         super().__init__(dataset)
 
         self.cache_folders = {}
@@ -25,7 +26,6 @@ class DiskCache(AbstractCache):
         self.shms = []
         self.root_cache_folder = None
         self.needs_filling = False
-        self.cache_dir = cache_dir
 
     def init_cache(self) -> None:
         if self.is_initialized:
@@ -48,17 +48,24 @@ class DiskCache(AbstractCache):
                 self.cache_folders[k] = metadata
 
         self.is_item_cached[:] = False
-        for k, v in self.cache_folders.items():
-            if not v.cache_folder.exists():
-                v.cache_folder.mkdir(parents=True, exist_ok=False)
-                logging.info(f"Creating cache folder {self.root_cache_folder}.")
-
+        self.create_cache_folder()
         self.check_if_filling_is_needed()
         self.is_initialized = True
 
     def check_if_filling_is_needed(self):
         for i in range(self.nb_samples):
             self.is_item_cached[i] = self.check_cache(i)
+
+    @rank_zero_only
+    def create_cache_folder(self):
+        for k, v in self.cache_folders.items():
+            if not v.cache_folder.exists():
+                v.cache_folder.mkdir(parents=True, exist_ok=False)
+                logging.info(f"Creating cache folder {self.root_cache_folder} for key {k} from dataset {self.d.id}")
+
+    @property
+    def cache_dir(self):
+        return self.d.cache_dir
 
     def __getitem__(self, item):
         if self.is_item_cached[item] or self.check_cache(item):

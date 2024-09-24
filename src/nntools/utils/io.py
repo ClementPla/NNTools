@@ -24,7 +24,8 @@ def save_image(image, filepath, invert_channels=True):
         image = image[:, :, ::-1]
     success = cv2.imwrite(filepath, image)
     if not success:
-        raise ValueError(f"Could not save image at {filepath}")
+        print(image.shape)
+        raise ValueError(f"Could not save image at {filepath}, cv2 returned  {success}")
 
 
 def load_yaml(yaml_path):

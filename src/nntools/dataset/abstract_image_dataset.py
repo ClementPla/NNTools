@@ -10,7 +10,7 @@ from attrs import define, field
 from torch.utils.data import Dataset
 
 from nntools.dataset.cache.disk import DiskCache
-from nntools.dataset.cache.memory import MemoryCache
+from nntools.dataset.cache.memory import DuplicatedMemoryCache, MemoryCache
 from nntools.dataset.functional.geometry import pad, resize
 from nntools.dataset.viewer import Viewer
 from nntools.utils.const import NNOpt
@@ -45,7 +45,9 @@ class AbstractImageDataset(Dataset, ABC):
     extract_image_id_function: Callable[[str], str] = identity
     recursive_loading: bool = True
     use_cache: bool = False
-    cache_option: Literal[NNOpt.CACHE_DISK, NNOpt.CACHE_MEMORY] = field(default=NNOpt.CACHE_DISK, converter=NNOpt)
+    cache_option: Literal[NNOpt.CACHE_DISK, NNOpt.CACHE_MEMORY, NNOpt.CACHE_DUPLICATED_MEMORY] = field(
+        default=NNOpt.CACHE_DISK, converter=NNOpt
+    )
 
     @cache_option.validator
     def _cache_option_validator(self, attribute, value):
@@ -108,11 +110,13 @@ class AbstractImageDataset(Dataset, ABC):
         if self.use_cache:
             match self.cache_option:
                 case NNOpt.CACHE_DISK:
-                    self.cache = DiskCache(self, self.cache_dir)
+                    self.cache = DiskCache(self)
                 case NNOpt.CACHE_MEMORY:
                     if not self.id:
                         raise ValueError("You must provide a dataset's id for the shared memory cache")
                     self.cache = MemoryCache(self)
+                case NNOpt.CACHE_DUPLICATED_MEMORY:
+                    self.cache = DuplicatedMemoryCache(self)
 
     @property
     def real_length(self):
