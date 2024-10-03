@@ -105,6 +105,8 @@ class AbstractImageDataset(Dataset, ABC):
         self.ignore_keys = []
         self.viewer = Viewer(self)
         self.create_cache()
+        if not isinstance(self.callbacks, list):
+            self.callbacks = [self.callbacks]
 
     def __len__(self):
         return int(self.multiplicative_size_factor * self.real_length)
