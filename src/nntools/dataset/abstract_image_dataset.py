@@ -95,6 +95,8 @@ class AbstractImageDataset(Dataset, ABC):
     _composer = Composition()
     on_disk_keys: ClassVar[Set[str]] = {"image"}
 
+    callbacks: List[Callable] = field(default_factory=list)
+
     def __attrs_post_init__(self):
         self.ignore_keys = []
         self.img_filepath = {"image": []}
@@ -256,7 +258,23 @@ class AbstractImageDataset(Dataset, ABC):
             else:
                 outputs["tag"] = self.tag
         outputs = self.filter_keys(outputs)
+
+        try:
+            outputs = self.handle_callbacks(outputs)
+        except Exception as e:
+            if NNToolSettings.config("dataset.on_error") == NNOpt.RAISE_ON_ERROR:
+                raise e(f"Error while loading item {index}: {e}")
+            elif NNToolSettings.config("dataset.on_error") == NNOpt.SKIP_ON_ERROR:
+                print(f"Error while loading item {index}: {e}")
+                return self.__getitem__(index + 1)
+            else:
+                raise ValueError(f"Unknown error handling option {NNToolSettings.config('dataset.on_error')}")
         return outputs
+
+    def handle_callbacks(self, data):
+        for callback in self.callbacks:
+            data = callback(data)
+        return data
 
     def filter_keys(self, datadict: Dict[str, np.ndarray]):
         list_keys = list(datadict.keys())
