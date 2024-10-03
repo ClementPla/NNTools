@@ -12,3 +12,5 @@ class NNOpt(Enum):
     CACHE_DISK = "disk"
     CACHE_MEMORY = "memory"
     CACHE_DUPLICATED_MEMORY = "duplicated_memory"
+    SKIP_ON_ERROR = "skip"
+    RAISE_ON_ERROR = "raise"

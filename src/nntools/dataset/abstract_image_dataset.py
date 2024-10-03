@@ -16,6 +16,7 @@ from nntools.dataset.viewer import Viewer
 from nntools.utils.const import NNOpt
 from nntools.utils.io import read_image
 from nntools.utils.misc import identity, to_iterable
+from nntools.utils.settings import NNToolSettings
 
 from .composer import Composition
 
@@ -221,13 +222,30 @@ class AbstractImageDataset(Dataset, ABC):
             raise StopIteration
         if index >= self.real_length:
             index = int(index % self.real_length)
-        inputs = self.load_array(index)
+        try:
+            inputs = self.load_array(index)
+        except Exception as e:
+            if NNToolSettings.config("dataset.on_error") == NNOpt.RAISE_ON_ERROR:
+                raise e(f"Error while loading item {index}: {e}")
+            elif NNToolSettings.config("dataset.on_error") == NNOpt.SKIP_ON_ERROR:
+                print(f"Error while loading item {index}: {e}")
+                return self.__getitem__(index + 1)
+            else:
+                raise ValueError(f"Unknown error handling option {NNToolSettings.config('dataset.on_error')}")
 
-        if self.composer:
-            outputs = self.composer.postcache_call(**inputs)
-        else:
-            outputs = inputs
-
+        try:
+            if self.composer:
+                outputs = self.composer.postcache_call(**inputs)
+            else:
+                outputs = inputs
+        except Exception as e:
+            if NNToolSettings.config("dataset.on_error") == NNOpt.RAISE_ON_ERROR:
+                raise e(f"Error while loading item {index}: {e}")
+            elif NNToolSettings.config("dataset.on_error") == NNOpt.SKIP_ON_ERROR:
+                print(f"Error while loading item {index}: {e}")
+                return self.__getitem__(index + 1)
+            else:
+                raise ValueError(f"Unknown error handling option {NNToolSettings.config('dataset.on_error')}")
         if self.return_indices or return_indices:
             outputs["index"] = index
 
