@@ -19,7 +19,7 @@ class ClassificationDataset(AbstractImageDataset):
     @label_per_folder.default
     def _label_per_folder_default(self):
         return self.label_filepath is None and self.label_dataframe is None
-    
+
     file_column: str = "image"
     gt_column: Union[str, List[str]] = field(default="label", converter=to_iterable)
 
@@ -32,7 +32,9 @@ class ClassificationDataset(AbstractImageDataset):
 
         if self.label_per_folder:
             # Get the name of the containing folder
-            self.gts["label"] = [path_folder_leaf(p) for p in self.img_filepath["image"]]
+            self.gts["label"] = [
+                path_folder_leaf(p) for p in self.img_filepath["image"]
+            ]
         elif self.label_dataframe is not None:
             self.match_df_with_images(self.label_dataframe)
 
@@ -73,26 +75,29 @@ class ClassificationDataset(AbstractImageDataset):
         return len(unique_labels)
 
     def match_df_with_images(self, df: pandas.DataFrame):
-        img_names = np.array([self.extract_image_id_function(path_leaf(p)) for p in self.img_filepath["image"]])
+        img_names = np.array(
+            [
+                self.extract_image_id_function(path_leaf(p))
+                for p in self.img_filepath["image"]
+            ]
+        )
         df_img = np.array(df[self.file_column].map(lambda x: path_leaf(x)))
-        
-        
+
         if len(df_img) != len(img_names):
             img_argsort = np.argsort(img_names)
             df_argsort = np.argsort(df_img)
-                        
+
             common = np.intersect1d(img_names, df_img)
-            common = np.sort(common) 
+            common = np.sort(common)
             pos_img = np.searchsorted(img_names[img_argsort], common)
             pos_df = np.searchsorted(df_img[df_argsort], common)
-            
+
             img_indices = img_argsort[pos_img]
             df_indices = df_argsort[pos_df]
-            
+
             img_names = img_names[img_indices]
             self.img_filepath["image"] = self.img_filepath["image"][img_indices]
-            df = df.iloc[df_indices]
-            
+            df = df.iloc[df_indices].copy()
 
         argsort = np.argsort(img_names)
         self.img_filepath["image"] = self.img_filepath["image"][argsort]
@@ -105,7 +110,9 @@ class ClassificationDataset(AbstractImageDataset):
         # Todo Add loading and saving of class counts
         # Todo Add support for more than one target class
         if len(self.gt_column) > 1:
-            raise NotImplementedError("Getting the class count for more than one target is not implemented")
+            raise NotImplementedError(
+                "Getting the class count for more than one target is not implemented"
+            )
 
         col = self.gt_column[0]
         unique, count = np.unique(self.gts[col], return_counts=True)
@@ -135,6 +142,6 @@ class ClassificationDataset(AbstractImageDataset):
             self.img_filepath["image"] = self.img_filepath["image"][kept_indices]
             for k in self.gts.keys():
                 self.gts[k] = self.gts[k][kept_indices]
-        
+
         if self.use_cache:
             self.cache.d = self

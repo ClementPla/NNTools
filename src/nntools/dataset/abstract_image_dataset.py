@@ -95,7 +95,7 @@ class AbstractImageDataset(Dataset, ABC):
     _composer = Composition()
     on_disk_keys: ClassVar[Set[str]] = {"image"}
 
-    callbacks: List[Callable] = field(default_factory=list)
+    callbacks: List[Callable] = field(factory=list)
 
     def __attrs_post_init__(self):
         self.ignore_keys = []
@@ -275,7 +275,9 @@ class AbstractImageDataset(Dataset, ABC):
 
     def handle_callbacks(self, data):
         for callback in self.callbacks:
-            data = callback(data)
+            return_from_callbacks = callback(data)
+            if return_from_callbacks is not None:
+                data = return_from_callbacks
         return data
 
     def filter_keys(self, datadict: Dict[str, np.ndarray]):
