@@ -14,7 +14,7 @@ class NNToolSettings:
 
     @staticmethod
     def set(name, value):
-        if name in NNToolSettings.__setters:
+        if name in NNToolSettings.__conf:
             NNToolSettings.__conf[name] = value
         else:
             raise NameError("Name not accepted in set() method")

@@ -229,10 +229,10 @@ class AbstractImageDataset(Dataset, ABC):
         try:
             inputs = self.load_array(index)
         except Exception as e:
+            print(f"Error while loading item {index}: {e}")
             if NNToolSettings.config("dataset.on_error") == NNOpt.RAISE_ON_ERROR:
-                raise e(f"Error while loading item {index}: {e}")
+                raise e
             elif NNToolSettings.config("dataset.on_error") == NNOpt.SKIP_ON_ERROR:
-                print(f"Error while loading item {index}: {e}")
                 return self.__getitem__(index + 1)
             else:
                 raise ValueError(f"Unknown error handling option {NNToolSettings.config('dataset.on_error')}")
@@ -243,10 +243,10 @@ class AbstractImageDataset(Dataset, ABC):
             else:
                 outputs = inputs
         except Exception as e:
+            print(f"Error while calling composer on item {index}: {e}") 
             if NNToolSettings.config("dataset.on_error") == NNOpt.RAISE_ON_ERROR:
-                raise e(f"Error while loading item {index}: {e}")
+                raise e
             elif NNToolSettings.config("dataset.on_error") == NNOpt.SKIP_ON_ERROR:
-                print(f"Error while loading item {index}: {e}")
                 return self.__getitem__(index + 1)
             else:
                 raise ValueError(f"Unknown error handling option {NNToolSettings.config('dataset.on_error')}")
