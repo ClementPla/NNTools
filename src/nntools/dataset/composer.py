@@ -1,4 +1,5 @@
 import functools
+import hashlib
 import inspect
 
 
@@ -32,7 +33,39 @@ class Composition:
 
     @property
     def id(self):
-        return self._id
+        # An explicitly assigned id always wins.
+        if self._id:
+            return self._id
+        return self._compute_id()
+
+    @id.setter
+    def id(self, value):
+        self._id = value
+
+    def _compute_id(self):
+        """Derive a stable identifier from the ops that influence cached data.
+
+        Only the ops *before* the first CacheBullet affect the pre-cache
+        (i.e. the data that gets written to disk/memory), so the id is built
+        from those. This makes the disk cache invalidate correctly when the
+        pre-cache pipeline changes, instead of silently reusing stale files.
+        """
+        parts = []
+        for op in self.ops:
+            f = op["f"]
+            if isinstance(f, CacheBullet):
+                break
+            if not op["active"]:
+                continue
+            name = (
+                getattr(f, "__qualname__", None)
+                or getattr(f, "__name__", None)
+                or f.__class__.__name__
+            )
+            parts.append(name)
+        if not parts:
+            return ""
+        return hashlib.sha1("|".join(parts).encode()).hexdigest()[:16]
 
     def add(self, *funcs):
         for f in funcs:
@@ -106,7 +139,13 @@ class Composition:
     def __str__(self):
         output = ""
         for i, o in enumerate(self.ops):
-            output += "%i_" % i + str(o["f"]) + " STATUS: " + ("Active" if o["active"] else "Inactive") + " \n"
+            output += (
+                "%i_" % i
+                + str(o["f"])
+                + " STATUS: "
+                + ("Active" if o["active"] else "Inactive")
+                + " \n"
+            )
         return output
 
     def __repr__(self):

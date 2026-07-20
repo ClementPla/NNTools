@@ -33,7 +33,9 @@ class ConcatDataset(torch.utils.data.ConcatDataset):
     def plot(self, idx, **kwargs):
         if idx < 0:
             if -idx > len(self):
-                raise ValueError("absolute value of index should not exceed dataset length")
+                raise ValueError(
+                    "absolute value of index should not exceed dataset length"
+                )
             idx = len(self) + idx
         dataset_idx = bisect.bisect_right(self.cumulative_sizes, idx)
         if dataset_idx == 0:
@@ -58,7 +60,17 @@ class ConcatDataset(torch.utils.data.ConcatDataset):
         n_classes: Optional[int] = None,
     ):
         return self.viewer.get_mosaic(
-            n_items, shuffle, indexes, resolution, show, fig_size, save, add_labels, n_row, n_col, n_classes
+            n_items,
+            shuffle,
+            indexes,
+            resolution,
+            show,
+            fig_size,
+            save,
+            add_labels,
+            n_row,
+            n_col,
+            n_classes,
         )
 
     def get_class_count(self, load=True, save=True):

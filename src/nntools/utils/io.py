@@ -1,10 +1,12 @@
 import os
 
 import cv2
+import numpy as np
 import torch
 import yaml
 
 from nntools.utils.const import supportedExtensions
+from pathlib import Path
 
 
 def read_image(filepath, flag=None):
@@ -13,7 +15,9 @@ def read_image(filepath, flag=None):
         flag = cv2.IMREAD_UNCHANGED
     image = cv2.imread(filepath, flag)
     if image.ndim == 3:
-        return image[:, :, ::-1]  # Change from BGR to RGB
+        # Change from BGR to RGB. ascontiguousarray avoids returning a
+        # negative-stride view, which breaks torch.from_numpy and friends.
+        return np.ascontiguousarray(image[:, :, ::-1])
     else:
         return image
 
@@ -70,7 +74,11 @@ def create_folder(folder_path):
 
 
 def get_most_recent_file(dirpath, filtername=None):
-    files = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(dirpath)) for f in fn]
+    files = [
+        os.path.join(dp, f)
+        for dp, dn, fn in os.walk(os.path.expanduser(dirpath))
+        for f in fn
+    ]
     files.sort(key=lambda x: os.path.getmtime(x))
     if filtername is not None:
         files = [f for f in files if filtername in os.path.basename(f)]
@@ -78,8 +86,12 @@ def get_most_recent_file(dirpath, filtername=None):
         return files[-1]
 
 
-def jit_load(project_folder, experiment, run_name, run_id, filename=None, filtername="best"):
-    folder_path = os.path.join(project_folder, experiment, run_name, "trained_model", run_id)
+def jit_load(
+    project_folder, experiment, run_name, run_id, filename=None, filtername="best"
+):
+    folder_path = os.path.join(
+        project_folder, experiment, run_name, "trained_model", run_id
+    )
     script_path = os.path.join(folder_path, "model_scripted.pth")
     if not os.path.exists(script_path):
         return ValueError("No scripted model found")
@@ -97,11 +109,15 @@ def jit_load(project_folder, experiment, run_name, run_id, filename=None, filter
 def list_files_in_folder(folder, recursive=True):
     files = []
     if recursive:
-        for dirpath, dirnames, filenames in os.walk(folder):
+        for dirpath, dirnames, filenames in os.walk(folder, followlinks=True):
             for f in filenames:
                 if os.path.splitext(f)[1] in supportedExtensions:
-                    files.append(os.path.join(dirpath, f))
+                    files.append(Path(os.path.join(dirpath, f)))
     else:
-        files = [os.path.join(folder, f) for f in os.listdir(folder) if os.path.splitext(f)[1] in supportedExtensions]
+        files = [
+            Path(os.path.join(folder, f))
+            for f in os.listdir(folder)
+            if os.path.splitext(f)[1] in supportedExtensions
+        ]
 
     return files

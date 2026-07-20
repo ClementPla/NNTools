@@ -10,7 +10,7 @@ from attrs import define, field
 from torch.utils.data import Dataset
 
 from nntools.dataset.cache.disk import DiskCache
-from nntools.dataset.cache.memory import DuplicatedMemoryCache, MemoryCache
+from nntools.dataset.cache.memory import LocalMemoryCache, MemoryCache
 from nntools.dataset.functional.geometry import pad, resize
 from nntools.dataset.viewer import Viewer
 from nntools.utils.const import NNOpt
@@ -121,7 +121,7 @@ class AbstractImageDataset(Dataset, ABC):
                         raise ValueError("You must provide a dataset's id for the shared memory cache")
                     self.cache = MemoryCache(self)
                 case NNOpt.CACHE_DUPLICATED_MEMORY:
-                    self.cache = DuplicatedMemoryCache(self)
+                    self.cache = LocalMemoryCache(self)
 
     @property
     def real_length(self):
@@ -216,10 +216,13 @@ class AbstractImageDataset(Dataset, ABC):
         return self.__getitem__(index)
 
     def subset(self, indices: List[int]):
-        for k, files in self.img_filepath.items():
-            self.img_filepath[k] = files[indices]
-        for k, files in self.gts.items():
-            self.gts[k] = files[indices]
+        indices = np.asarray(indices)
+        # Coerce to ndarray first: single-key datasets keep img_filepath as a
+        # plain Python list, which does not support fancy indexing.
+        for k in list(self.img_filepath.keys()):
+            self.img_filepath[k] = np.asarray(self.img_filepath[k])[indices]
+        for k in list(self.gts.keys()):
+            self.gts[k] = np.asarray(self.gts[k])[indices]
 
     def __getitem__(self, index: int, return_indices: bool = False, return_tag: bool = False):
         if abs(index) >= len(self):
@@ -243,7 +246,7 @@ class AbstractImageDataset(Dataset, ABC):
             else:
                 outputs = inputs
         except Exception as e:
-            print(f"Error while calling composer on item {index}: {e}") 
+            print(f"Error while calling composer on item {index}: {e}")
             if NNToolSettings.config("dataset.on_error") == NNOpt.RAISE_ON_ERROR:
                 raise e
             elif NNToolSettings.config("dataset.on_error") == NNOpt.SKIP_ON_ERROR:

@@ -21,11 +21,12 @@ def convert_dict_to_plottable(dict_arrays):
         plotted_arrays[k] = v
     return plotted_arrays
 
+
 class Viewer:
     def __init__(self, dataset) -> None:
         self.d = dataset
-        self.cmap_name = 'jet_r'
-    
+        self.cmap_name = "jet_r"
+
     def plot(self, item: int, classes: Optional[List[str]] = None, fig_size: int = 1):
         arrays = self.d.__getitem__(item, return_indices=False)
         arrays = convert_dict_to_plottable(arrays)
@@ -65,7 +66,10 @@ class Viewer:
         elif n_col is None:
             n_col = math.ceil(n_items / n_row)
         if n_row * n_col < n_items:
-            logging.warning("With %i columns, %i row(s), only %i items can be plotted" % (n_col, n_row, n_row * n_col))
+            logging.warning(
+                "With %i columns, %i row(s), only %i items can be plotted"
+                % (n_col, n_row, n_row * n_col)
+            )
             n_items = n_row * n_col
         pad = 50 if add_labels else 0
         cols = []
@@ -105,10 +109,12 @@ class Viewer:
                             if k in self.d.gts:
                                 text += " " + str(self.d.gts[k][index])
                             elif k in self.d.img_filepath:
-                                text += " " + os.path.basename(self.d.img_filepath[k][index])
+                                text += " " + os.path.basename(
+                                    self.d.img_filepath[k][index]
+                                )
                         text = os.path.basename(text)
                         font = cv2.FONT_HERSHEY_SIMPLEX
-                        fontScale = 1.
+                        fontScale = 1.0
                         fontColor = (255, 255, 255)
                         lineType = 2
 
@@ -117,7 +123,15 @@ class Viewer:
                         textY = (textsize[1] + pad) // 2
 
                         bottomLeftCornerOfText = textX, textY
-                        cv2.putText(v, text, bottomLeftCornerOfText, font, fontScale, fontColor, lineType)
+                        cv2.putText(
+                            v,
+                            text,
+                            bottomLeftCornerOfText,
+                            font,
+                            fontScale,
+                            fontColor,
+                            lineType,
+                        )
                     if v.shape:
                         row.append(v)
 
@@ -128,8 +142,10 @@ class Viewer:
         mosaic = np.vstack(cols)
         if show:
             fig, ax = plt.subplots(1, 1)
-            ax.imshow(mosaic, interpolation="nearest")
-            fig.set_size_inches(fig_size * 5 * count_images * n_col, 5 * n_row * fig_size)
+            ax.imshow(mosaic, interpolation="none")
+            fig.set_size_inches(
+                fig_size * 5 * count_images * n_col, 5 * n_row * fig_size
+            )
             plt.axis("off")
             plt.tight_layout()
             fig.show()
@@ -138,5 +154,3 @@ class Viewer:
             cv2.imwrite(save, (mosaic * 255)[:, :, ::-1])
 
         return mosaic
-        
-        

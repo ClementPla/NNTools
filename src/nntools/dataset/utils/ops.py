@@ -12,11 +12,15 @@ def random_split(dataset, lengths, generator=default_generator):
         lengths.append(len(dataset) - sum(lengths))  # To prevent rounding error
 
     if sum(lengths) != len(dataset):
-        raise ValueError("Sum of input lengths does not equal the length of the input dataset!")
+        raise ValueError(
+            "Sum of input lengths does not equal the length of the input dataset!"
+        )
 
     indices = randperm(len(dataset), generator=generator).tolist()
-
-    split_idxs = [indices[offset - length : offset] for offset, length in zip(np.cumsum(lengths), lengths)]
+    split_idxs = [
+        indices[offset - length : offset]
+        for offset, length in zip(np.cumsum(lengths), lengths)
+    ]
 
     datasets = split(dataset, split_idxs)
     return tuple(datasets)
